@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+dist/
+build/
+
+# Environment variables
+.env.local
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Next.js
+out/
+.next
+.next/**
+!.next/cache/
+!.next/cache/***
+
+# Temporary files
+tmp/
+temp/
+
+# Large files that shouldn't be committed
+*.node
+*.tgz
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Specific large files mentioned in the error
+node_modules/@next/swc-linux-x64-gnu/next-swc.linux-x64-gnu.node
+node_modules/@next/swc-linux-x64-musl/next-swc.linux-x64-musl.node
