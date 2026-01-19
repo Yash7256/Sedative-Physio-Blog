@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { createClient } from '@supabase/supabase-js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/blogdb';
 
@@ -49,16 +48,3 @@ export default dbConnect;
 declare global {
   var mongoose: any;
 }
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export default supabase;
-
-// For backward compatibility
-export const dbConnect = async () => {
-  // Supabase client is instantiated at import time
-  return supabase;
-};
