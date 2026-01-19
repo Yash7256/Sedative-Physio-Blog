@@ -14,12 +14,6 @@ type Props = {
   params: { slug: string };
 };
 
-export const metadata: Metadata = {
-  title: "Projects | Akshay Kumar",
-  description:
-    "Akshay Kumar is a physiotherapist and researcher. He is passionate about teaching and exploring his profession.",
-};
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = params.slug;
   const product = products.find((p) => p.slug === slug);
