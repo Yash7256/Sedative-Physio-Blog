@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabaseServer';
-import { Blog } from '@/models/Blog';
+import { Blog } from '@/types/blog';
 
 export async function GET(
   request: NextRequest,

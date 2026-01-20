@@ -4,6 +4,7 @@ import { Highlight } from "@/components/Highlight";
 import { Paragraph } from "@/components/Paragraph";
 import { Blogs } from "@/components/Blogs";
 import { Metadata } from "next";
+import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   title: "Medical Research & Physiotherapy Insights",
@@ -45,8 +46,16 @@ export default async function Blog() {
   let usingSampleData = true;
   
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/blogs?published=true`, {
+    // Construct proper URL using headers for server components
+    const headersList = headers();
+    const host = headersList.get('host') || 'localhost:3000';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    // For development: show all blogs including drafts
+    // For production: uncomment the line below and comment the current apiUrl line
+    const apiUrl = `${protocol}://${host}/api/blogs`;
+    // const apiUrl = `${protocol}://${host}/api/blogs?published=true`; // Production version
+    
+    const response = await fetch(apiUrl, {
       cache: 'no-store'
     });
     

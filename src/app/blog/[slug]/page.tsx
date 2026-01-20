@@ -4,6 +4,10 @@ import { Paragraph } from "@/components/Paragraph";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from 'next/headers';
+
+// Force dynamic rendering since we use headers()
+export const dynamic = 'force-dynamic';
 
 interface BlogPost {
   id?: string;
@@ -26,8 +30,13 @@ interface BlogPost {
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
   // Fetch blog from Supabase with error handling
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/blogs/${params.slug}`, {
+    // Construct proper URL using headers for server components
+    const headersList = headers();
+    const host = headersList.get('host') || 'localhost:3000';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const apiUrl = `${protocol}://${host}/api/blogs/${params.slug}`;
+    
+    const response = await fetch(apiUrl, {
       cache: 'no-store'
     });
     
@@ -147,23 +156,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
 // Generate static params for all published blogs
 export async function generateStaticParams() {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/blogs?published=true`, {
-      cache: 'no-store'
-    });
-    
-    const result = await response.json();
-    
-    if (!result.success) {
-      return [];
-    }
-    
-    return result.data.map((blog: BlogPost) => ({
-      slug: blog.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return [];
-  }
+  // Return empty array to use dynamic rendering
+  // This avoids build-time API calls that may fail
+  return [];
 }
