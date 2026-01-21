@@ -9,12 +9,38 @@ const modelData = {
     filePath: "/open3dviewer/3dmodels/upper-limb/upper-limb.glb",
     category: "upper-limb"
   },
-  "overview-demo": {
-    name: "Skeleton Overview",
+  "exploded-skull": {
+    name: "Exploded Skull",
     description: "Complete skeletal system with major bone structures and landmarks",
-    filePath: "/open3dviewer/3dmodels/overview-demo/overview-demo.glb",
+    filePath: "/open3dviewer/3dmodels/exploded-skull/exploded-skull.glb",
     category: "skeleton"
-  }
+  },
+  "hand": {
+    name: "Hand & Wrist Structures",
+    description: "Comprehensive hand model showing bones, joints, and muscle attachments",
+    filePath: "/open3dviewer/3dmodels/hand/hand.glb",
+    category: "hand"
+  },
+  "lower-limb": {
+    name: "Lower Limb Anatomy",
+    description: "Detailed lower extremity model including hip, leg, and foot structures",
+    filePath: "/open3dviewer/3dmodels/lower-limb/lower-limb.glb",
+    category: "lower-limb"
+  },
+  "skull": {
+    name: "Skull Structures",
+    description: "Detailed skull model showing bones, sinuses, and landmarks",
+    filePath: "/open3dviewer/3dmodels/skull/skull.glb",
+    category: "skeleton"
+  },
+  "vertebrae": {
+    name: "Vertebrae Structures",
+    description: "Detailed model of individual vertebrae showing bones, joints, and spinal cord",
+    filePath: "/open3dviewer/3dmodels/vertebrae/vertebrae.glb",
+    category: "skeleton"
+  },
+
+
 };
 
 export async function generateMetadata({ searchParams }: { searchParams: { model?: string } }): Promise<Metadata> {

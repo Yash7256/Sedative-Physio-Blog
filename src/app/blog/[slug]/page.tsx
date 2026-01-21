@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from 'next/headers';
+import MultiModelAIChatbot from "@/components/MultiModelAIChatbot";
 
 // Force dynamic rendering since we use headers()
 export const dynamic = 'force-dynamic';
@@ -146,6 +147,9 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </div>
           </footer>
         </article>
+        
+        {/* Multi-Model AI Chatbot component */}
+        <MultiModelAIChatbot blogContent={blog.content} />
       </Container>
     );
   } catch (error) {

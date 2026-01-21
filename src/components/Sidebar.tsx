@@ -12,6 +12,7 @@ import { Badge } from "./Badge";
 import { AnimatePresence, motion } from "framer-motion";
 import { IconLayoutSidebarRightCollapse } from "@tabler/icons-react";
 import { isMobile } from "@/lib/utils";
+import { useChat } from "@/context/ChatContext";
 
 export const Sidebar = () => {
   const [open, setOpen] = useState(false);
@@ -64,29 +65,67 @@ export const Navigation = ({
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const pathname = usePathname();
+  const { openFullscreenChat, closeFullscreenChat, isFullscreenChatOpen } = useChat();
 
   const isActive = (href: string) => pathname === href;
 
   return (
     <div className="flex flex-col space-y-1 my-10 relative z-[100]">
       {navlinks.map((link: Navlink) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          onClick={() => isMobile() && setOpen(false)}
-          className={twMerge(
-            "text-secondary hover:text-primary transition duration-200 flex items-center space-x-2 py-2 px-2 rounded-md text-sm",
-            isActive(link.href) && "bg-white shadow-lg text-primary"
-          )}
-        >
-          <link.icon
+        link.href === '/ai-chat' ? (
+          <button
+            key={link.href}
+            onClick={() => {
+              console.log('AI Assistant button clicked');
+              // If chat is already open, close it; otherwise open it
+              if (isFullscreenChatOpen) {
+                closeFullscreenChat();
+              } else {
+                openFullscreenChat();
+              }
+              console.log('isMobile check:', isMobile());
+              isMobile() && setOpen(false);
+            }}
             className={twMerge(
-              "h-4 w-4 flex-shrink-0",
-              isActive(link.href) && "text-sky-500"
+              "text-secondary hover:text-primary transition duration-200 flex items-center space-x-2 py-2 px-2 rounded-md text-sm w-full text-left",
+              isActive(link.href) && "bg-white shadow-lg text-primary"
             )}
-          />
-          <span>{link.label}</span>
-        </Link>
+          >
+            <link.icon
+              className={twMerge(
+                "h-4 w-4 flex-shrink-0",
+                isActive(link.href) && "text-sky-500"
+              )}
+            />
+            <span>{link.label}</span>
+          </button>
+        ) : (
+          <Link
+            key={link.href}
+            href={link.href}
+            onClick={() => {
+              if (isMobile()) {
+                setOpen(false);
+              }
+              // Close fullscreen chat when navigating to other pages
+              if (pathname === '/ai-chat' || isFullscreenChatOpen) {
+                closeFullscreenChat();
+              }
+            }}
+            className={twMerge(
+              "text-secondary hover:text-primary transition duration-200 flex items-center space-x-2 py-2 px-2 rounded-md text-sm",
+              isActive(link.href) && "bg-white shadow-lg text-primary"
+            )}
+          >
+            <link.icon
+              className={twMerge(
+                "h-4 w-4 flex-shrink-0",
+                isActive(link.href) && "text-sky-500"
+              )}
+            />
+            <span>{link.label}</span>
+          </Link>
+        )
       ))}
 
       <Heading as="p" className="text-sm md:text-sm lg:text-sm pt-10 px-2">
