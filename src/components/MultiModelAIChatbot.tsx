@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { MODELS, classifyQuestion } from '../../ai-engine/models';
 import { useChat } from '@/context/ChatContext';
@@ -79,45 +79,52 @@ export default function MultiModelAIChatbot({ blogContent, startFullscreen = fal
   const { isFullscreenChatOpen, closeFullscreenChat } = useChat();
   const [isOpen, setIsOpen] = useState(startFullscreen || isFullscreenChatOpen);
   const [isFullscreen, setIsFullscreen] = useState(startFullscreen || isFullscreenChatOpen);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Debug logging
+  // Remove debug logging for performance
   useEffect(() => {
-    console.log('MultiModelAIChatbot mounted, context state:', { isFullscreenChatOpen, isOpen, isFullscreen });
-  }, []);
+    if (startFullscreen || isFullscreenChatOpen) {
+      setIsInitialized(true);
+    }
+  }, [startFullscreen, isFullscreenChatOpen]);
 
   // Sync with context when it changes
   useEffect(() => {
-    console.log('Context update received:', { isFullscreenChatOpen });
     if (isFullscreenChatOpen) {
-      console.log('Opening chat due to context change');
       setIsOpen(true);
       setIsFullscreen(true);
+      setIsInitialized(true);
     }
   }, [isFullscreenChatOpen]);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: blogContent 
-        ? "Hello! I'm your medical science and physiotherapy assistant. I can answer questions about this blog post or provide general information about physiotherapy topics." 
-        : "Hello! I'm your medical science and physiotherapy assistant. Ask me anything about physiotherapy, rehabilitation, or related topics!",
-      role: 'assistant',
-      timestamp: new Date(),
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('quick'); // Default to quick model
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  // Initialize messages after component mounts to improve initial render performance
+  useEffect(() => {
+    setMessages([
+      {
+        id: '1',
+        content: blogContent 
+          ? "Hello! I'm your medical science and physiotherapy assistant. I can answer questions about this blog post or provide general information about physiotherapy topics." 
+          : "Hello! I'm your medical science and physiotherapy assistant. Ask me anything about physiotherapy, rehabilitation, or related topics!",
+        role: 'assistant',
+        timestamp: new Date(),
+      }
+    ]);
+  }, [blogContent]);
+
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
 
@@ -209,7 +216,7 @@ export default function MultiModelAIChatbot({ blogContent, startFullscreen = fal
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [inputValue, isLoading, messages, blogContent]);
 
   return (
     <div className={`fixed z-50 ${isFullscreen ? 'top-0 left-64 right-0 bottom-0' : 'bottom-6 right-6'}`}>
@@ -283,7 +290,7 @@ export default function MultiModelAIChatbot({ blogContent, startFullscreen = fal
           )}
           
           <div className={`flex-1 overflow-y-auto p-3 bg-gray-50 ${isFullscreen ? 'px-8 py-6' : ''}`}>
-            {messages.map((message) => (
+            {isInitialized && messages.map((message) => (
               <div
                 key={message.id}
                 className={`mb-4 ${
@@ -332,6 +339,12 @@ export default function MultiModelAIChatbot({ blogContent, startFullscreen = fal
                 </div>
               </div>
             ))}
+            {!isInitialized && (
+              <div className="flex flex-col items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
+                <p className="text-gray-600 text-sm">Loading AI assistant...</p>
+              </div>
+            )}
             {isLoading && (
               <div className="mb-4 text-left">
                 <div className="flex items-start gap-3">
@@ -377,7 +390,10 @@ export default function MultiModelAIChatbot({ blogContent, startFullscreen = fal
         </div>
       ) : (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            setIsOpen(true);
+            setIsInitialized(true);
+          }}
           className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-full shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all transform hover:scale-105"
           aria-label="Open AI Assistant"
         >

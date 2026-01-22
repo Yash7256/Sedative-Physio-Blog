@@ -33,12 +33,12 @@ const modelData = {
     filePath: "/open3dviewer/3dmodels/skull/skull.glb",
     category: "skeleton"
   },
-  "vertebrae": {
+  "vertebrate": {
     name: "Vertebrae Structures",
     description: "Detailed model of individual vertebrae showing bones, joints, and spinal cord",
-    filePath: "/open3dviewer/3dmodels/vertebrae/vertebrae.glb",
+    filePath: "/open3dviewer/3dmodels/vertebrate/vertebrae.glb",
     category: "skeleton"
-  },
+  }
 
 
 };
@@ -46,20 +46,7 @@ const modelData = {
 export async function generateMetadata({ searchParams }: { searchParams: { model?: string } }): Promise<Metadata> {
   const modelId = searchParams?.model;
   
-  const model = modelId ? {
-    "upper-limb": {
-      name: "Upper Limb Anatomy",
-      description: "Detailed upper extremity model including shoulder, arm, and hand structures"
-    },
-    "overview-demo": {
-      name: "Skeleton Overview",
-      description: "Complete skeletal system with major bone structures and landmarks"
-    },
-    "hand-anatomy": {
-      name: "Hand & Wrist Structures",
-      description: "Comprehensive hand model showing bones, joints, and muscle attachments"
-    }
-  }[modelId] : null;
+  const model = modelId ? modelData[modelId as keyof typeof modelData] : null;
   
   return {
     title: model ? `${model.name} | 3D Anatomy Viewer` : "3D Model Viewer | Medical Visualization",

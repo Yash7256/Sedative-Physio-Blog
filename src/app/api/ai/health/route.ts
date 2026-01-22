@@ -1,10 +1,10 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   // Check if the API key is configured
   const hasApiKey = !!process.env.GROK_API_KEY;
   
-  return Response.json({
+  return NextResponse.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     features: {

@@ -5,9 +5,9 @@ import React from 'react';
  * Handles markdown-like formatting, lists, headers, and medical content structure
  */
 
-export function formatAIResponse(content: string): React.JSX.Element {
+export function formatAIResponse(content: string): React.JSX.Element | null {
   if (!content) {
-    return <>{content}</>;
+    return null;
   }
 
   // Split content into paragraphs

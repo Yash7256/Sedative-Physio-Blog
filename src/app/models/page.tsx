@@ -12,28 +12,52 @@ export const metadata: Metadata = {
 
 const models = [
   {
-    id: "overview-demo",
-    name: "Skeleton Overview",
-    description: "Complete skeletal system with major bone structures and landmarks",
-    category: "skeleton",
-    fileName: "overview-demo.glb",
-    thumbnail: "https://images.unsplash.com/photo-1576671415309-4a5a2fb7c975?w=400&h=300&fit=crop"
-  },
-  {
     id: "upper-limb",
     name: "Upper Limb Anatomy",
     description: "Detailed upper extremity model including shoulder, arm, and hand structures",
     category: "upper-limb",
-    fileName: "hand.glb",
+    fileName: "upper-limb.glb",
     thumbnail: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=400&h=300&fit=crop"
   },
   {
-    id: "hand-anatomy",
+    id: "hand",
     name: "Hand & Wrist Structures",
     description: "Comprehensive hand model showing bones, joints, and muscle attachments",
     category: "hand",
     fileName: "hand.glb",
     thumbnail: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=400&h=300&fit=crop"
+  },
+  {
+    id: "lower-limb",
+    name: "Lower Limb Anatomy",
+    description: "Detailed lower extremity model including hip, leg, and foot structures",
+    category: "lower-limb",
+    fileName: "lower-limb.glb",
+    thumbnail: "https://images.unsplash.com/photo-1576671415309-4a5a2fb7c975?w=400&h=300&fit=crop"
+  },
+  {
+    id: "skull",
+    name: "Skull Structures",
+    description: "Detailed skull model showing bones, sinuses, and landmarks",
+    category: "skeleton",
+    fileName: "skull.glb",
+    thumbnail: "https://images.unsplash.com/photo-1576671415309-4a5a2fb7c975?w=400&h=300&fit=crop"
+  },
+  {
+    id: "vertebrate",
+    name: "Vertebrae Structures",
+    description: "Detailed model of individual vertebrae showing bones, joints, and spinal cord",
+    category: "skeleton",
+    fileName: "vertebrae.glb",
+    thumbnail: "https://images.unsplash.com/photo-1576671415309-4a5a2fb7c975?w=400&h=300&fit=crop"
+  },
+  {
+    id: "exploded-skull",
+    name: "Exploded Skull",
+    description: "Complete skeletal system with major bone structures and landmarks",
+    category: "skeleton",
+    fileName: "exploded-skull.glb",
+    thumbnail: "https://images.unsplash.com/photo-1576671415309-4a5a2fb7c975?w=400&h=300&fit=crop"
   }
 ];
 
@@ -60,9 +84,9 @@ export default function ModelsPage() {
             <div className="aspect-video bg-gray-100 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
                 <div className="text-4xl">
-                  {model.category === 'skeleton' && '💀'}
-                  {model.category === 'upper-limb' && '💪'}
-                  {model.category === 'hand' && '✋'}
+                  {model.category === 'skeleton' }
+                  {model.category === 'upper-limb' }
+                  {model.category === 'hand'}
                 </div>
               </div>
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>

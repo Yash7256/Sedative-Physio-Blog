@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { twMerge } from "tailwind-merge";
 import { Footer } from "@/components/Footer";
-import MultiModelAIChatbot from "@/components/MultiModelAIChatbot";
+
 import { ChatProvider } from "@/context/ChatContext";
 
 const inter = Inter({
@@ -39,8 +39,7 @@ export default function RootLayout({
               <Footer />
             </div>
           </div>
-          {/* Multi-Model AI Chatbot available site-wide */}
-          <MultiModelAIChatbot />
+
         </ChatProvider>
       </body>
     </html>

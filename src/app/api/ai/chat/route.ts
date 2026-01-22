@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import AIService from '../../../../../ai-engine/aiService';
 
 export async function POST(request: NextRequest) {
@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     
     // Validate input
     if (!messages || !Array.isArray(messages)) {
-      return Response.json(
+      return NextResponse.json(
         { error: 'Messages array is required' },
         { status: 400 }
       );
@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
     const result = await aiService.chatCompletion(messages, model);
 
     if (!result.success) {
-      return Response.json(
+      return NextResponse.json(
         { error: result.error },
         { status: 500 }
       );
     }
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
       data: result.data,
       model: result.model,
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('AI Chat API Error:', error);
-    return Response.json(
+    return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
