@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { twMerge } from "tailwind-merge";
 import { Footer } from "@/components/Footer";
+import { Analytics } from "@vercel/analytics/next";
 
 import { ChatProvider } from "@/context/ChatContext";
 
@@ -39,7 +40,7 @@ export default function RootLayout({
               <Footer />
             </div>
           </div>
-
+          <Analytics />
         </ChatProvider>
       </body>
     </html>
