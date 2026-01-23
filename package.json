@@ -12,7 +12,9 @@
     "@mapbox/rehype-prism": "^0.8.0",
     "@mdx-js/loader": "^2.3.0",
     "@next/mdx": "^13.4.19",
-    "@supabase/supabase-js": "^2.90.1",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.39",
+
     "@tabler/icons-react": "^2.32.0",
     "@tailwindcss/typography": "^0.5.9",
     "@tiptap/extension-bold": "^3.15.3",
@@ -38,11 +40,12 @@
     "@types/uuid": "^11.0.0",
     "autoprefixer": "10.4.15",
     "cloudinary": "^2.9.0",
-    "clsx": "^2.0.0",
+    "clsx": "^2.1.1",
     "eslint": "8.47.0",
     "eslint-config-next": "13.4.19",
     "formidable": "^3.5.4",
     "framer-motion": "^10.16.1",
+    "lucide-react": "^0.562.0",
     "mongoose": "^9.1.4",
     "multer": "^2.0.2",
     "next": "13.4.19",
@@ -56,5 +59,8 @@
     "tailwindcss": "3.3.3",
     "typescript": "5.1.6",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^8.2.3"
   }
 }

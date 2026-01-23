@@ -21,7 +21,7 @@ export const navlinks = [
   },
   {
     href: "/projects",
-    label: "Research",
+    label: "Courses",
     icon: IconBriefcase2,
   },
   {
@@ -44,4 +44,9 @@ export const navlinks = [
     label: "Contact",
     icon: IconMail,
   },
+  {
+    href: "/resources",
+    label: "Resources",
+    icon: IconArticle,
+  }
 ];
