@@ -3,6 +3,13 @@ import { supabaseAdmin } from '../../../../lib/supabaseServer';
 import { Blog } from '@/types/blog';
 
 export async function GET(request: NextRequest) {
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { success: false, error: 'Database not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -63,6 +70,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { success: false, error: 'Database not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { title, description, content, cover_image, coverImage, tags, author, published, featured } = body;

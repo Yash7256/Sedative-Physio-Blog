@@ -6,6 +6,13 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { success: false, error: 'Database not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const { data, error } = await supabaseAdmin
       .from('blogs')
@@ -45,6 +52,13 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { success: false, error: 'Database not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { title, description, content, cover_image, coverImage, tags, author, published, featured } = body;
@@ -105,6 +119,13 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { success: false, error: 'Database not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const { error } = await supabaseAdmin
       .from('blogs')
