@@ -7,7 +7,7 @@ export function Footer() {
         © {new Date().getFullYear()} Sedative Physio. All rights reserved.
       </div>
       <div className="text-sm text-gray-500">
-      
+        <Link href="/notes" className="hover:underline">Resources</Link>
       </div>
     </footer>
   );

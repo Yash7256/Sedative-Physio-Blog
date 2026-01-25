@@ -45,8 +45,8 @@ export const navlinks = [
     icon: IconMail,
   },
   {
-    href: "/resources",
+    href: "/notes",
     label: "Resources",
     icon: IconArticle,
-  }
+  },
 ];

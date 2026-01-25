@@ -79,7 +79,7 @@ export default function HeroSection() {
           className="relative z-10 mt-20 rounded-3xl border border-neutral-200 bg-black p-4 shadow-md dark:border-neutral-800 dark:bg-black"
         >
           <div className="w-full overflow-hidden rounded-xl border border-gray-800 dark:border-gray-700 h-96">
-            <SplineScene scene="/spline/pill.spline" className="w-full h-full" />
+            <SplineScene className="w-full h-full" />
           </div>
         </motion.div>
       </div>
