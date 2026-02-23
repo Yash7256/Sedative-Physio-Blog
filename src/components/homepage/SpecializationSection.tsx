@@ -40,12 +40,11 @@ export function SpecializationSection() {
               key={index}
               className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 hover:border-black hover:shadow-lg transition-all duration-200 group cursor-pointer"
             >
-              <div className="text-4xl md:text-5xl mb-4">{spec.emoji}</div>
               <h3 className="text-lg md:text-xl font-bold text-black mb-2">
                 {spec.name}
               </h3>
               <p className="text-gray-600 text-sm md:text-base mb-4">
-                {spec.courses} Courses
+                {spec.courses || ""} Courses
               </p>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <a href="#" className="text-black font-bold text-sm">
