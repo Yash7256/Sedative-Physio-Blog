@@ -6,7 +6,7 @@ export interface INote {
   original_name: string;
   content_type: string;
   size: number;
-  created_at: Date;
+  uploaded_at: Date;
   category?: string;
   tags?: string[];
 }

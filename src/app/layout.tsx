@@ -14,9 +14,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Medical Science & Physiotherapy Research",
+  title: "Sedative Physio | BPT Learning Platform",
   description:
-    "Evidence-based research and clinical insights in physiotherapy, rehabilitation medicine, and movement science.",
+    "Master Physiotherapy with expert-led courses built exclusively for BPT students. Learn from practicing clinicians, earn recognized certifications.",
 };
 
 export default function RootLayout({
@@ -29,16 +29,11 @@ export default function RootLayout({
       <body
         className={twMerge(
           inter.className,
-          "antialiased bg-gray-100 min-h-screen flex flex-col"
+          "antialiased bg-white min-h-screen flex flex-col"
         )}
       >
         <ChatProvider>
-            <TopNavbar />
-            <main className="flex-grow bg-gray-100 pt-16">
-              <div className="bg-white min-h-[calc(100vh-4rem)] border border-transparent lg:border-neutral-200">
-                {children}
-              </div>
-            </main>
+            {children}
             <Footer />
           </ChatProvider>
       </body>

@@ -17,11 +17,11 @@ const noteSchema = new mongoose.Schema<INote>({
     required: true,
     unique: true,
   },
-  originalName: {
+  original_name: {
     type: String,
     required: true,
   },
-  contentType: {
+  content_type: {
     type: String,
     required: true,
   },
@@ -29,7 +29,7 @@ const noteSchema = new mongoose.Schema<INote>({
     type: Number,
     required: true,
   },
-  uploadedAt: {
+  uploaded_at: {
     type: Date,
     default: Date.now,
   },
