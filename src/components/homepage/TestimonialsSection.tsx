@@ -77,10 +77,7 @@ export function TestimonialsSection() {
     <section className="w-full bg-gray-50 py-12 md:py-24 px-4 md:px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <p className="text-center text-gray-600 text-sm md:text-base font-medium mb-4 md:mb-6">
-          Student Stories
-        </p>
-        <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-black text-center mb-12 md:mb-16 max-w-3xl mx-auto">
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-black text-center mb-12 md:mb-16 max-w-3xl mx-auto">
           What BPT Students Are Saying
         </h2>
 

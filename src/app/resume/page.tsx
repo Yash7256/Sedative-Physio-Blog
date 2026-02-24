@@ -1,3 +1,6 @@
+"use client";
+
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { Container } from "@/components/Container";
 import { Heading } from "@/components/Heading";
 import { Highlight } from "@/components/Highlight";
@@ -8,7 +11,8 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <Container>
+    <ProtectedRoute>
+      <Container>
       <span className="text-4xl">💼</span>
       <Heading className="font-black">Work History</Heading>
       <Paragraph className="max-w-xl mt-4">
@@ -18,5 +22,5 @@ export default function Home() {
       </Paragraph>
       <WorkHistory />
     </Container>
-  );
+    </ProtectedRoute>
 }

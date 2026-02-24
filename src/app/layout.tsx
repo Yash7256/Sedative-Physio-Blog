@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import LoadingWrapper from "@/components/LoadingWrapper";
 
 import { ChatProvider } from "@/context/ChatContext";
+import { AuthProvider } from "@/components/SupabaseProvider";
 
 
 const inter = Inter({
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   description:
     "Master Physiotherapy with expert-led courses built exclusively for BPT students. Learn from practicing clinicians, earn recognized certifications.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/images/favicon.ico",
   },
 };
 
@@ -36,13 +37,15 @@ export default function RootLayout({
           "antialiased bg-white min-h-screen flex flex-col"
         )}
       >
-        <ChatProvider>
-          <StickyNavbar />
-          <LoadingWrapper>
-            {children}
-            <Footer />
-          </LoadingWrapper>
-        </ChatProvider>
+        <AuthProvider>
+          <ChatProvider>
+            <StickyNavbar />
+            <LoadingWrapper>
+              {children}
+              <Footer />
+            </LoadingWrapper>
+          </ChatProvider>
+        </AuthProvider>
       </body>
     </html>
   );

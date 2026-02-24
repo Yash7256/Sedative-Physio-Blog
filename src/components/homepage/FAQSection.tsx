@@ -92,10 +92,10 @@ export function FAQSection() {
   const [openId, setOpenId] = useState<number | null>(null);
 
   return (
-    <section className="w-full bg-white py-12 md:py-24 px-4 md:px-6">
+    <section className="w-full bg-white py-8 md:py-12 px-4 md:px-6">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-black text-center mb-12 md:mb-16">
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-black text-center mb-12 md:mb-16">
           Frequently Asked Questions
         </h2>
 

@@ -390,7 +390,7 @@ export function TrustedBySection() {
   const duplicatedInstitutions = [...institutions, ...institutions];
 
   return (
-    <section className="w-full bg-white py-12 md:py-24 overflow-hidden">
+    <section className="w-full bg-white py-4 md:py-6 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <p className="text-center text-gray-600 text-sm md:text-base font-medium mb-10 md:mb-16">
           Students from these institutions learn with us

@@ -1,6 +1,11 @@
+"use client";
+
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 export default function Projects() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center px-4">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center px-4">
       <div className="text-center max-w-2xl mx-auto">
         <div className="mb-8">
           <img
@@ -23,5 +28,6 @@ export default function Projects() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

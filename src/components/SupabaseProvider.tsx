@@ -37,7 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (hasValidSupabaseConfig) {
       return createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          auth: {
+            flowType: 'pkce',
+          },
+        }
       );
     }
     // Return a mock client if no valid config
@@ -117,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     if (!hasValidSupabaseConfig || !supabase) {
-      console.error("Supabase is not configured. Cannot sign in with Google.");
+      console.error("Supabase is not configured. Cannot n with Google.");
       alert("Authentication service is not available. Please check your configuration.");
       return;
     }
@@ -126,13 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
         }
       });
 
       if (error) {
         console.error('Error signing in with Google:', error.message);
-        throw error;
+        alert(error.message);
       }
     } catch (err) {
       console.error('Network error signing in with Google:', err);
@@ -161,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     if (!hasValidSupabaseConfig || !supabase) {
-      console.error("Supabase is not configured. Cannot sign in with email.");
+      console.error("Supabase is not configured. Cannot n with email.");
       return { error: { message: "Authentication service is not available." } };
     }
     
@@ -178,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { data };
     } catch (err) {
-      console.error('Network or API error during sign in:', err);
+      console.error('Network or API error during n:', err);
       return { error: { message: 'Authentication service unavailable' } };
     }
   };

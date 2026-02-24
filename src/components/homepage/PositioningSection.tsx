@@ -14,12 +14,10 @@ export function PositioningSection() {
     <section className="w-full bg-white py-12 md:py-24 px-4 md:px-6">
       <div className="max-w-7xl mx-auto">
         {/* Label */}
-        <p className="text-center text-gray-600 text-sm md:text-base font-medium mb-4 md:mb-6">
-          Why Choose Us
-        </p>
+
 
         {/* Headline */}
-        <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-black text-center mb-12 md:mb-16 max-w-3xl mx-auto">
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-black text-center mb-12 md:mb-16 max-w-3xl mx-auto">
           Not a General Platform. Built Exclusively for Physio.
         </h2>
 

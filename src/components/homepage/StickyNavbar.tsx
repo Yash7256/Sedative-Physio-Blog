@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import LoginButton from "@/components/LoginButton";
 
 export function StickyNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,9 +62,7 @@ export function StickyNavbar() {
 
           {/* Desktop CTA Buttons */}
           <div className="hidden lg:flex items-center gap-4">
-            <a href="#" className="text-sm text-black hover:opacity-70">
-              Login
-            </a>
+            <LoginButton />
             <button className="px-6 py-2.5 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-900 transition-colors">
               Start Learning
             </button>
@@ -98,9 +97,7 @@ export function StickyNavbar() {
                 </a>
               ))}
               <div className="border-t border-gray-200 pt-4 flex flex-col gap-3">
-                <a href="#" className="text-black font-medium py-2">
-                  Login
-                </a>
+                <LoginButton />
                 <button className="w-full px-4 py-2.5 bg-black text-white rounded-full font-medium">
                   Start Learning
                 </button>

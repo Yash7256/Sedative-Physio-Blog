@@ -1,14 +1,11 @@
-import { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Medical Research & Physiotherapy Insights",
-  description:
-    "Evidence-based research and clinical insights in physiotherapy, rehabilitation medicine, and movement science.",
-};
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function Blog() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center px-4">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center px-4">
       <div className="text-center max-w-2xl mx-auto">
         <div className="mb-8">
           <img
@@ -31,5 +28,6 @@ export default function Blog() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

@@ -9,7 +9,7 @@ interface Stat {
 
 export function HeroSection() {
   return (
-    <section className="w-full bg-white pt-12 md:pt-24 pb-16 md:pb-24 px-4 md:px-6">
+    <section className="w-full bg-white pt-12 md:pt-24 pb-4 md:pb-6 px-4 md:px-6">
       <div className="max-w-4xl mx-auto">
         {/* Badge */}
         <div className="flex justify-center mb-6 md:mb-8">
@@ -19,10 +19,8 @@ export function HeroSection() {
         </div>
 
         {/* Main Headline */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-black text-center leading-tight mb-6 md:mb-8">
-          Master Physiotherapy.
-          <br />
-          Learn from Real Clinicians.
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black text-center leading-tight mb-6 md:mb-8">
+          Master Physiotherapy. Learn from Real Clinicians.
         </h1>
 
         {/* Sub-headline */}
