@@ -1,4 +1,3 @@
-import { TopNavbar } from "@/components/TopNavbar";
 import { StickyNavbar } from "@/components/homepage/StickyNavbar";
 import "./globals.css";
 import type { Metadata } from "next";
