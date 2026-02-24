@@ -9,13 +9,11 @@ export function StickyNavbar() {
   const [hasScrolled, setHasScrolled] = useState(false);
 
   const navLinks = [
-    "About",
-    "Courses",
-    "Live Classes",
-    "Specializations",
-    "Certifications",
-    "Blog",
-    "Resources",
+    { label: "About", href: "/about" },
+    { label: "Courses", href: "/projects" },
+    { label: "Blog", href: "/blog" },
+    { label: "Resources", href: "/resources" },
+    { label: "Contact", href: "/contact" },
   ];
 
   if (typeof window !== "undefined") {
@@ -37,19 +35,26 @@ export function StickyNavbar() {
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
           {/* Logo */}
-          <div className="font-bold text-lg md:text-xl text-black font-['system-ui']">
-            Sedative Physio
-          </div>
+          <a href="/" className="flex items-center gap-3">
+            <img
+              src="/images/logo.png"
+              alt="Sedative Physio"
+              className="h-10 w-auto"
+            />
+            <span className="font-bold text-lg md:text-xl text-black font-['system-ui']">
+              Sedative Physio
+            </span>
+          </a>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => (
               <a
-                key={link}
-                href={`#${link.toLowerCase().replace(" ", "-")}`}
+                key={link.label}
+                href={link.href}
                 className="text-sm text-black hover:opacity-70 transition-opacity font-medium"
               >
-                {link}
+                {link.label}
               </a>
             ))}
           </div>
@@ -84,12 +89,12 @@ export function StickyNavbar() {
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
                 <a
-                  key={link}
-                  href={`#${link.toLowerCase().replace(" ", "-")}`}
+                  key={link.label}
+                  href={link.href}
                   className="text-black font-medium py-2 hover:opacity-70"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {link}
+                  {link.label}
                 </a>
               ))}
               <div className="border-t border-gray-200 pt-4 flex flex-col gap-3">

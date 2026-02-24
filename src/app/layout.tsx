@@ -1,9 +1,11 @@
 import { TopNavbar } from "@/components/TopNavbar";
+import { StickyNavbar } from "@/components/homepage/StickyNavbar";
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { twMerge } from "tailwind-merge";
 import { Footer } from "@/components/Footer";
+import LoadingWrapper from "@/components/LoadingWrapper";
 
 import { ChatProvider } from "@/context/ChatContext";
 
@@ -17,6 +19,9 @@ export const metadata: Metadata = {
   title: "Sedative Physio | BPT Learning Platform",
   description:
     "Master Physiotherapy with expert-led courses built exclusively for BPT students. Learn from practicing clinicians, earn recognized certifications.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -33,9 +38,12 @@ export default function RootLayout({
         )}
       >
         <ChatProvider>
+          <StickyNavbar />
+          <LoadingWrapper>
             {children}
             <Footer />
-          </ChatProvider>
+          </LoadingWrapper>
+        </ChatProvider>
       </body>
     </html>
   );

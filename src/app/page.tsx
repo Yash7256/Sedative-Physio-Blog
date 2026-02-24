@@ -1,5 +1,4 @@
 import { AnnouncementBar } from "@/components/homepage/AnnouncementBar";
-import { StickyNavbar } from "@/components/homepage/StickyNavbar";
 import { HeroSection } from "@/components/homepage/HeroSection";
 import { StatsSection } from "@/components/homepage/StatsSection";
 import { PositioningSection } from "@/components/homepage/PositioningSection";
@@ -17,11 +16,11 @@ export default function Home() {
   return (
     <div className="w-full bg-white">
       <AnnouncementBar />
-      <StickyNavbar />
       <main className="pt-12">
         <HeroSection />
         <StatsSection />
         <PositioningSection />
+        <TrustedBySection />
         <SpecializationSection />
         <CertificationsSection />
         <HowItWorksSection />

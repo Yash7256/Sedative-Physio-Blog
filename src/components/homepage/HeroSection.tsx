@@ -55,7 +55,7 @@ export function HeroSection() {
           </div>
           <div>
             <p className="text-sm md:text-base font-medium text-black">
-              Trusted by 600+ BPT students
+              Trusted by 600+ Physiotherapy students
             </p>
             <p className="text-xs md:text-sm text-gray-600">⭐ 4.8/5 average rating</p>
           </div>
