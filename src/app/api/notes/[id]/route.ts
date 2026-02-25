@@ -26,8 +26,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           .from('notes')
           .createSignedUrl(note.filename, 60 * 60); // 1 hour
 
-        if (!urlError && urlData && urlData.signedURL) {
-          return NextResponse.redirect(urlData.signedURL);
+        if (!urlError && urlData && urlData.signedUrl) {
+          return NextResponse.redirect(urlData.signedUrl);
         }
       } catch (err) {
         console.warn('Failed to create signed URL, falling back to local file:', err);
