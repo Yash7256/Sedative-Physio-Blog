@@ -32,10 +32,21 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
   // Fetch blog from Supabase with error handling
   try {
     // Construct proper URL using headers for server components
+    // Prefer an explicit environment base URL, then forwarded headers, then host.
     const headersList = headers();
-    const host = headersList.get('host') || 'localhost:3000';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const apiUrl = `${protocol}://${host}/api/blogs/${params.slug}`;
+    const forwardedHost = headersList.get('x-forwarded-host') ?? headersList.get('host');
+    const envBase = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
+
+    let baseUrl: string;
+    if (envBase) {
+      baseUrl = envBase.replace(/\/$/, '');
+    } else {
+      const host = forwardedHost ?? 'localhost:3000';
+      const protocol = host.includes('localhost') ? 'http' : 'https';
+      baseUrl = `${protocol}://${host}`;
+    }
+
+    const apiUrl = `${baseUrl}/api/blogs/${params.slug}`;
     
     const response = await fetch(apiUrl, {
       cache: 'no-store'

@@ -16,7 +16,8 @@ interface BlogFormData {
   category?: string;
 }
 
-const ADMIN_PASSWORD = "admin123"; // In production, use environment variables
+  // Admin password is checked server-side via `/api/admin/check-password`.
+  // Set the server-side password in `.env.local` as `ADMIN_PASSWORD`.
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -63,17 +64,30 @@ export default function Admin() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate authentication delay
-    setTimeout(() => {
-      if (password === ADMIN_PASSWORD) {
-        setIsAuthenticated(true);
-        localStorage.setItem("admin-authenticated", "true");
-        toast.success("Login successful!");
-      } else {
-        toast.error("Incorrect password!");
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/check-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        });
+
+        const json = await res.json();
+
+        if (res.ok && json.success) {
+          setIsAuthenticated(true);
+          localStorage.setItem('admin-authenticated', 'true');
+          toast.success('Login successful!');
+        } else {
+          toast.error(json.error || 'Incorrect password!');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        toast.error('Login failed');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }, 500);
+    })();
   };
 
   const handleLogout = () => {
@@ -587,7 +601,7 @@ export default function Admin() {
                   <input
                     type="text"
                     id="note-title"
-                    name="note-title"
+                    name="title"
                     value={formData.title}
                     onChange={handleInputChange}
                     required

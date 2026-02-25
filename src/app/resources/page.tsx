@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Icon3dCubeSphere, IconArrowRight } from "@tabler/icons-react";
+import { Icon3dCubeSphere, IconArrowRight, IconNotes } from "@tabler/icons-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function ResourcesPage() {
@@ -13,6 +13,14 @@ export default function ResourcesPage() {
       icon: Icon3dCubeSphere,
       href: "/models",
       color: "from-blue-500 to-cyan-500",
+    },
+    {
+      id: "notes",
+      title: "Notes",
+      description: "Personal notes and study materials for physiotherapy learning",
+      icon: IconNotes,
+      href: "/notes",
+      color: "from-amber-500 to-orange-500",
     },
   ];
 

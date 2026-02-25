@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS notes (
   description TEXT,
   filename VARCHAR(500) NOT NULL,
   original_name VARCHAR(500) NOT NULL,
+  storage_path VARCHAR(500),
   content_type VARCHAR(100) NOT NULL,
   size BIGINT NOT NULL,
   category VARCHAR(100),

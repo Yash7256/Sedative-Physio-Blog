@@ -3,10 +3,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { supabaseAdmin } from '../../../../../lib/supabaseServer';
 
-// Configure upload directory
+// Configure upload directory (fallback)
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'notes');
 
-// Ensure upload directory exists
 async function ensureUploadDir() {
   try {
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
@@ -17,14 +16,6 @@ async function ensureUploadDir() {
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if Supabase is configured
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 });
-    }
-
-    // Ensure upload directory exists
-    await ensureUploadDir();
-
     // Parse form data
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -52,42 +43,98 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File size exceeds 10MB limit' }, { status: 400 });
     }
 
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = `${uniqueSuffix}_${file.name}`;
-    const filepath = path.join(UPLOAD_DIR, filename);
-
-    // Convert file to buffer and save
     const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(filepath, buffer);
 
-    // Insert note record into Supabase
-    const { data: noteData, error } = await supabaseAdmin
-      .from('notes')
-      .insert([{
-        title,
-        description: description || '',
-        filename,
-        original_name: file.name,
-        content_type: file.type,
-        size: file.size,
-        category: category || null,
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-      }])
-      .select()
-      .single();
+    // If supabase admin client available, upload to Supabase Storage
+    if (supabaseAdmin) {
+      try {
+        // Ensure bucket exists (ignore error if already exists)
+        try {
+          await supabaseAdmin.storage.createBucket('notes', { public: false });
+        } catch (err) {
+          // ignore
+        }
 
-    if (error) {
-      console.error('Supabase insert error:', error);
-      return NextResponse.json({ error: 'Failed to save note metadata' }, { status: 500 });
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const filename = `${uniqueSuffix}_${file.name}`;
+        const storagePath = `notes/${filename}`;
+
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from('notes')
+          .upload(filename, buffer, { contentType: file.type });
+
+        if (uploadError) {
+          console.error('Supabase storage upload error:', uploadError);
+          return NextResponse.json({ error: 'Supabase storage upload error', details: uploadError }, { status: 500 });
+        }
+
+        // Insert note metadata
+        const { data: noteData, error: insertError } = await supabaseAdmin
+          .from('notes')
+          .insert([{
+            title,
+            description: description || '',
+            filename: filename,
+            original_name: file.name,
+            content_type: file.type,
+            size: file.size,
+            category: category || null,
+            tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+            storage_path: storagePath,
+          }])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Supabase insert error:', insertError);
+          return NextResponse.json({ error: 'Failed to save note metadata', details: insertError }, { status: 500 });
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: 'Note uploaded successfully',
+          noteId: noteData.id,
+          filename: noteData.filename,
+        });
+      } catch (err) {
+        console.error('Supabase upload flow error:', err);
+        // Fall back to local filesystem below
+      }
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Note uploaded successfully',
-      noteId: noteData.id,
-      filename: noteData.filename,
-    });
+    // Fallback: save to local filesystem
+    await ensureUploadDir();
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const filename = `${uniqueSuffix}_${file.name}`;
+    const filepath = path.join(UPLOAD_DIR, filename);
+    await fs.writeFile(filepath, buffer);
+
+    if (supabaseAdmin) {
+      // still insert metadata to Supabase (without storage path)
+      const { data: noteData, error: insertError } = await supabaseAdmin
+        .from('notes')
+        .insert([{
+          title,
+          description: description || '',
+          filename,
+          original_name: file.name,
+          content_type: file.type,
+          size: file.size,
+          category: category || null,
+          tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+        }])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Supabase insert error (fallback):', insertError);
+        return NextResponse.json({ error: 'Failed to save note metadata', details: insertError }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, message: 'Note uploaded (fallback) successfully', noteId: noteData.id, filename: noteData.filename });
+    }
+
+    return NextResponse.json({ success: true, message: 'Note saved locally', filename });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: 'Failed to upload note' }, { status: 500 });

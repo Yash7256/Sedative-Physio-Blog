@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import PDFViewer from './PDFViewer';
 
 interface Note {
   id: string;
@@ -12,12 +13,15 @@ interface Note {
   created_at: string;
   category?: string;
   tags?: string[];
+  preview_url?: string | null;
 }
 
 const NotesList = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [viewerTitle, setViewerTitle] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,11 +64,20 @@ const NotesList = () => {
 
   const handleDownload = async (id: string, filename: string) => {
     try {
-      window.open(`/api/notes/${id}`, '_blank');
+      // Use the preview_url from the API if available (it may be a signed Supabase URL)
+      const note = notes.find(n => n.id === id);
+      const url = note?.preview_url || `/api/notes/${id}`;
+      window.open(url, '_blank');
     } catch (err) {
       console.error('Download error:', err);
       alert('Failed to download the file');
     }
+  };
+
+  const openPreview = (note: Note) => {
+    const url = note.preview_url || `/api/notes/${note.id}`;
+    setViewerTitle(note.title || null);
+    setViewerUrl(url);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -224,13 +237,12 @@ const NotesList = () => {
                       >
                         Download
                       </button>
-                      <Link 
-                        href={`/api/notes/${note.id}`}
-                        target="_blank"
-                        className="flex-1 px-3 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300 transition-colors duration-200 text-center"
+                      <button
+                        onClick={() => openPreview(note)}
+                        className="flex-1 px-3 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300 transition-colors duration-200"
                       >
                         Preview
-                      </Link>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -272,6 +284,9 @@ const NotesList = () => {
             </div>
           )}
         </>
+      )}
+      {viewerUrl && (
+        <PDFViewer url={viewerUrl} title={viewerTitle} onClose={() => setViewerUrl(null)} />
       )}
     </div>
   );

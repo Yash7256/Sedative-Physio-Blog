@@ -4,9 +4,7 @@ import { supabaseAdmin } from '../../../../lib/supabaseServer';
 export async function GET(request: NextRequest) {
   try {
     // Check if Supabase is configured
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 });
-    }
+    // supabaseAdmin may be null; we'll still allow a fallback to local URLs when possible
 
     // Parse query parameters
     const url = new URL(request.url);
@@ -41,9 +39,37 @@ export async function GET(request: NextRequest) {
 
     const total = count || 0;
 
+    // Attach preview URLs (signed when using Supabase Storage, or local public path fallback)
+    const enriched = await Promise.all((notes || []).map(async (note: any) => {
+      let preview_url: string | null = null;
+
+      if (supabaseAdmin && note.filename) {
+        try {
+          const { data: urlData, error: urlError } = await supabaseAdmin.storage
+            .from('notes')
+            .createSignedUrl(note.filename, 60 * 60); // 1 hour
+
+          if (!urlError && urlData && urlData.signedURL) {
+            preview_url = urlData.signedURL;
+          }
+        } catch (err) {
+          console.warn('Failed to create signed URL for', note.filename, err);
+        }
+      }
+
+      // Fallback to local public folder - use original_name if available
+      if (!preview_url && note.filename) {
+        // Try original_name first (files in /public/), then filename (files in /uploads/notes/)
+        const fileName = note.original_name || note.originalName || note.filename;
+        preview_url = `/${fileName}`;
+      }
+
+      return { ...note, preview_url };
+    }));
+
     return NextResponse.json({
       success: true,
-      data: notes,
+      data: enriched,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),

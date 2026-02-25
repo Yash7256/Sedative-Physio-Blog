@@ -8,41 +8,58 @@ const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'notes');
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Check if Supabase is configured
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 });
-    }
-
     const { id } = params;
 
     // Find note by ID
-    const { data: note, error } = await supabaseAdmin
-      .from('notes')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data: note, error } = await (supabaseAdmin
+      ? supabaseAdmin.from('notes').select('*').eq('id', id).single()
+      : Promise.resolve({ data: null, error: 'Supabase not configured' } as any));
 
     if (error || !note) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });
     }
 
-    // Construct file path
-    const filepath = path.join(UPLOAD_DIR, note.filename);
+    // If stored in Supabase, generate a signed URL and redirect to it
+    if (supabaseAdmin && note.filename) {
+      try {
+        const { data: urlData, error: urlError } = await supabaseAdmin.storage
+          .from('notes')
+          .createSignedUrl(note.filename, 60 * 60); // 1 hour
 
-    // Check if file exists
-    try {
-      await fs.access(filepath);
-    } catch (error) {
+        if (!urlError && urlData && urlData.signedURL) {
+          return NextResponse.redirect(urlData.signedURL);
+        }
+      } catch (err) {
+        console.warn('Failed to create signed URL, falling back to local file:', err);
+      }
+    }
+
+    // Fallback: serve local file - check multiple possible locations
+    const possiblePaths = [
+      path.join(UPLOAD_DIR, note.filename),
+      path.join(process.cwd(), 'public', 'uploads', 'notes', note.filename),
+      path.join(process.cwd(), 'public', note.original_name || note.originalName || note.filename),
+    ];
+
+    let filepath = '';
+    for (const p of possiblePaths) {
+      try {
+        await fs.access(p);
+        filepath = p;
+        break;
+      } catch {
+        continue;
+      }
+    }
+
+    if (!filepath) {
       return NextResponse.json({ error: 'Note file not found' }, { status: 404 });
     }
 
-    // Read file
     const fileBuffer = await fs.readFile(filepath);
-
-    // Create response with proper headers
     const response = new NextResponse(fileBuffer);
     response.headers.set('Content-Type', 'application/pdf');
-    response.headers.set('Content-Disposition', `attachment; filename="${note.originalName}"`);
+    response.headers.set('Content-Disposition', `attachment; filename="${note.original_name || note.originalName || note.original_name}"`);
     response.headers.set('Content-Length', fileBuffer.length.toString());
 
     return response;
@@ -54,50 +71,45 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Check if Supabase is configured
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 });
-    }
-
     const { id } = params;
 
     // Find note by ID
-    const { data: note, error } = await supabaseAdmin
-      .from('notes')
-      .select('filename')
-      .eq('id', id)
-      .single();
+    const { data: note, error } = await (supabaseAdmin
+      ? supabaseAdmin.from('notes').select('filename').eq('id', id).single()
+      : Promise.resolve({ data: null, error: 'Supabase not configured' } as any));
 
     if (error || !note) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });
     }
 
-    // Construct file path
-    const filepath = path.join(UPLOAD_DIR, note.filename);
+    // Try deleting from Supabase storage
+    if (supabaseAdmin && note.filename) {
+      try {
+        const { error: delErr } = await supabaseAdmin.storage.from('notes').remove([note.filename]);
+        if (delErr) console.warn('Failed to remove file from storage:', delErr);
+      } catch (err) {
+        console.warn('Storage delete error:', err);
+      }
+    }
 
-    // Delete file from filesystem
+    // Also attempt to delete local file if present
+    const filepath = path.join(UPLOAD_DIR, note.filename);
     try {
       await fs.unlink(filepath);
-    } catch (error) {
-      console.warn('Failed to delete file from filesystem:', error);
-      // Continue with database deletion even if file deletion fails
+    } catch (err) {
+      // ignore
     }
 
-    // Delete note from database
-    const { error: deleteError } = await supabaseAdmin
-      .from('notes')
-      .delete()
-      .eq('id', id);
-
-    if (deleteError) {
-      console.error('Supabase delete error:', deleteError);
-      return NextResponse.json({ error: 'Failed to delete note from database' }, { status: 500 });
+    // Delete record from DB
+    if (supabaseAdmin) {
+      const { error: deleteError } = await supabaseAdmin.from('notes').delete().eq('id', id);
+      if (deleteError) {
+        console.error('Supabase delete error:', deleteError);
+        return NextResponse.json({ error: 'Failed to delete note from database' }, { status: 500 });
+      }
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Note deleted successfully',
-    });
+    return NextResponse.json({ success: true, message: 'Note deleted successfully' });
   } catch (error) {
     console.error('Delete error:', error);
     return NextResponse.json({ error: 'Failed to delete note' }, { status: 500 });

@@ -39,6 +39,7 @@ export default function NotesPage() {
               <Heading className="text-2xl font-semibold text-gray-900">Available Resources</Heading>
               <span className="text-sm text-gray-500">Browse and download resources</span>
             </div>
+
             <NotesList />
           </div>
         </div>
