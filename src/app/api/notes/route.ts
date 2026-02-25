@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build query
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
+    }
     let query = supabaseAdmin.from('notes').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(offset, offset + limit - 1);
     
     if (category) {
@@ -49,8 +52,8 @@ export async function GET(request: NextRequest) {
             .from('notes')
             .createSignedUrl(note.filename, 60 * 60); // 1 hour
 
-          if (!urlError && urlData && urlData.signedURL) {
-            preview_url = urlData.signedURL;
+          if (!urlError && urlData && urlData.signedUrl) {
+            preview_url = urlData.signedUrl;
           }
         } catch (err) {
           console.warn('Failed to create signed URL for', note.filename, err);
