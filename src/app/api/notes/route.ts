@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabaseServer';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,9 +10,17 @@ export async function GET(request: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
     if (supabaseUrl && supabaseAnonKey) {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const cookieStore = await cookies();
       
-      // Get session from cookie
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+        },
+      });
+      
+      // Get session using the cookie
       const { data: { session }, error: authError } = await supabase.auth.getSession();
       
       if (authError || !session) {
@@ -21,9 +30,6 @@ export async function GET(request: NextRequest) {
       // If no Supabase configured, allow access (for development)
       console.warn('Supabase not configured, allowing anonymous access');
     }
-
-    // Check if Supabase is configured
-    // supabaseAdmin may be null; we'll still allow a fallback to local URLs when possible
 
     // Parse query parameters
     const url = new URL(request.url);

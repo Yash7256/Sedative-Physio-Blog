@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { supabaseAdmin } from '../../../../../lib/supabaseServer';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 // Configure upload directory
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'notes');
@@ -12,7 +13,14 @@ async function checkAuth(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
   if (supabaseUrl && supabaseAnonKey) {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const cookieStore = await cookies();
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+      },
+    });
     const { data: { session }, error: authError } = await supabase.auth.getSession();
     if (authError || !session) {
       return { authorized: false, error: 'Unauthorized. Please login to access notes.' };
