@@ -2,12 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { supabaseAdmin } from '../../../../../lib/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
 
 // Configure upload directory
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'notes');
 
+async function checkAuth(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (supabaseUrl && supabaseAnonKey) {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    if (authError || !session) {
+      return { authorized: false, error: 'Unauthorized. Please login to access notes.' };
+    }
+    return { authorized: true, error: null };
+  } else if (!supabaseAdmin) {
+    // If no Supabase configured, allow access (for development)
+    return { authorized: true, error: null };
+  }
+  return { authorized: true, error: null };
+}
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Check authentication
+    const auth = await checkAuth(request);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
+    }
+
     const { id } = params;
 
     // Find note by ID
@@ -71,6 +96,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Check authentication
+    const auth = await checkAuth(request);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
+    }
+
     const { id } = params;
 
     // Find note by ID

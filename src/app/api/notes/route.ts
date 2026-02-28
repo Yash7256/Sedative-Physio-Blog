@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (supabaseUrl && supabaseAnonKey) {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      
+      // Get session from cookie
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      
+      if (authError || !session) {
+        return NextResponse.json({ error: 'Unauthorized. Please login to access notes.' }, { status: 401 });
+      }
+    } else if (!supabaseAdmin) {
+      // If no Supabase configured, allow access (for development)
+      console.warn('Supabase not configured, allowing anonymous access');
+    }
+
     // Check if Supabase is configured
     // supabaseAdmin may be null; we'll still allow a fallback to local URLs when possible
 

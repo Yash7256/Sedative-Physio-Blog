@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const testimonials = [
   {
@@ -57,10 +57,146 @@ const testimonials = [
     college: "GGSIPU Institute",
     year: "Final Year BPT",
   },
+  {
+    id: 7,
+    rating: 5,
+    quote:
+      "Dr. Akshay Sir, you've been a game-changer for me! The lectures are engaging, informative, and make complex topics feel manageable. Your dedication to student success is evident in every session. I'm grateful for the motivation and inspiration that drives me to learn and grow. Highly recommended.",
+    name: "Vakil Ayesha",
+    college: "",
+    year: "",
+  },
+  {
+    id: 8,
+    rating: 5,
+    quote:
+      "It was very informative. Really liked that you care to stop and explain every step. Highly recommended for BPT students.",
+    name: "Ashwin Mascarenhas",
+    college: "Mangalore, Karnataka",
+    year: "Intern/MPT",
+  },
+  {
+    id: 9,
+    rating: 5,
+    quote:
+      "Best productive session. Learned so much about neurological conditions.",
+    name: "Dr Touqeer Abbas",
+    college: "Punjab",
+    year: "Pakistan",
+  },
+  {
+    id: 10,
+    rating: 5,
+    quote:
+      "Very nice explanation. The webinar on neuro conditions was extremely helpful.",
+    name: "Dr Shifa Shaikh",
+    college: "Ahmedabad",
+    year: "India",
+  },
+  {
+    id: 11,
+    rating: 5,
+    quote:
+      "It has been very wonderful. I have been waiting for it for a very long time. Great learning experience!",
+    name: "Rachkara Samuel Baker",
+    college: "Central Uganda",
+    year: "Uganda",
+  },
+  {
+    id: 12,
+    rating: 5,
+    quote:
+      "This was the first time I attended a session like this and the experience was great. The session was definitely a success and I'm definitely looking forward for more such amazing sessions.",
+    name: "Anjali",
+    college: "Haryana",
+    year: "India",
+  },
+  {
+    id: 13,
+    rating: 5,
+    quote:
+      "The Sedative Physio webinar on shoulder instability and its rehab was really helpful! The session was clear, easy to understand, and packed with useful information.",
+    name: "Abhishek Singh",
+    college: "Delhi",
+    year: "India",
+  },
+  {
+    id: 14,
+    rating: 5,
+    quote:
+      "It was a wonderful session. Sir explained each and every topic of Shoulder Instability in detailed. Specially the rehab program was also very precise.",
+    name: "Namita",
+    college: "West Bengal",
+    year: "India",
+  },
+  {
+    id: 15,
+    rating: 5,
+    quote:
+      "The webinar on Shoulder Instability was concise, informative, and engaging. The speaker explained complex concepts clearly, covering anatomy, diagnosis, and management effectively.",
+    name: "Ashutosh",
+    college: "Karnataka",
+    year: "India",
+  },
+  {
+    id: 16,
+    rating: 5,
+    quote:
+      "This webinar provided clear and concise insights into shoulder instability. The content was practical and evidence-based, making it both engaging and highly relevant.",
+    name: "Smith",
+    college: "London",
+    year: "UK",
+  },
+  {
+    id: 17,
+    rating: 5,
+    quote:
+      "Today I learn lots of new knowledge on Parkinson. Webinar was very effective and very useful for knowledge. Thank you so much sir!",
+    name: "Dr Rohit Sen",
+    college: "Dolphin PG College Dehradun",
+    year: "Consultant Physiotherapist",
+  },
+  {
+    id: 18,
+    rating: 5,
+    quote:
+      "Well explained and learned a lot new things. Great webinar experience!",
+    name: "Harsha Chennupalli",
+    college: "SIMS College of Physiotherapy",
+    year: "India",
+  },
+  {
+    id: 19,
+    rating: 5,
+    quote:
+      "It was a really great experience learning Neuro from you, concepts are now crystal clear. Thank you!",
+    name: "Prajkta Gondkar",
+    college: "Mahalaxmi College of Physiotherapy",
+    year: "India",
+  },
+  {
+    id: 20,
+    rating: 5,
+    quote:
+      "Very good webinar and all doubts are clear. Highly informative session.",
+    name: "Dewre Khalid Kausar Ahmad",
+    college: "KPGU",
+    year: "BPT 3rd Year",
+  },
+  {
+    id: 21,
+    rating: 5,
+    quote:
+      "I know your teaching style, skills and patterns and I really appreciate them. Sorry I couldn't join the webinar but looking forward to the next one!",
+    name: "Aryan Patel",
+    college: "Shree M.M Shah Physiotherapy College",
+    year: "India",
+  },
 ];
 
 export function TestimonialsSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const visibleTestimonials = 3;
   const maxIndex = Math.ceil(testimonials.length / visibleTestimonials) - 1;
@@ -72,6 +208,18 @@ export function TestimonialsSection() {
   const handleDotClick = (index: number) => {
     setCurrentIndex(index);
   };
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setCurrentIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
+    }, 3000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [maxIndex]);
 
   return (
     <section className="w-full bg-gray-50 py-12 md:py-24 px-4 md:px-6">
@@ -104,26 +252,15 @@ export function TestimonialsSection() {
                       .map((testimonial) => (
                         <div
                           key={testimonial.id}
-                          className="bg-white border border-gray-200 rounded-xl p-6 md:p-8 hover:shadow-lg transition-shadow"
+                          className="bg-white border border-gray-200 rounded-xl p-4 md:p-5 hover:shadow-lg transition-shadow"
                         >
-                          {/* Stars */}
-                          <div className="flex gap-1 mb-4">
-                            {Array.from({ length: testimonial.rating }).map(
-                              (_, i) => (
-                                <span key={i} className="text-lg md:text-xl">
-                                  ⭐
-                                </span>
-                              )
-                            )}
-                          </div>
-
                           {/* Quote */}
-                          <p className="text-sm md:text-base text-gray-700 italic mb-6 line-clamp-4">
+                          <p className="text-sm md:text-base text-gray-700 italic mb-4 line-clamp-3">
                             "{testimonial.quote}"
                           </p>
 
                           {/* Author */}
-                          <div className="pt-4 md:pt-6 border-t border-gray-200">
+                          <div className="pt-3 md:pt-4 border-t border-gray-200">
                             <div className="flex items-center gap-3 mb-2">
                               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-300"></div>
                               <div>

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Icon3dCubeSphere, IconArrowRight, IconNotes, IconRobot } from "@tabler/icons-react";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function ResourcesPage() {
   const resources = [
@@ -33,8 +32,7 @@ export default function ResourcesPage() {
   ];
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 md:py-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 md:py-20">
         <div className="max-w-6xl mx-auto px-4 md:px-6">
           {/* Header */}
           <div className="text-center mb-16">
@@ -106,6 +104,5 @@ export default function ResourcesPage() {
           </div>
         </div>
       </div>
-    </ProtectedRoute>
-  );
-}
+    );
+  }
