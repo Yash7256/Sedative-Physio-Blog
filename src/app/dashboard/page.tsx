@@ -76,10 +76,17 @@ export default function DashboardPage() {
                   
                   <div className="space-y-2">
                     <button
-                      onClick={() => router.push('/admin')}
+                      onClick={() => router.push('/dashboard/courses')}
                       className="w-full text-left px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition font-semibold text-gray-700"
                     >
-                      → Admin Panel
+                      → My Purchased Courses
+                    </button>
+                    
+                    <button
+                      onClick={() => router.push('/courses')}
+                      className="w-full text-left px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition font-semibold text-gray-700"
+                    >
+                      → Browse Courses
                     </button>
                     
                     <button
@@ -87,6 +94,13 @@ export default function DashboardPage() {
                       className="w-full text-left px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition font-semibold text-gray-700"
                     >
                       → My Notes
+                    </button>
+                    
+                    <button
+                      onClick={() => router.push('/admin')}
+                      className="w-full text-left px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition font-semibold text-gray-700"
+                    >
+                      → Admin Panel
                     </button>
                   </div>
                 </div>

@@ -21,7 +21,7 @@ export default function Blog() {
           Blog & Articles
         </p>
         <p className="text-lg text-gray-300 mb-8">
-          Insights, tips, and expert articles on physiotherapy, clinical practice, and professional development for BPT students.
+          Insights, tips, and expert articles on physiotherapy, clinical practice, and professional development for Physiotherapy students.
         </p>
         <div className="inline-block px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-white font-medium hover:shadow-lg transition-shadow">
           Coming Soon

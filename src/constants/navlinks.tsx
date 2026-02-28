@@ -6,6 +6,7 @@ import {
   IconMessage2,
   Icon3dCubeSphere,
   IconRobot,
+  IconHeadphones,
 } from "@tabler/icons-react";
 
 export const navlinks = [
@@ -20,9 +21,14 @@ export const navlinks = [
     icon: IconMessage2,
   },
   {
-    href: "/projects",
+    href: "/courses",
     label: "Courses",
     icon: IconBriefcase2,
+  },
+  {
+    href: "/podcast",
+    label: "Podcast",
+    icon: IconHeadphones,
   },
   {
     href: "/blog",

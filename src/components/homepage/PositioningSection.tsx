@@ -3,7 +3,7 @@
 export function PositioningSection() {
   const differentiators = [
     "Every course made by practicing physiotherapists",
-    "Content aligned with BPT university curriculum",
+    "Content aligned with Physiotherapy university curriculum",
     "Practical clinical technique video demonstrations",
     "Specialized tracks: Ortho, Neuro, Sports, Cardiopulmonary",
     "Learn at your pace + live doubt sessions",

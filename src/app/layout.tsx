@@ -16,11 +16,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Sedative Physio | BPT Learning Platform",
+  title: "Sedative Physio | Physiotherapy Learning Platform",
   description:
-    "Master Physiotherapy with expert-led courses built exclusively for BPT students. Learn from practicing clinicians, earn recognized certifications.",
+    "Master Physiotherapy with expert-led courses built exclusively for Physiotherapy students. Learn from practicing clinicians, earn recognized certifications.",
   icons: {
-    icon: "/images/favicon.ico",
+    icon: "/images/logo.png",
   },
 };
 

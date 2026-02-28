@@ -1,7 +1,7 @@
 import { HeroSection } from "@/components/homepage/HeroSection";
 import { TrustedBySection } from "@/components/homepage/TrustedBySection";
 import { StatsSection } from "@/components/homepage/StatsSection";
-import { SpecializationSection } from "@/components/homepage/SpecializationSection";
+import { FeaturedCoursesSection } from "@/components/homepage/SpecializationSection";
 import { CertificationsSection } from "@/components/homepage/CertificationsSection";
 import { TestimonialsSection } from "@/components/homepage/TestimonialsSection";
 import { BlogPreviewSection } from "@/components/homepage/BlogPreviewSection";
@@ -15,7 +15,7 @@ export default function Home() {
         <TrustedBySection />
         <StatsSection />
         <TestimonialsSection />
-        <SpecializationSection />
+        <FeaturedCoursesSection />
         <CertificationsSection />
         <BlogPreviewSection />
         <FAQSection />

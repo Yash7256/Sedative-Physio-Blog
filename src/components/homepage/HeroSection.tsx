@@ -26,7 +26,7 @@ export function HeroSection() {
         {/* Sub-headline */}
         <p className="text-base md:text-lg text-gray-700 text-center max-w-2xl mx-auto mb-8 md:mb-12 leading-relaxed">
           Expert-led courses in Clinical Skills, Anatomy, Sports, Neuro & Cardio
-          — built exclusively for BPT students.
+          — built exclusively for Physiotherapy students.
         </p>
 
         {/* CTA Buttons */}

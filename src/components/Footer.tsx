@@ -40,7 +40,7 @@ export function Footer() {
               Sedative Physio
             </h3>
             <p className="text-xs md:text-sm text-gray-400 mb-6 leading-relaxed">
-              India's #1 learning platform for BPT students. Expert-led clinical courses built for your career.
+              India's #1 learning platform for Physiotherapy students. Expert-led clinical courses built for your career.
             </p>
             {/* Social Icons */}
             <div className="flex gap-4">

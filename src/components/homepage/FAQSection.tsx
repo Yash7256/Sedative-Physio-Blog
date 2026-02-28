@@ -12,9 +12,9 @@ interface FAQItem {
 const faqItems: FAQItem[] = [
   {
     id: 1,
-    question: "Are courses aligned with BPT university syllabus?",
+    question: "Are courses aligned with Physiotherapy university syllabus?",
     answer:
-      "Yes, all our courses are designed to align with the BPT curriculum across Indian universities. Our expert instructors have reviewed content against university syllabi from AICTE, State University of New York, and other regulatory bodies. Each course covers both theoretical foundations and practical clinical applications required for your degree.",
+      "Yes, all our courses are designed to align with the Physiotherapy curriculum across Indian universities. Our expert instructors have reviewed content against university syllabi from AICTE, State University of New York, and other regulatory bodies. Each course covers both theoretical foundations and practical clinical applications required for your degree.",
   },
   {
     id: 2,

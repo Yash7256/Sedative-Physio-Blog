@@ -7,19 +7,19 @@ const testimonials = [
     id: 1,
     rating: 5,
     quote:
-      "The course structure is perfect for BPT students. Clinical videos made me actually understand knee assessment instead of just memorizing steps.",
+      "The course structure is perfect for Physiotherapy students. Clinical videos made me actually understand knee assessment instead of just memorizing steps.",
     name: "Priya Verma",
     college: "Delhi Institute of Physiotherapy",
-    year: "Final Year BPT",
+    year: "Final Year Physiotherapy",
   },
   {
     id: 2,
     rating: 5,
     quote:
-      "Live doubt sessions with Dr. Arun Kumar were game-changers. Real-time feedback on my assessment techniques improved my confidence before OSCE.",
+      "Live doubt sessions with Dr. Akshay Kumar were game-changers. Real-time feedback on my assessment techniques improved my confidence before OSCE.",
     name: "Arjun Singh",
     college: "Manipal College of Health Professions",
-    year: "3rd Year BPT",
+    year: "3rd Year Physiotherapy",
   },
   {
     id: 3,
@@ -28,7 +28,7 @@ const testimonials = [
       "Finally found a platform that teaches actual clinical reasoning, not just theory. Every course feels relevant to what we do in hospitals.",
     name: "Ankita Desai",
     college: "Symbiosis Institute of Physiotherapy",
-    year: "Final Year BPT",
+    year: "Final Year Physiotherapy",
   },
   {
     id: 4,
@@ -37,7 +37,7 @@ const testimonials = [
       "The Sports Physio masterclass changed my internship experience. My clinical supervisors noticed the improvement in my assessment skills.",
     name: "Rohan Gupta",
     college: "Lovely Professional University",
-    year: "3rd Year BPT",
+    year: "3rd Year Physiotherapy",
   },
   {
     id: 5,
@@ -55,7 +55,7 @@ const testimonials = [
       "The neurological rehab course was exactly what I needed. Aligned perfectly with my university curriculum and went much deeper.",
     name: "Mehul Sharma",
     college: "GGSIPU Institute",
-    year: "Final Year BPT",
+    year: "Final Year Physiotherapy",
   },
   {
     id: 7,
@@ -70,7 +70,7 @@ const testimonials = [
     id: 8,
     rating: 5,
     quote:
-      "It was very informative. Really liked that you care to stop and explain every step. Highly recommended for BPT students.",
+      "It was very informative. Really liked that you care to stop and explain every step. Highly recommended for Physiotherapy students.",
     name: "Ashwin Mascarenhas",
     college: "Mangalore, Karnataka",
     year: "Intern/MPT",
@@ -181,7 +181,7 @@ const testimonials = [
       "Very good webinar and all doubts are clear. Highly informative session.",
     name: "Dewre Khalid Kausar Ahmad",
     college: "KPGU",
-    year: "BPT 3rd Year",
+    year: "Physiotherapy 3rd Year",
   },
   {
     id: 21,
@@ -226,7 +226,7 @@ export function TestimonialsSection() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-black text-center mb-12 md:mb-16 max-w-3xl mx-auto">
-          What BPT Students Are Saying
+          What Physiotherapy Students Are Saying
         </h2>
 
         {/* Testimonials Slider */}
