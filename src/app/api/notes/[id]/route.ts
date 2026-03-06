@@ -21,8 +21,8 @@ async function checkAuth(request: NextRequest) {
         },
       },
     });
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-    if (authError || !session) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
       return { authorized: false, error: 'Unauthorized. Please login to access notes.' };
     }
     return { authorized: true, error: null };

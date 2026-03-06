@@ -21,6 +21,7 @@ export default function DashboardCoursesPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progressMap, setProgressMap] = useState<Record<number, { progressPercent: number; completed: boolean }>>({});
 
   useEffect(() => {
     const fetchEnrollments = async () => {
@@ -44,6 +45,43 @@ export default function DashboardCoursesPage() {
       fetchEnrollments();
     }
   }, [session]);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      const entries = await Promise.all(
+        enrollments.map(async (enrollment) => {
+          try {
+            const response = await fetch(`/api/progress/${enrollment.course_id}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+              throw new Error(data.error || 'Failed to fetch progress');
+            }
+
+            return [
+              enrollment.course_id,
+              {
+                progressPercent: data.progress?.progressPercent || 0,
+                completed: data.progress?.completed || false,
+              },
+            ] as const;
+          } catch (err) {
+            console.error('Progress fetch error:', err);
+            return [
+              enrollment.course_id,
+              { progressPercent: 0, completed: false },
+            ] as const;
+          }
+        })
+      );
+
+      setProgressMap(Object.fromEntries(entries));
+    };
+
+    if (session && enrollments.length > 0) {
+      fetchProgress();
+    }
+  }, [session, enrollments]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -134,6 +172,20 @@ export default function DashboardCoursesPage() {
                             <Clock className="w-4 h-4" />
                             {enrollment.price === 0 ? 'Free' : `₹${enrollment.price}`}
                           </span>
+                        </div>
+                        <div className="mt-4">
+                          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                            <span>Progress</span>
+                            <span className="font-semibold">
+                              {progressMap[enrollment.course_id]?.progressPercent ?? 0}%{progressMap[enrollment.course_id]?.completed ? ' • Completed' : ''}
+                            </span>
+                          </div>
+                          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${progressMap[enrollment.course_id]?.completed ? 'bg-green-500' : 'bg-blue-500'} transition-all`}
+                              style={{ width: `${progressMap[enrollment.course_id]?.progressPercent ?? 0}%` }}
+                            />
+                          </div>
                         </div>
                       </div>
                       <div className="ml-4">

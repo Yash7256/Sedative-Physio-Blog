@@ -24,16 +24,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     const { data: enrollments, error } = await supabase
       .from("enrollments")

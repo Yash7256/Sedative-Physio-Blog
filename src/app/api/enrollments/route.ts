@@ -61,20 +61,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (sessionError) {
-      console.error("Session error:", sessionError);
+    if (userError) {
+      console.error("Auth error:", userError);
     }
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json(
-        { error: "Authentication required", details: sessionError?.message },
+        { error: "Authentication required", details: userError?.message },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     if (supabaseAdmin) {
       const { data: existingEnrollment } = await supabaseAdmin

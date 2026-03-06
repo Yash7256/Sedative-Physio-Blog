@@ -4,39 +4,14 @@ import { useState } from "react";
 import { useAuth } from "@/components/SupabaseProvider";
 import { useRouter } from "next/navigation";
 import CheckoutModal from "@/components/CheckoutModal";
+import { CourseOverview, getCourseSummaries } from "@/lib/courseCatalog";
 
-interface Course {
-  id: number;
-  title: string;
-  instructor: string;
-  rating: number;
-  students: string;
-  duration: string;
-  coverImage: string;
-  isBestseller: boolean;
-  description: string;
-  price: number;
-}
-
-const courses: Course[] = [
-  {
-    id: 1,
-    title: "Neuro Anatomy",
-    instructor: "Dr. Akshay Kumar",
-    rating: 4.9,
-    students: "500+ Students",
-    duration: "12 Hours",
-    coverImage: "https://i.ibb.co/F4bLdr2Q/Whats-App-Image-2026-02-28-at-9-14-27-PM.jpg",
-    isBestseller: true,
-    description: "Complete neuroanatomy course with detailed explanations and 3D demonstrations.",
-    price: 0,
-  },
-];
+const courses: CourseOverview[] = getCourseSummaries();
 
 export default function CoursesPage() {
   const { session } = useAuth();
   const router = useRouter();
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<CourseOverview | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const userEmail = session?.user?.email || null;

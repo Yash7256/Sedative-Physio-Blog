@@ -20,10 +20,10 @@ export async function GET(request: NextRequest) {
         },
       });
       
-      // Get session using the cookie
-      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      // Validate user using the cookie
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (authError || !session) {
+      if (authError || !user) {
         return NextResponse.json({ error: 'Unauthorized. Please login to access notes.' }, { status: 401 });
       }
     } else if (!supabaseAdmin) {

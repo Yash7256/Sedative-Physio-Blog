@@ -4,75 +4,89 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/components/SupabaseProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { ArrowLeft, PlayCircle, FileText, Download, Clock, User, CheckCircle, Lock, Loader2, X } from 'lucide-react';
-
-interface CourseContent {
-  id: number;
-  title: string;
-  instructor: string;
-  duration: string;
-  coverImage: string;
-  description: string;
-  sections: CourseSection[];
-}
-
-interface CourseSection {
-  title: string;
-  lessons: { title: string; duration: string; type: 'video' | 'pdf'; videoUrl?: string; pdfUrl?: string }[];
-}
-
-const coursesData: Record<number, CourseContent> = {
-  1: {
-    id: 1,
-    title: "Neuro Anatomy",
-    instructor: "Dr. Akshay Kumar",
-    duration: "12 Hours",
-    coverImage: "https://i.ibb.co/F4bLdr2Q/Whats-App-Image-2026-02-28-at-9-14-27-PM.jpg",
-    description: "Complete neuroanatomy course with detailed explanations and 3D demonstrations.",
-    sections: [
-      {
-        title: "Introduction to Neuroanatomy",
-        lessons: [
-          { title: "Basal Ganglia Affernet Connections", duration: "20 min 36 sec", type: "video", videoUrl: "https://www.youtube.com/embed/EmqDzL6FbSI" },
-          { title: "Basal Ganglia Anatomy", duration: "21 min 16 sec", type: "video", videoUrl: "https://www.youtube.com/embed/C91yU3AhixU" },
-          { title: "Functional Area Of Cerebral Cortex", duration: "27 min 27 sec", type: "video", videoUrl: "https://www.youtube.com/embed/G84g7zEffe4" },
-          { title: "Sulcus & Gyrus on Medical & Inferior Surface", duration: "23 min 32 sec", type: "video", videoUrl: "https://www.youtube.com/embed/5XxhhPyJ_7U" },
-          { title: "Cerebrum Part 1", duration: "25 min 32 sec", type: "video", videoUrl: "https://www.youtube.com/embed/5HxMaRzLUBI" },
-        ],
-      },
-    ],
-  },
-};
+import {
+  ArrowLeft,
+  PlayCircle,
+  FileText,
+  Download,
+  Clock,
+  User,
+  CheckCircle,
+  Circle,
+  Lock,
+  Loader2,
+  X,
+} from 'lucide-react';
+import { CourseContent, getCourseById } from '@/lib/courseCatalog';
 
 export default function CourseContentPage() {
   const { session } = useAuth();
   const router = useRouter();
   const params = useParams();
   const courseId = Number(params.id);
-  
+
   const [course, setCourse] = useState<CourseContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolled, setEnrolled] = useState(false);
   const [expandedSections, setExpandedSections] = useState<number[]>([]);
   const [currentLesson, setCurrentLesson] = useState<{ title: string; videoUrl?: string } | null>(null);
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const [updatingLessonId, setUpdatingLessonId] = useState<string | null>(null);
+
+  const fetchProgress = async () => {
+    try {
+      setProgressLoading(true);
+      const response = await fetch(`/api/progress/${courseId}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load progress');
+      }
+
+      setCompletedLessons(data.progress?.completedLessons || []);
+      setProgressPercent(data.progress?.progressPercent || 0);
+      setProgressError(null);
+    } catch (err: any) {
+      setProgressError(err.message || 'Failed to load progress');
+    } finally {
+      setProgressLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const checkEnrollment = async () => {
+    const initialize = async () => {
+      if (Number.isNaN(courseId)) {
+        setLoading(false);
+        return;
+      }
+
+      const courseData = getCourseById(courseId);
+      if (courseData) {
+        setCourse(courseData);
+        setExpandedSections([0]);
+      }
+
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch('/api/enrollments/user');
         const data = await response.json();
-        
+
         if (response.ok && data.enrollments) {
           const isEnrolled = data.enrollments.some(
             (e: { course_id: number }) => e.course_id === courseId
           );
           setEnrolled(isEnrolled);
-        }
-        
-        const courseData = coursesData[courseId];
-        if (courseData) {
-          setCourse(courseData);
-          setExpandedSections([0]);
+
+          if (isEnrolled) {
+            await fetchProgress();
+          }
         }
       } catch (error) {
         console.error('Error checking enrollment:', error);
@@ -81,17 +95,40 @@ export default function CourseContentPage() {
       }
     };
 
-    if (session && courseId) {
-      checkEnrollment();
-    }
+    initialize();
   }, [session, courseId]);
 
   const toggleSection = (index: number) => {
-    setExpandedSections(prev => 
-      prev.includes(index) 
+    setExpandedSections(prev =>
+      prev.includes(index)
         ? prev.filter(i => i !== index)
         : [...prev, index]
     );
+  };
+
+  const handleLessonToggle = async (lessonId: string, isCompleted: boolean) => {
+    setUpdatingLessonId(lessonId);
+    try {
+      const response = await fetch(`/api/progress/${courseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId, completed: !isCompleted }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update progress');
+      }
+
+      setCompletedLessons(data.progress?.completedLessons || []);
+      setProgressPercent(data.progress?.progressPercent || 0);
+      setProgressError(null);
+    } catch (err: any) {
+      setProgressError(err.message || 'Failed to update progress');
+    } finally {
+      setUpdatingLessonId(null);
+    }
   };
 
   if (loading) {
@@ -179,22 +216,47 @@ export default function CourseContentPage() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div>
+              <div className="flex-1">
                 <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
                 <p className="text-white/80 mb-4">{course.description}</p>
-                <div className="flex items-center gap-4 text-sm text-white/70">
-                  <span className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    {course.instructor}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {course.duration}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4" />
-                    Enrolled
-                  </span>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-4 text-sm text-white/70">
+                    <span className="flex items-center gap-1">
+                      <User className="w-4 h-4" />
+                      {course.instructor}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {course.duration}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" />
+                      Enrolled
+                    </span>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-4 max-w-lg">
+                    <div className="flex items-center justify-between text-sm text-white/80 mb-2">
+                      <span>Progress</span>
+                      <span className="font-semibold">{progressPercent}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-400 transition-all duration-300"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-white/70 mt-2">
+                      <span>
+                        {progressLoading ? 'Syncing progress...' : 'Auto-saves as you mark lessons'}
+                      </span>
+                      {progressPercent === 100 && (
+                        <span className="flex items-center gap-1 text-green-100">
+                          <CheckCircle className="w-4 h-4" />
+                          Completed
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -203,7 +265,12 @@ export default function CourseContentPage() {
 
         <div className="max-w-4xl mx-auto py-8 px-4">
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">Course Content</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Course Content</h2>
+              {progressError && (
+                <span className="text-sm text-red-600">{progressError}</span>
+              )}
+            </div>
             
             <div className="space-y-4">
               {course.sections.map((section, sectionIndex) => (
@@ -222,31 +289,59 @@ export default function CourseContentPage() {
                   
                   {expandedSections.includes(sectionIndex) && (
                     <div className="divide-y divide-gray-100">
-                      {section.lessons.map((lesson, lessonIndex) => (
-                        <div
-                          key={lessonIndex}
-                          onClick={() => lesson.type === 'video' && lesson.videoUrl && setCurrentLesson({ title: lesson.title, videoUrl: lesson.videoUrl })}
-                          className={`p-4 flex items-center gap-4 ${lesson.type === 'video' && lesson.videoUrl ? 'hover:bg-blue-50 cursor-pointer' : ''}`}
-                        >
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            {lesson.type === 'video' ? (
-                              <PlayCircle className="w-5 h-5 text-blue-600" />
-                            ) : (
-                              <FileText className="w-5 h-5 text-blue-600" />
+                      {section.lessons.map((lesson) => {
+                        const isCompleted = completedLessons.includes(lesson.id);
+                        const isUpdating = updatingLessonId === lesson.id;
+
+                        return (
+                          <div
+                            key={lesson.id}
+                            onClick={() => lesson.type === 'video' && lesson.videoUrl && setCurrentLesson({ title: lesson.title, videoUrl: lesson.videoUrl })}
+                            className={`p-4 flex items-center gap-4 ${
+                              lesson.type === 'video' && lesson.videoUrl ? 'hover:bg-blue-50 cursor-pointer' : ''
+                            }`}
+                          >
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              {lesson.type === 'video' ? (
+                                <PlayCircle className="w-5 h-5 text-blue-600" />
+                              ) : (
+                                <FileText className="w-5 h-5 text-blue-600" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-800">{lesson.title}</p>
+                              <p className="text-sm text-gray-500 flex items-center gap-2">
+                                <Clock className="w-3 h-3" />
+                                {lesson.duration}
+                              </p>
+                            </div>
+                            {lesson.type === 'pdf' && (
+                              <Download className="w-5 h-5 text-gray-400" />
                             )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLessonToggle(lesson.id, isCompleted);
+                              }}
+                              disabled={isUpdating}
+                              className={`flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-lg border transition ${
+                                isCompleted
+                                  ? 'bg-green-50 text-green-700 border-green-200'
+                                  : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
+                              } ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            >
+                              {isUpdating ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : isCompleted ? (
+                                <CheckCircle className="w-4 h-4" />
+                              ) : (
+                                <Circle className="w-4 h-4" />
+                              )}
+                              <span>{isCompleted ? 'Completed' : 'Mark done'}</span>
+                            </button>
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-800">{lesson.title}</p>
-                            <p className="text-sm text-gray-500 flex items-center gap-2">
-                              <Clock className="w-3 h-3" />
-                              {lesson.duration}
-                            </p>
-                          </div>
-                          {lesson.type === 'pdf' && (
-                            <Download className="w-5 h-5 text-gray-400" />
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
