@@ -16,7 +16,7 @@ export default function CoursesPage() {
 
   const userEmail = session?.user?.email || null;
 
-  const handleEnroll = (course: Course) => {
+  const handleEnroll = (course: CourseOverview) => {
     if (!session) {
       router.push("/login");
       return;

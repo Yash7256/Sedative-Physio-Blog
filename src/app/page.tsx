@@ -16,8 +16,8 @@ export default function Home() {
         <StatsSection />
         <TestimonialsSection />
         <FeaturedCoursesSection />
-        <CertificationsSection />
         <BlogPreviewSection />
+        <CertificationsSection />
         <FAQSection />
       </main>
     </div>
