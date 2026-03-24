@@ -103,16 +103,19 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-700 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs md:text-sm text-gray-500">
-            © {new Date().getFullYear()} Sedative Physio. All rights reserved.
+          <p className="text-[0.8rem] text-[#94a3b8]">
+            © 2025 Sedative Physio. All rights reserved.
           </p>
-          <div className="flex gap-6 md:gap-8 text-xs md:text-sm">
-            <a href="#" className="text-gray-500 hover:text-gray-300 transition-colors">
+          <div className="flex gap-6 md:gap-8 text-[0.8rem]">
+            <Link href="/privacy-policy" className="text-[#94a3b8] hover:text-gray-300 transition-colors">
               Privacy Policy
+            </Link>
+            <a href="#" className="text-[#94a3b8] hover:text-gray-300 transition-colors">
+              Terms
             </a>
-            <a href="#" className="text-gray-500 hover:text-gray-300 transition-colors">
-              Terms of Service
-            </a>
+            <Link href="/contact" className="text-[#94a3b8] hover:text-gray-300 transition-colors">
+              Contact
+            </Link>
           </div>
         </div>
       </div>

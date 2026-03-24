@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import LoginButton from "@/components/LoginButton";
 
 export function StickyNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const pathname = usePathname();
 
   const navLinks = [
     { label: "About", href: "/about" },
@@ -53,7 +55,11 @@ export function StickyNavbar() {
               <a
                 key={link.label}
                 href={link.href}
-                className="text-sm text-black hover:opacity-70 transition-opacity font-medium"
+                className={`text-sm transition-opacity font-medium pb-1 ${
+                  pathname === link.href
+                    ? "text-black font-bold border-b-2 border-black"
+                    : "text-black hover:opacity-70"
+                }`}
               >
                 {link.label}
               </a>
@@ -90,7 +96,9 @@ export function StickyNavbar() {
                 <a
                   key={link.label}
                   href={link.href}
-                  className="text-black font-medium py-2 hover:opacity-70"
+                  className={`font-medium py-2 hover:opacity-70 ${
+                    pathname === link.href ? "text-black font-bold" : "text-black"
+                  }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.label}
