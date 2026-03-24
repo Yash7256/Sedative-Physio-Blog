@@ -104,7 +104,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-gray-700 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-[0.8rem] text-[#94a3b8]">
-            © 2025 Sedative Physio. All rights reserved.
+            © {new Date().getFullYear()} Sedative Physio. All rights reserved.
           </p>
           <div className="flex gap-6 md:gap-8 text-[0.8rem]">
             <Link href="/privacy-policy" className="text-[#94a3b8] hover:text-gray-300 transition-colors">
