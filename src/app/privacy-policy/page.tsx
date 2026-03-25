@@ -204,6 +204,15 @@ export default function PrivacyPolicy() {
               </div>
             </section>
 
+            <div style={{ marginTop: '32px', paddingTop: '20px', borderTop: '1.5px solid #f1f5f9', textAlign: 'center' }}>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                Also read our{' '}
+                <Link href="/terms" style={{ color: '#64748b', textDecoration: 'underline' }}>
+                  Terms of Use
+                </Link>
+              </p>
+            </div>
+
           </div>
         </div>
       </main>

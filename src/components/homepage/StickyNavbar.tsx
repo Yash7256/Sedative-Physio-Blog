@@ -14,7 +14,6 @@ export function StickyNavbar() {
   const navLinks = [
     { label: "About", href: "/about" },
     { label: "Courses", href: "/courses" },
-    { label: "Blog", href: "/blog" },
     { label: "Resources", href: "/resources" },
     { label: "Contact", href: "/contact" },
   ];
