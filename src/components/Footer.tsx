@@ -9,29 +9,27 @@ export function Footer() {
 
   const footerColumns = [
     {
-      title: "Courses",
+      title: "Resources",
       links: [
-        { label: "Musculoskeletal", href: "#" },
-        { label: "Neurological", href: "#" },
-        { label: "Sports Physio", href: "#" },
-        { label: "Cardiopulmonary", href: "#" },
+        { label: "AI Assistant", href: "/ai-chat" },
+        { label: "Notes", href: "/notes" },
+        { label: "3D Models", href: "/models" },
+        { label: "Journals", href: "/resources" },
       ],
     },
     {
       title: "Company",
       links: [
         { label: "About", href: "/about" },
-        { label: "Careers", href: "#" },
-        { label: "Blog", href: "/blog" },
-        { label: "Partner with Us", href: "#" },
+        { label: "Podcast", href: "/podcast" },
+
       ],
     },
     {
       title: "Support",
       links: [
-        { label: "FAQ", href: "#" },
+        { label: "FAQ", href: "/" },
         { label: "Contact", href: "/contact" },
-        { label: "Help Center", href: "#" },
       ],
     },
   ];
