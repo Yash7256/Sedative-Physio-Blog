@@ -160,22 +160,21 @@ const authors = [
     subtitle: "The dedicated physiotherapist helping shape the future of Sedative Physio.",
     name: "Anushka Kumari",
     role: "Physiotherapist",
-    image: "/images/placeholder-author.jpg",
+    image: "https://jibonryxreoezswvydnd.supabase.co/storage/v1/object/public/images/Screenshot%20From%202026-03-30%2000-11-51.png",
     credentials: ["Certificate in Kinesio Taping", "Certificate in Cupping Therapy", "Certificate in Manual Therapy", "Certificate in IASTM", "Bachelor's of Physiotherapy (2020–2024)"],
     bio: "A Physiotherapist skilled in evidence-based practice and providing compassionate treatment. Strong communicator with a passion for patient education.",
     stats: [
-      { value: "~5 months", label: "Clinical Experience" },
+      { value: "2 Years", label: "Clinical Experience" },
       { value: "2020 – 2024", label: "BPT Education" },
       { value: "4", label: "Certifications" }
     ],
-    contact: " 📧 anushkasingh0743@gmail.com  •  📍 Patna, Bihar",
     socials: {
       linkedin: "#"
     }
   }
 ];
 
-function AuthorCard({ author }: { author: typeof authors[number] }) {
+function AuthorCard({ author }: { author: Omit<typeof authors[number], 'contact'> & { contact?: string } }) {
   return (
     <div className="w-full">
       <div className="max-w-md mx-auto">
