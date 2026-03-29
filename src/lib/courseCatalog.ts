@@ -34,6 +34,19 @@ export interface CourseContent extends CourseOverview {
 // Centralised catalog so UI and API share a single source of truth.
 export const courseCatalog: CourseContent[] = [
   {
+    id: 2,
+    title: "Anatomy",
+    instructor: "Dr Akshay Kumar",
+    duration: "",
+    coverImage: "",
+    description: "",
+    price: 1,
+    rating: 0,
+    students: "0 Students",
+    isBestseller: false,
+    sections: [],
+  },
+  {
     id: 1,
     title: "Neuro Anatomy",
     instructor: "Dr. Akshay Kumar",

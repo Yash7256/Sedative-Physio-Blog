@@ -136,72 +136,95 @@ function CourseOfferings() {
   );
 }
 
-function AuthorCard() {
-  const credentials = ["BPT — IIHER", "COMT Certified", "NDT Certified", "ACLS · PALS · BLS", "WHO Certified"];
-  
-  const stats = [
-    { value: "3+ Years", label: "Clinical Experience" },
-    { value: "3 yrs 7 mo", label: "Teaching at Sedative Physio" },
-    { value: "5+", label: "Certifications" }
-  ];
+const authors = [
+  {
+    title: "Meet The Founder",
+    subtitle: "The physiotherapist, educator, and creator behind Sedative Physio.",
+    name: "Dr. Akshay Kumar PT",
+    role: "Physiotherapist & Educator",
+    image: "https://jibonryxreoezswvydnd.supabase.co/storage/v1/object/public/images/WhatsApp%20Image%202026-01-19%20at%2011.57.21%20PM.jpeg",
+    credentials: ["BPT — IIHER", "COMT Certified", "NDT Certified", "ACLS · PALS · BLS", "WHO Certified"],
+    bio: "With over 3 years of clinical experience spanning musculoskeletal, neurological, and sports physiotherapy, Dr. Akshay Kumar founded Sedative Physio to bridge the gap between clinical practice and accessible education. Based in Patna, Bihar, he currently runs Moksh Physiotherapy clinic alongside building courses that have helped hundreds of BPT and MPT students master complex subjects through 3D models, structured notes, and practical insights.",
+    stats: [
+      { value: "3+ Years", label: "Clinical Experience" },
+      { value: "3 yrs 7 mo", label: "Teaching at Sedative Physio" },
+      { value: "5+", label: "Certifications" }
+    ],
+    socials: {
+      youtube: "https://youtube.com/@sedativephysio",
+      linkedin: "https://www.linkedin.com/in/drakshayy/"
+    }
+  },
+  {
+    title: "Meet The Founder",
+    subtitle: "The dedicated physiotherapist helping shape the future of Sedative Physio.",
+    name: "Anushka Kumari",
+    role: "Physiotherapist",
+    image: "/images/placeholder-author.jpg",
+    credentials: ["Certificate in Kinesio Taping", "Certificate in Cupping Therapy", "Certificate in Manual Therapy", "Certificate in IASTM", "Bachelor's of Physiotherapy (2020–2024)"],
+    bio: "A Physiotherapist skilled in evidence-based practice and providing compassionate treatment. Strong communicator with a passion for patient education.",
+    stats: [
+      { value: "~5 months", label: "Clinical Experience" },
+      { value: "2020 – 2024", label: "BPT Education" },
+      { value: "4", label: "Certifications" }
+    ],
+    contact: " 📧 anushkasingh0743@gmail.com  •  📍 Patna, Bihar",
+    socials: {
+      linkedin: "#"
+    }
+  }
+];
 
+function AuthorCard({ author }: { author: typeof authors[number] }) {
   return (
-    <section className="bg-[#f8fafc] py-16 md:py-[64px] px-6 md:px-6">
-      <div className="max-w-[1100px] mx-auto text-center">
+    <div className="w-full">
+      <div className="max-w-md mx-auto">
+        <div className="bg-white rounded-2xl border border-[#f1f5f9] p-8 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)]">
+          <div className="w-24 h-24 rounded-full mx-auto mb-6 overflow-hidden border-4 border-[#f1f5f9]">
+            <img
+              src={author.image}
+              alt={author.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
 
-        <h2 className="text-2xl md:text-[2rem] font-extrabold text-[#1e293b] mb-4">
-          Meet The Founder
-        </h2>
-        <p className="text-[#64748b] mb-12 max-w-xl mx-auto">
-          The physiotherapist, educator, and creator behind Sedative Physio.
-        </p>
+          <h3 className="text-xl font-bold text-[#1e293b] mb-1">{author.name}</h3>
+          <p className="text-[#64748b] text-sm mb-4">{author.role}</p>
 
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-2xl border border-[#f1f5f9] p-8 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)]">
-            <div className="w-24 h-24 rounded-full mx-auto mb-6 overflow-hidden border-4 border-[#f1f5f9]">
-              <img
-                src="https://jibonryxreoezswvydnd.supabase.co/storage/v1/object/public/images/WhatsApp%20Image%202026-01-19%20at%2011.57.21%20PM.jpeg"
-                alt="Dr. Akshay Kumar PT"
-                className="w-full h-full object-cover"
-              />
+          <div className="flex flex-wrap justify-center gap-2 mb-6">
+            {author.credentials.map((cred, index) => (
+              <span
+                key={index}
+                className="text-[0.7rem] font-medium bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd] rounded-full px-3 py-1"
+              >
+                {cred}
+              </span>
+            ))}
+          </div>
+
+          <p className="text-[#64748b] text-[0.875rem] leading-[1.7] text-left mb-6">
+            {author.bio}
+          </p>
+
+          <div className="grid grid-cols-3 gap-4 pt-6 border-t border-[#f1f5f9]">
+            {author.stats.map((stat, index) => (
+              <div key={index}>
+                <p className="text-lg font-bold text-[#1e293b]">{stat.value}</p>
+                <p className="text-[0.7rem] text-[#94a3b8]">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {author.contact && (
+            <div className="mt-6 pt-6 border-t border-[#f1f5f9] text-left">
+              <p className="text-[#64748b] text-[0.8rem]">{author.contact}</p>
             </div>
+          )}
 
-            <h3 className="text-xl font-bold text-[#1e293b] mb-1">Dr. Akshay Kumar PT</h3>
-            <p className="text-[#64748b] text-sm mb-4">Physiotherapist & Educator</p>
-
-            <div className="flex flex-wrap justify-center gap-2 mb-6">
-              {credentials.map((cred, index) => (
-                <span
-                  key={index}
-                  className="text-[0.7rem] font-medium bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd] rounded-full px-3 py-1"
-                >
-                  {cred}
-                </span>
-              ))}
-            </div>
-
-            <p className="text-[#64748b] text-[0.875rem] leading-[1.7] text-left mb-6">
-              With over 3 years of clinical experience spanning musculoskeletal,
-              neurological, and sports physiotherapy, Dr. Akshay Kumar founded
-              Sedative Physio to bridge the gap between clinical practice and
-              accessible education. Based in Patna, Bihar, he currently runs
-              Moksh Physiotherapy clinic alongside building courses that have
-              helped hundreds of BPT and MPT students master complex subjects
-              through 3D models, structured notes, and practical insights.
-            </p>
-
-            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-[#f1f5f9]">
-              {stats.map((stat, index) => (
-                <div key={index}>
-                  <p className="text-lg font-bold text-[#1e293b]">{stat.value}</p>
-                  <p className="text-[0.7rem] text-[#94a3b8]">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-center gap-4 mt-6">
+          <div className="flex justify-center gap-4 mt-6">
+            {author.socials?.youtube && (
               <a
-                href="https://youtube.com/@sedativephysio"
+                href={author.socials.youtube}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-3 bg-[#fef2f2] rounded-xl hover:bg-[#fee2e2] transition-colors"
@@ -209,8 +232,10 @@ function AuthorCard() {
               >
                 <IconBrandYoutube className="w-5 h-5 text-[#ef4444]" stroke={2} />
               </a>
+            )}
+            {author.socials?.linkedin && (
               <a
-                href="https://www.linkedin.com/in/drakshayy/"
+                href={author.socials.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-3 bg-[#e8f0fe] rounded-xl hover:bg-[#dbeafe] transition-colors"
@@ -218,11 +243,11 @@ function AuthorCard() {
               >
                 <IconBrandLinkedin className="w-5 h-5 text-[#0a66c2]" stroke={2} />
               </a>
-            </div>
+            )}
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -278,7 +303,24 @@ export default function About() {
       <HeroBanner />
       <MissionVision />
       <CourseOfferings />
-      <AuthorCard />
+      <section className="bg-[#f8fafc] py-16 md:py-[64px] px-6 md:px-6">
+        <div className="max-w-[1100px] mx-auto text-center">
+          <h2 className="text-2xl md:text-[2rem] font-extrabold text-[#1e293b] mb-4">
+            Meet The Founder
+          </h2>
+          <p className="text-[#64748b] mb-12 max-w-xl mx-auto">
+            The dedicated physiotherapists helping shape the future of Sedative Physio.
+          </p>
+          <div className="flex flex-col lg:flex-row items-start justify-center gap-8 lg:gap-12">
+            <div className="flex-1 w-full">
+              <AuthorCard author={authors[0]} />
+            </div>
+            <div className="flex-1 w-full">
+              <AuthorCard author={authors[1]} />
+            </div>
+          </div>
+        </div>
+      </section>
       <Testimonials />
       <CTABanner />
     </main>

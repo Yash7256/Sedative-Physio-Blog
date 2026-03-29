@@ -65,7 +65,7 @@ export function PositioningSection() {
               ))}
             </div>
 
-            {/* CTA */}
+            {/* CTA - Commented out until link is available
             <div className="mt-8 md:mt-10">
               <a
                 href="#"
@@ -73,7 +73,7 @@ export function PositioningSection() {
               >
                 See How We're Different →
               </a>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

@@ -54,7 +54,7 @@ export function Footer() {
             <p className="text-[#94a3b8] text-sm leading-[1.7] mb-6">
               India&apos;s #1 learning platform for Physiotherapy students. Expert-led clinical courses built for your career.
             </p>
-            {/* Social Icons */}
+            {/* Social Icons - Commented out until URLs are available
             <div className="flex gap-3">
               <a href="#" aria-label="Twitter" className="social-twitter">
                 <Twitter size={18} />
@@ -68,7 +68,7 @@ export function Footer() {
               <a href="#" aria-label="Instagram" className="social-instagram">
                 <Instagram size={18} />
               </a>
-            </div>
+            </div> */}
           </div>
 
           {/* Footer Link Columns */}

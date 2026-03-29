@@ -79,13 +79,13 @@ export function InstructorSection() {
                 <span>{instructor.students.toLocaleString()} students</span>
               </div>
 
-              {/* CTA Link */}
+              {/* CTA Link - Commented out until link is available
               <a
                 href="#"
                 className="text-black font-bold text-sm md:text-base hover:opacity-70 transition-opacity inline-flex items-center gap-1"
               >
                 View Profile →
-              </a>
+              </a> */}
             </div>
           ))}
         </div>

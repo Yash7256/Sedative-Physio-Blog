@@ -194,7 +194,7 @@ export function LiveClassesSection() {
           ))}
         </div>
 
-        {/* View Schedule Link */}
+        {/* View Schedule Link - Commented out until link is available
         <div className="flex justify-center">
           <a
             href="#"
@@ -202,7 +202,7 @@ export function LiveClassesSection() {
           >
             View Full Schedule →
           </a>
-        </div>
+        </div> */}
       </div>
     </section>
   );
