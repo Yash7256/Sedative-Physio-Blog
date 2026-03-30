@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/components/SupabaseProvider';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import QuizTabs from '@/components/course/QuizTabs';
 import {
   ArrowLeft,
   PlayCircle,
@@ -264,90 +265,98 @@ export default function CourseContentPage() {
         </div>
 
         <div className="max-w-4xl mx-auto py-8 px-4">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Course Content</h2>
-              {progressError && (
-                <span className="text-sm text-red-600">{progressError}</span>
-              )}
-            </div>
-            
-            <div className="space-y-4">
-              {course.sections.map((section, sectionIndex) => (
-                <div key={sectionIndex} className="border border-gray-200 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => toggleSection(sectionIndex)}
-                    className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-                  >
-                    <span className="font-semibold text-gray-800">
-                      Section {sectionIndex + 1}: {section.title}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {section.lessons.length} lessons
-                    </span>
-                  </button>
-                  
-                  {expandedSections.includes(sectionIndex) && (
-                    <div className="divide-y divide-gray-100">
-                      {section.lessons.map((lesson) => {
-                        const isCompleted = completedLessons.includes(lesson.id);
-                        const isUpdating = updatingLessonId === lesson.id;
+          {course.sections.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Course Content</h2>
+                {progressError && (
+                  <span className="text-sm text-red-600">{progressError}</span>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                {course.sections.map((section, sectionIndex) => (
+                  <div key={sectionIndex} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleSection(sectionIndex)}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                    >
+                      <span className="font-semibold text-gray-800">
+                        Section {sectionIndex + 1}: {section.title}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {section.lessons.length} lessons
+                      </span>
+                    </button>
+                    
+                    {expandedSections.includes(sectionIndex) && (
+                      <div className="divide-y divide-gray-100">
+                        {section.lessons.map((lesson) => {
+                          const isCompleted = completedLessons.includes(lesson.id);
+                          const isUpdating = updatingLessonId === lesson.id;
 
-                        return (
-                          <div
-                            key={lesson.id}
-                            onClick={() => lesson.type === 'video' && lesson.videoUrl && setCurrentLesson({ title: lesson.title, videoUrl: lesson.videoUrl })}
-                            className={`p-4 flex items-center gap-4 ${
-                              lesson.type === 'video' && lesson.videoUrl ? 'hover:bg-blue-50 cursor-pointer' : ''
-                            }`}
-                          >
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              {lesson.type === 'video' ? (
-                                <PlayCircle className="w-5 h-5 text-blue-600" />
-                              ) : (
-                                <FileText className="w-5 h-5 text-blue-600" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-800">{lesson.title}</p>
-                              <p className="text-sm text-gray-500 flex items-center gap-2">
-                                <Clock className="w-3 h-3" />
-                                {lesson.duration}
-                              </p>
-                            </div>
-                            {lesson.type === 'pdf' && (
-                              <Download className="w-5 h-5 text-gray-400" />
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleLessonToggle(lesson.id, isCompleted);
-                              }}
-                              disabled={isUpdating}
-                              className={`flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-lg border transition ${
-                                isCompleted
-                                  ? 'bg-green-50 text-green-700 border-green-200'
-                                  : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                              } ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          return (
+                            <div
+                              key={lesson.id}
+                              onClick={() => lesson.type === 'video' && lesson.videoUrl && setCurrentLesson({ title: lesson.title, videoUrl: lesson.videoUrl })}
+                              className={`p-4 flex items-center gap-4 ${
+                                lesson.type === 'video' && lesson.videoUrl ? 'hover:bg-blue-50 cursor-pointer' : ''
+                              }`}
                             >
-                              {isUpdating ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : isCompleted ? (
-                                <CheckCircle className="w-4 h-4" />
-                              ) : (
-                                <Circle className="w-4 h-4" />
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                {lesson.type === 'video' ? (
+                                  <PlayCircle className="w-5 h-5 text-blue-600" />
+                                ) : (
+                                  <FileText className="w-5 h-5 text-blue-600" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-800">{lesson.title}</p>
+                                <p className="text-sm text-gray-500 flex items-center gap-2">
+                                  <Clock className="w-3 h-3" />
+                                  {lesson.duration}
+                                </p>
+                              </div>
+                              {lesson.type === 'pdf' && (
+                                <Download className="w-5 h-5 text-gray-400" />
                               )}
-                              <span>{isCompleted ? 'Completed' : 'Mark done'}</span>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleLessonToggle(lesson.id, isCompleted);
+                                }}
+                                disabled={isUpdating}
+                                className={`flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-lg border transition ${
+                                  isCompleted
+                                    ? 'bg-green-50 text-green-700 border-green-200'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
+                                } ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
+                              >
+                                {isUpdating ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : isCompleted ? (
+                                  <CheckCircle className="w-4 h-4" />
+                                ) : (
+                                  <Circle className="w-4 h-4" />
+                                )}
+                                <span>{isCompleted ? 'Completed' : 'Mark done'}</span>
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          <QuizTabs courseId={courseId} topics={course.topicsIncluded?.map((topic, idx) => ({
+            id: String(idx + 1),
+            name: topic,
+            description: ''
+          })) || []} />
         </div>
 
         {currentLesson && (

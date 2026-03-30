@@ -104,11 +104,142 @@ Please provide a detailed answer based on the blog content.`;
     ], model);  // Pass model parameter
   }
   
-  // Method to classify question type and suggest appropriate model
+  async generateQuizQuestion(
+    syllabusContent: string,
+    topicName: string,
+    questionNumber: number,
+    totalQuestions: number,
+    previousTopics: string[]
+  ): Promise<any> {
+    const systemPrompt = `You are an expert medical/physiotherapy educator creating quiz questions.
+Generate a high-quality multiple choice question with 4 options (A, B, C, D).
+Return ONLY valid JSON in this exact format, no markdown or additional text:
+{
+  "id": "q${questionNumber}",
+  "question": "The question text here",
+  "options": [
+    {"text": "Option A", "isCorrect": false},
+    {"text": "Option B", "isCorrect": false},
+    {"text": "Option C", "isCorrect": false},
+    {"text": "Option D", "isCorrect": false}
+  ],
+  "correctAnswer": 0,
+  "explanation": "Brief explanation of why the correct answer is correct",
+  "topic": "Topic name",
+  "difficulty": "medium"
+}
+The correctAnswer should be the index (0-3) of the correct option.
+Make the question clinically relevant and challenging.`;
+
+    const userMessage = `Generate question ${questionNumber} of ${totalQuestions}.
+
+Topic: ${topicName}
+Syllabus Content:
+${syllabusContent}
+
+Previous questions covered: ${previousTopics.length > 0 ? previousTopics.join(', ') : 'None'}
+Do not repeat questions on these topics.
+Ensure good variety in question types: direct recall, clinical scenarios, case studies.`;
+
+    return this.chatCompletion([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage }
+    ], 'llama-3.3-70b-versatile');
+  }
+
+  async generateQuizSummary(
+    questions: Array<{
+      question: string;
+      userAnswer: number;
+      correctAnswer: number;
+      options: Array<{ text: string; isCorrect: boolean }>;
+      explanation: string;
+      topic: string;
+      difficulty: string;
+    }>,
+    courseTitle: string,
+    topics: string[]
+  ): Promise<any> {
+    const answeredQuestions = questions.map((q, i) => ({
+      number: i + 1,
+      question: q.question,
+      userAnswer: q.userAnswer,
+      correctAnswer: q.correctAnswer,
+      options: q.options,
+      explanation: q.explanation,
+      topic: q.topic,
+      difficulty: q.difficulty,
+      isCorrect: q.userAnswer === q.correctAnswer
+    }));
+
+    const correctCount = answeredQuestions.filter(q => q.isCorrect).length;
+    const totalCount = answeredQuestions.length;
+    const percentage = Math.round((correctCount / totalCount) * 100);
+
+    const systemPrompt = `You are an expert medical/physiotherapy educator providing quiz feedback.
+Analyze the quiz results and create a comprehensive summary.
+Return ONLY valid JSON in this exact format, no markdown:
+{
+  "score": ${correctCount},
+  "totalQuestions": ${totalCount},
+  "percentage": ${percentage},
+  "grade": "Excellent/Good/Pass/Needs Improvement",
+  "summary": "Brief overall summary of performance",
+  "topicWiseAnalysis": [
+    {
+      "topic": "Topic Name",
+      "correct": number,
+      "total": number,
+      "percentage": number
+    }
+  ],
+  "wrongAnswersExplanation": [
+    {
+      "questionNumber": 1,
+      "question": "Question text",
+      "yourAnswer": "What user selected",
+      "correctAnswer": "Correct option",
+      "explanation": "Detailed explanation of why this is correct",
+      "topic": "Topic name"
+    }
+  ],
+  "recommendations": ["List of study recommendations based on weak areas"]
+}`;
+
+    const userMessage = `Quiz Results for ${courseTitle}
+
+Topics Covered: ${topics.join(', ')}
+
+${answeredQuestions.map(q => `
+Question ${q.number}: ${q.question}
+Topic: ${q.topic}
+Difficulty: ${q.difficulty}
+Your Answer: ${q.userAnswer !== -1 ? q.options[q.userAnswer]?.text || 'No answer' : 'Not answered'}
+Correct Answer: ${q.options[q.correctAnswer]?.text || 'Unknown'}
+Status: ${q.isCorrect ? '✓ Correct' : '✗ Wrong'}
+Explanation: ${q.explanation}
+`).join('\n')}
+
+Provide a detailed analysis and recommendations.`;
+
+    return this.chatCompletion([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage }
+    ], 'llama-3.3-70b-versatile');
+  }
+
+  calculateTimeLimit(numQuestions: number, difficulty: 'easy' | 'medium' | 'hard'): number {
+    const baseTimePerQuestion = {
+      easy: 1,
+      medium: 1.5,
+      hard: 2
+    };
+    return Math.ceil(numQuestions * baseTimePerQuestion[difficulty]);
+  }
+
   classifyQuestion(question: string): string {
     const lowerQuestion = question.toLowerCase();
     
-    // Clinical questions
     if (lowerQuestion.includes('treatment') || 
         lowerQuestion.includes('diagnosis') || 
         lowerQuestion.includes('symptom') || 
@@ -118,7 +249,6 @@ Please provide a detailed answer based on the blog content.`;
       return 'clinical';
     }
     
-    // Advanced reasoning/research questions (consolidated)
     if (lowerQuestion.includes('latest') || 
         lowerQuestion.includes('recent') || 
         lowerQuestion.includes('study') || 
@@ -138,7 +268,6 @@ Please provide a detailed answer based on the blog content.`;
       return 'reasoning';
     }
     
-    // Default to quick for simple questions
     return 'quick';
   }
 }

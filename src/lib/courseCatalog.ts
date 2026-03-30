@@ -49,7 +49,7 @@ export const courseCatalog: CourseContent[] = [
     coverImage: "",
     instructorImage: "https://jibonryxreoezswvydnd.supabase.co/storage/v1/object/public/images/WhatsApp%20Image%202026-01-19%20at%2011.57.21%20PM.jpeg",
     description: "Comprehensive orthopedics course covering fractures, infections, metabolic disorders, bone tumors, congenital cases, surgeries, and joint disorders.",
-    price: 1200,
+    price: 1,
     rating: 0,
     students: "0 Students",
     isBestseller: true,
