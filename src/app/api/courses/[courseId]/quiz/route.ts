@@ -131,7 +131,7 @@ Return ONLY the JSON response, no markdown formatting.`;
     const result = await aiService.chatCompletion([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage }
-    ], 'llama-3.3-70b-versatile');
+    ], 'openai/gpt-oss-120b');
 
     if (!result.success) {
       return NextResponse.json(

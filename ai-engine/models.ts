@@ -18,24 +18,30 @@ export const MODELS: Record<string, ModelConfig> = {
     dailyLimit: 14400,
     color: "bg-blue-500"
   },
-  clinical: {
-    name: "llama-3.3-70b-versatile", 
-    displayName: "Clinical Expert",
+  general: {
+    name: "llama-3.3-70b-versatile",
+    displayName: "General Chat",
     speed: 280,
-    use: "Complex diagnosis, treatment plans",
+    use: "General conversation, explanations, summaries",
+    dailyLimit: 2000,
+    color: "bg-orange-500"
+  },
+  clinical: {
+    name: "openai/gpt-oss-120b",
+    displayName: "Clinical Expert",
+    speed: 300,
+    use: "Complex diagnosis, treatment plans, clinical reasoning",
     dailyLimit: 1000,
     color: "bg-green-500"
   },
   reasoning: {
-    name: "deepseek-r1-distill-llama-70b",
+    name: "openai/gpt-oss-120b",
     displayName: "Advanced Reasoning",
-    speed: 350,
+    speed: 300,
     use: "Deep medical reasoning, research analysis, case studies",
     dailyLimit: 1000,
     color: "bg-purple-500"
   },
-  // Research functionality now consolidated with reasoning model
-  // research: { REMOVED - using reasoning model for both }
 };
 
 // Function to automatically classify question type and suggest appropriate model
@@ -48,7 +54,9 @@ export const classifyQuestion = (question: string): string => {
       lowerQuestion.includes('symptom') || 
       lowerQuestion.includes('pain') ||
       lowerQuestion.includes('injury') ||
-      lowerQuestion.includes('rehabilitation')) {
+      lowerQuestion.includes('rehabilitation') ||
+      lowerQuestion.includes('therapy') ||
+      lowerQuestion.includes('exercise')) {
     return 'clinical';
   }
   
@@ -68,8 +76,23 @@ export const classifyQuestion = (question: string): string => {
       lowerQuestion.includes('explain') || 
       lowerQuestion.includes('analyze') ||
       lowerQuestion.includes('compare') ||
-      lowerQuestion.includes('relationship')) {
+      lowerQuestion.includes('relationship') ||
+      lowerQuestion.includes('differential') ||
+      lowerQuestion.includes('mechanism')) {
     return 'reasoning';
+  }
+  
+  // General conversation and explanations
+  if (lowerQuestion.includes('what is') || 
+      lowerQuestion.includes('tell me') || 
+      lowerQuestion.includes('describe') ||
+      lowerQuestion.includes('summarize') ||
+      lowerQuestion.includes('difference between') ||
+      lowerQuestion.includes('hello') ||
+      lowerQuestion.includes('hi ') ||
+      lowerQuestion.includes('help me') ||
+      lowerQuestion.includes('can you')) {
+    return 'general';
   }
   
   // Default to quick for simple questions

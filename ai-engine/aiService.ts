@@ -144,7 +144,7 @@ Ensure good variety in question types: direct recall, clinical scenarios, case s
     return this.chatCompletion([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage }
-    ], 'llama-3.3-70b-versatile');
+    ], 'openai/gpt-oss-120b');
   }
 
   async generateQuizSummary(
@@ -225,7 +225,7 @@ Provide a detailed analysis and recommendations.`;
     return this.chatCompletion([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage }
-    ], 'llama-3.3-70b-versatile');
+    ], 'openai/gpt-oss-120b');
   }
 
   calculateTimeLimit(numQuestions: number, difficulty: 'easy' | 'medium' | 'hard'): number {
