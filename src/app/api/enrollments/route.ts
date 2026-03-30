@@ -76,45 +76,63 @@ export async function POST(request: NextRequest) {
 
     const userId = user.id;
 
-    if (supabaseAdmin) {
-      const { data: existingEnrollment } = await supabaseAdmin
-        .from("enrollments")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("course_id", courseId)
-        .single();
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
 
-      if (existingEnrollment) {
-        return NextResponse.json(
-          { error: "Already enrolled in this course" },
-          { status: 400 }
-        );
-      }
+    // Check if already enrolled
+    const { data: existingEnrollment } = await supabaseAdmin
+      .from("enrollments")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("course_id", courseId)
+      .single();
 
-      const { error: insertError } = await supabaseAdmin
-        .from("enrollments")
-        .insert({
-          user_id: userId,
-          user_email: userEmail,
-          course_id: courseId,
-          course_title: courseTitle,
-          instructor: instructor,
-          price: price,
-          enrolled_at: new Date().toISOString(),
+    if (existingEnrollment) {
+      // If already enrolled with payment, return success
+      if (existingEnrollment.payment_status === "paid") {
+        return NextResponse.json({
+          success: true,
+          message: "Already enrolled in this course",
+          invoiceNumber: existingEnrollment.invoice_number,
+          alreadyEnrolled: true,
         });
-
-      if (insertError) {
-        console.error("Enrollment insert error:", insertError);
-        return NextResponse.json(
-          { error: "Failed to enroll" },
-          { status: 500 }
-        );
       }
+      return NextResponse.json(
+        { error: "Already enrolled in this course" },
+        { status: 400 }
+      );
+    }
 
-      const invoiceNumber = `INV-${Date.now()}-${courseId}`;
-      const invoiceDate = new Date().toISOString().split("T")[0];
+    const invoiceNumber = `INV-${Date.now()}-${courseId}`;
+    const invoiceDate = new Date().toISOString().split("T")[0];
 
-      const emailHtml = `
+    const { error: insertError } = await supabaseAdmin
+      .from("enrollments")
+      .insert({
+        user_id: userId,
+        user_email: userEmail,
+        course_id: courseId,
+        course_title: courseTitle,
+        instructor: instructor,
+        price: price,
+        enrolled_at: new Date().toISOString(),
+        payment_status: "paid",
+        invoice_number: invoiceNumber,
+      });
+
+    if (insertError) {
+      console.error("Enrollment insert error:", insertError);
+      return NextResponse.json(
+        { error: "Failed to enroll" },
+        { status: 500 }
+      );
+    }
+
+    const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -175,24 +193,22 @@ export async function POST(request: NextRequest) {
   </div>
 </body>
 </html>
-      `;
+    `;
 
-      const subject = `Invoice ${invoiceNumber} - Course Enrollment Confirmed`;
+    const subject = `Invoice ${invoiceNumber} - Course Enrollment Confirmed`;
 
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        try {
-          await sendEmailWithGmail(userEmail, subject, emailHtml);
-        } catch (gmailError) {
-          console.error("Gmail error:", gmailError);
-        }
-      } else {
-        console.log("No email service configured");
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      try {
+        await sendEmailWithGmail(userEmail, subject, emailHtml);
+      } catch (gmailError) {
+        console.error("Gmail error:", gmailError);
       }
     }
 
     return NextResponse.json({
       success: true,
       message: "Successfully enrolled",
+      invoiceNumber,
     });
   } catch (error) {
     console.error("Enrollment error:", error);

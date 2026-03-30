@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import { createServerClient } from "@supabase/ssr";
+import { supabaseAdmin } from "../../../../../lib/supabaseServer";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -53,6 +54,23 @@ export async function POST(request: NextRequest) {
         free: true,
         message: "Free course — proceed directly to enrollment",
       });
+    }
+
+    // Check if already enrolled (paid)
+    if (supabaseAdmin) {
+      const { data: existing } = await supabaseAdmin
+        .from("enrollments")
+        .select("id, payment_status")
+        .eq("user_id", user.id)
+        .eq("course_id", courseId)
+        .single();
+
+      if (existing && existing.payment_status === "paid") {
+        return NextResponse.json(
+          { error: "Already enrolled and paid for this course" },
+          { status: 400 }
+        );
+      }
     }
 
     // Create Razorpay order (amount in paise)

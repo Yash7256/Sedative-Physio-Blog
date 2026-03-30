@@ -3,6 +3,12 @@ import crypto from "crypto";
 import { supabaseAdmin } from "../../../../../lib/supabaseServer";
 import { createServerClient } from "@supabase/ssr";
 import nodemailer from "nodemailer";
+import Razorpay from "razorpay";
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+});
 
 async function sendConfirmationEmail(
   to: string,
@@ -131,6 +137,52 @@ export async function POST(request: NextRequest) {
     if (!supabaseAdmin) {
       return NextResponse.json(
         { error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+
+    // Verify order belongs to this user and course
+    try {
+      const order = await razorpay.orders.fetch(razorpay_order_id);
+      
+      // Check if order is paid
+      if (order.status !== "paid") {
+        return NextResponse.json(
+          { error: "Order not paid" },
+          { status: 400 }
+        );
+      }
+
+      // Verify order notes match
+      const orderCourseId = order.notes?.courseId;
+      const orderUserId = order.notes?.userId;
+
+      if (orderCourseId !== String(courseId)) {
+        return NextResponse.json(
+          { error: "Order mismatch - course ID" },
+          { status: 400 }
+        );
+      }
+
+      if (orderUserId !== user.id) {
+        return NextResponse.json(
+          { error: "Order mismatch - user ID" },
+          { status: 400 }
+        );
+      }
+
+      // Verify amount matches
+      const expectedAmount = Math.round(price * 100);
+      if (order.amount !== expectedAmount) {
+        return NextResponse.json(
+          { error: "Order amount mismatch" },
+          { status: 400 }
+        );
+      }
+    } catch (orderError: any) {
+      console.error("Razorpay order fetch error:", orderError);
+      return NextResponse.json(
+        { error: "Failed to verify order with payment gateway" },
         { status: 500 }
       );
     }
