@@ -10,7 +10,11 @@ CREATE TABLE IF NOT EXISTS enrollments (
   instructor TEXT,
   price INTEGER DEFAULT 0,
   enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  payment_id TEXT,
+  order_id TEXT,
+  payment_status TEXT DEFAULT 'paid',
+  invoice_number TEXT
 );
 
 -- Create email_queue table for sending invoices
@@ -48,6 +52,10 @@ CREATE POLICY "Service role can manage email_queue" ON email_queue
 CREATE INDEX IF NOT EXISTS idx_enrollments_user_id ON enrollments(user_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_course_id ON enrollments(course_id);
 CREATE INDEX IF NOT EXISTS idx_email_queue_status ON email_queue(status);
+
+-- Create unique constraint to prevent duplicate enrollments
+ALTER TABLE enrollments DROP CONSTRAINT IF EXISTS enrollments_user_course_unique;
+ALTER TABLE enrollments ADD CONSTRAINT enrollments_user_course_unique UNIQUE (user_id, course_id);
 
 -- Track per-user course progress
 CREATE TABLE IF NOT EXISTS course_progress (

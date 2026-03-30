@@ -144,10 +144,45 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      return NextResponse.json(
-        { error: "Already enrolled in this course" },
-        { status: 400 }
+      // If already enrolled and payment is already paid, return success
+      if (existing.payment_status === "paid") {
+        return NextResponse.json({
+          success: true,
+          message: "Already enrolled - payment verified",
+          invoiceNumber: existing.invoice_number,
+          alreadyEnrolled: true,
+        });
+      }
+      // If enrollment exists but payment wasn't recorded, update it
+      const { error: updateError } = await supabaseAdmin
+        .from("enrollments")
+        .update({
+          payment_id: razorpay_payment_id,
+          order_id: razorpay_order_id,
+          payment_status: "paid",
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        console.error("Enrollment update error:", updateError);
+        return NextResponse.json(
+          { error: "Payment verified but enrollment update failed. Contact support with payment ID: " + razorpay_payment_id },
+          { status: 500 }
+        );
+      }
+
+      const invoiceNumber = existing.invoice_number || `INV-${Date.now()}-${courseId}`;
+      
+      // Send confirmation email (non-blocking)
+      sendConfirmationEmail(userEmail, courseTitle, instructor, price, invoiceNumber).catch(
+        (e) => console.error("Email error:", e)
       );
+
+      return NextResponse.json({
+        success: true,
+        message: "Payment verified and enrollment updated",
+        invoiceNumber,
+      });
     }
 
     const invoiceNumber = `INV-${Date.now()}-${courseId}`;

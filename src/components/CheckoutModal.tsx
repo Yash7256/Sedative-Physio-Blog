@@ -160,6 +160,8 @@ export default function CheckoutModal({ course, isOpen, onClose, userEmail }: Ch
               const verifyData = await verifyRes.json();
               if (!verifyRes.ok) throw new Error(verifyData.error || "Verification failed");
               setInvoiceNumber(verifyData.invoiceNumber || null);
+              // If already enrolled, still show success
+              setIsSuccess(true);
               resolve();
             } catch (err) { reject(err); }
           },
