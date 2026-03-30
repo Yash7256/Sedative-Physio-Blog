@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-interface Stat {
-  number: string;
-  label: string;
-}
+import { useRouter } from "next/navigation";
 
 export function HeroSection() {
+  const router = useRouter();
+
   return (
     <section className="w-full bg-white pt-12 md:pt-24 pb-4 md:pb-6 px-4 md:px-6">
       <div className="max-w-4xl mx-auto">
@@ -31,10 +28,16 @@ export function HeroSection() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 mb-12 md:mb-16">
-          <button className="w-full sm:w-auto px-8 py-3 border-2 border-black text-black font-medium rounded-full hover:bg-black hover:text-white transition-colors">
+          <button
+            onClick={() => router.push("/courses")}
+            className="w-full sm:w-auto px-8 py-3 border-2 border-black text-black font-medium rounded-full hover:bg-black hover:text-white transition-colors cursor-pointer"
+          >
             Explore Courses
           </button>
-          <button className="w-full sm:w-auto px-8 py-3 bg-black text-white font-medium rounded-full hover:bg-gray-900 transition-colors">
+          <button
+            onClick={() => router.push("/login")}
+            className="w-full sm:w-auto px-8 py-3 bg-black text-white font-medium rounded-full hover:bg-gray-900 transition-colors cursor-pointer"
+          >
             Get Started Free
           </button>
         </div>
