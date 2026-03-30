@@ -46,7 +46,7 @@ export const courseCatalog: CourseContent[] = [
     title: "Orthopedics Batch",
     instructor: "Dr. Akshay Kumar PT",
     duration: "Live Batch",
-    coverImage: "https://i.ibb.co/4Z31Xcjp/Screenshot-From-2026-03-30-18-17-04.png",
+    coverImage: "",
     instructorImage: "https://jibonryxreoezswvydnd.supabase.co/storage/v1/object/public/images/WhatsApp%20Image%202026-01-19%20at%2011.57.21%20PM.jpeg",
     description: "Comprehensive orthopedics course covering fractures, infections, metabolic disorders, bone tumors, congenital cases, surgeries, and joint disorders.",
     price: 1200,

@@ -54,8 +54,8 @@ export default function CoursesPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-white text-2xl font-bold">{course.title.charAt(0)}</span>
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4">
+                    <span className="text-white text-2xl md:text-3xl font-bold text-center">{course.title}</span>
                   </div>
                 )}
                 {course.isBestseller && (
