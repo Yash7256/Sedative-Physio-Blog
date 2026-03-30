@@ -8,10 +8,18 @@ interface Course {
   id: number;
   title: string;
   instructor: string;
+  instructorImage?: string;
   duration: string;
   price: number;
   description: string;
   coverImage: string;
+  topicsIncluded?: string[];
+  batchHighlights?: string[];
+  sectionsToDiscuss?: string[];
+  batchStartDate?: string;
+  batchTime?: string;
+  language?: string;
+  accessType?: string;
 }
 
 interface CheckoutModalProps {
@@ -193,7 +201,7 @@ export default function CheckoutModal({ course, isOpen, onClose, userEmail }: Ch
             </button>
           </div>
 
-          <div className="p-6 md:p-8">
+          <div className="p-4 md:p-6 max-h-[80vh] overflow-y-auto">
             {isSuccess ? (
               <div className="text-center py-4">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -209,16 +217,100 @@ export default function CheckoutModal({ course, isOpen, onClose, userEmail }: Ch
               </div>
             ) : (
               <>
-                <div className="bg-gray-50 rounded-xl p-4 mb-5 flex gap-4">
-                  <img src={course.coverImage} alt={course.title} className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
-                  <div>
+                {/* Course Image */}
+                <div className="bg-gray-50 rounded-xl p-4 mb-4 flex gap-4">
+                  {course.coverImage ? (
+                    <img src={course.coverImage} alt={course.title} className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg flex-shrink-0 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                      <span className="text-white text-2xl font-bold">{course.title.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div className="flex-1">
                     <h3 className="font-bold text-gray-900 leading-tight">{course.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{course.instructor}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {course.instructorImage && (
+                        <img src={course.instructorImage} alt={course.instructor} className="w-6 h-6 rounded-full object-cover" />
+                      )}
+                      <p className="text-sm text-gray-500">{course.instructor}</p>
+                    </div>
                     <p className="text-sm text-gray-400">{course.duration}</p>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-200 pt-4 mb-5 space-y-2">
+                {/* Batch Start Date & Time */}
+                {course.batchStartDate && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm font-semibold text-blue-800">
+                      Classes Starting: {course.batchStartDate}
+                    </p>
+                    {course.batchTime && (
+                      <p className="text-xs text-blue-600 mt-1">{course.batchTime}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Topics Included */}
+                {course.topicsIncluded && course.topicsIncluded.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">Topics Included:</p>
+                    <ul className="text-xs text-gray-600 space-y-1 max-h-32 overflow-y-auto">
+                      {course.topicsIncluded.map((topic, idx) => (
+                        <li key={idx} className="flex items-start gap-1">
+                          <span className="text-green-500 mt-0.5">-</span>
+                          <span>{topic}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Sections to Discuss */}
+                {course.sectionsToDiscuss && course.sectionsToDiscuss.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">Sections in Each Topic:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {course.sectionsToDiscuss.map((section, idx) => (
+                        <span key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                          {section}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Batch Highlights */}
+                {course.batchHighlights && course.batchHighlights.length > 0 && (
+                  <div className="mb-4 p-3 bg-green-50 rounded-lg">
+                    <p className="text-sm font-semibold text-green-800 mb-2">Batch Highlights:</p>
+                    <ul className="text-xs text-green-700 space-y-1">
+                      {course.batchHighlights.map((highlight, idx) => (
+                        <li key={idx} className="flex items-start gap-1">
+                          <span className="text-green-500 mt-0.5">*</span>
+                          <span>{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Language & Access */}
+                {(course.language || course.accessType) && (
+                  <div className="mb-4 flex gap-3">
+                    {course.language && (
+                      <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                        {course.language}
+                      </span>
+                    )}
+                    {course.accessType && (
+                      <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-full">
+                        {course.accessType}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="border-t border-gray-200 pt-4 mb-4 space-y-2">
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>Course price</span><span>₹{course.price}</span>
                   </div>
@@ -268,7 +360,7 @@ export default function CheckoutModal({ course, isOpen, onClose, userEmail }: Ch
 
                 {!isFree && (
                   <p className="text-xs text-center text-gray-400 mt-3">
-                    🔒 Secured by Razorpay. We do not store your card details.
+                    Secured by Razorpay. We do not store your card details.
                   </p>
                 )}
               </>

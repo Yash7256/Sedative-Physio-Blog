@@ -18,6 +18,7 @@ export interface CourseOverview {
   id: number;
   title: string;
   instructor: string;
+  instructorImage?: string;
   duration: string;
   coverImage: string;
   description: string;
@@ -25,6 +26,13 @@ export interface CourseOverview {
   rating: number;
   students: string;
   isBestseller: boolean;
+  topicsIncluded?: string[];
+  batchHighlights?: string[];
+  sectionsToDiscuss?: string[];
+  batchStartDate?: string;
+  batchTime?: string;
+  language?: string;
+  accessType?: string;
 }
 
 export interface CourseContent extends CourseOverview {
@@ -34,71 +42,51 @@ export interface CourseContent extends CourseOverview {
 // Centralised catalog so UI and API share a single source of truth.
 export const courseCatalog: CourseContent[] = [
   {
-    id: 2,
-    title: "Anatomy",
-    instructor: "Dr Akshay Kumar",
-    duration: "",
-    coverImage: "",
-    description: "",
-    price: 1,
+    id: 1,
+    title: "Orthopedics Batch",
+    instructor: "Dr. Akshay Kumar PT",
+    duration: "Live Batch",
+    coverImage: "https://i.ibb.co/4Z31Xcjp/Screenshot-From-2026-03-30-18-17-04.png",
+    instructorImage: "https://jibonryxreoezswvydnd.supabase.co/storage/v1/object/public/images/WhatsApp%20Image%202026-01-19%20at%2011.57.21%20PM.jpeg",
+    description: "Comprehensive orthopedics course covering fractures, infections, metabolic disorders, bone tumors, congenital cases, surgeries, and joint disorders.",
+    price: 1200,
     rating: 0,
     students: "0 Students",
-    isBestseller: false,
-    sections: [],
-  },
-  {
-    id: 1,
-    title: "Neuro Anatomy",
-    instructor: "Dr. Akshay Kumar",
-    duration: "12 Hours",
-    coverImage: "https://i.ibb.co/F4bLdr2Q/Whats-App-Image-2026-02-28-at-9-14-27-PM.jpg",
-    description: "Complete neuroanatomy course with detailed explanations and 3D demonstrations.",
-    price: 0,
-    rating: 4.9,
-    students: "500+ Students",
     isBestseller: true,
-    sections: [
-      {
-        title: "Introduction to Neuroanatomy",
-        lessons: [
-          {
-            id: "lesson-1-1-1",
-            title: "Basal Ganglia Affernet Connections",
-            duration: "20 min 36 sec",
-            type: "video",
-            videoUrl: "https://www.youtube.com/embed/EmqDzL6FbSI",
-          },
-          {
-            id: "lesson-1-1-2",
-            title: "Basal Ganglia Anatomy",
-            duration: "21 min 16 sec",
-            type: "video",
-            videoUrl: "https://www.youtube.com/embed/C91yU3AhixU",
-          },
-          {
-            id: "lesson-1-1-3",
-            title: "Functional Area Of Cerebral Cortex",
-            duration: "27 min 27 sec",
-            type: "video",
-            videoUrl: "https://www.youtube.com/embed/G84g7zEffe4",
-          },
-          {
-            id: "lesson-1-1-4",
-            title: "Sulcus & Gyrus on Medical & Inferior Surface",
-            duration: "23 min 32 sec",
-            type: "video",
-            videoUrl: "https://www.youtube.com/embed/5XxhhPyJ_7U",
-          },
-          {
-            id: "lesson-1-1-5",
-            title: "Cerebrum Part 1",
-            duration: "25 min 32 sec",
-            type: "video",
-            videoUrl: "https://www.youtube.com/embed/5HxMaRzLUBI",
-          },
-        ],
-      },
+    topicsIncluded: [
+      "Fracture - Introduction, Types & Fracture Healing",
+      "Fractures of Upper Limb (Humerus, Scapula, Clavicle, Radius & Ulna)",
+      "Fractures of Lower Limb (Hip Bone, Femur, Tibia & Fibula)",
+      "Bone infections - Osteomyelitis, Bone TB, Septic Arthritis",
+      "Metabolic Disorders - Osteomalacia, Osteoporosis, Rickets, Fluorosis",
+      "Bone Tumors - Benign & Malignant (Osteoid Osteoma, Osteoclastoma, Metastasis in Bone)",
+      "Congenital Cases - CTEV, Poliomyelitis",
+      "Surgeries - TKR, ACL Reconstruction",
+      "Joint Disorders - OA, RA, Gout",
     ],
+    batchHighlights: [
+      "Live Lectures",
+      "All the Live lectures will be recorded simultaneously & it can be accessible for lifetime",
+      "Notes & Slides will be provided",
+      "Doubt sessions",
+      "MCQs for practice will be given",
+      "Language - English & Hindi",
+      "Access will be given through google drive",
+    ],
+    sectionsToDiscuss: [
+      "Introduction",
+      "Relevant & Patho anatomy",
+      "Etiology",
+      "Clinical Manifestations",
+      "Radiological Interpretation",
+      "Medical & Surgical Management",
+      "Physiotherapy Management",
+    ],
+    batchStartDate: "13 April 2026",
+    batchTime: "9 pm to 10 pm",
+    language: "English & Hindi",
+    accessType: "Google Drive",
+    sections: [],
   },
 ];
 
