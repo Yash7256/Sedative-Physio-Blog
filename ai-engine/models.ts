@@ -27,7 +27,7 @@ export const MODELS: Record<string, ModelConfig> = {
     color: "bg-green-500"
   },
   reasoning: {
-    name: "llama3-groq-70b-8192-tool-use-preview",
+    name: "deepseek-r1-distill-llama-70b",
     displayName: "Advanced Reasoning",
     speed: 350,
     use: "Deep medical reasoning, research analysis, case studies",

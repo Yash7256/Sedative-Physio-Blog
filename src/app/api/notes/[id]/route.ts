@@ -5,6 +5,8 @@ import { supabaseAdmin } from '../../../../../lib/supabaseServer';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+
 // Configure upload directory
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'notes');
 

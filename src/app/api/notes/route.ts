@@ -3,6 +3,8 @@ import { supabaseAdmin } from '../../../../lib/supabaseServer';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
