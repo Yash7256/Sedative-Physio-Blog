@@ -18,7 +18,10 @@ async function sendConfirmationEmail(
   price: number,
   invoiceNumber: string
 ) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return;
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error("Email credentials not configured. Set EMAIL_USER and EMAIL_PASS environment variables.");
+    return;
+  }
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -263,10 +266,10 @@ export async function POST(request: NextRequest) {
       const invoiceNumber = existing.invoice_number || `INV-${Date.now()}-${courseId}`;
       const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Student";
       
-      // Send confirmation email (non-blocking)
-      sendConfirmationEmail(userEmail, userName, courseTitle, instructor, price, invoiceNumber).catch(
-        (e) => console.error("Email error:", e)
-      );
+    // Send confirmation email (non-blocking)
+    sendConfirmationEmail(userEmail, userName, courseTitle, instructor, price, invoiceNumber).catch(
+      (e) => console.error("Email sending failed:", e.message || e)
+    );
 
       return NextResponse.json({
         success: true,
@@ -305,7 +308,7 @@ export async function POST(request: NextRequest) {
     // Send confirmation email (non-blocking)
     const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Student";
     sendConfirmationEmail(userEmail, userName, courseTitle, instructor, price, invoiceNumber).catch(
-      (e) => console.error("Email error:", e)
+      (e) => console.error("Email sending failed:", e.message || e)
     );
 
     return NextResponse.json({
