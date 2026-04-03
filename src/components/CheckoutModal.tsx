@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X, Check, Loader2, ShieldCheck, CreditCard, Smartphone, Wallet, AlertCircle } from "lucide-react";
 import ProfileCompletionModal from "./ProfileCompletionModal";
 
@@ -55,6 +56,7 @@ function loadRazorpayScript(): Promise<boolean> {
 }
 
 export default function CheckoutModal({ course, isOpen, onClose, userEmail }: CheckoutModalProps) {
+  const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -213,7 +215,7 @@ export default function CheckoutModal({ course, isOpen, onClose, userEmail }: Ch
                 <p className="text-gray-600 mb-2">You are now enrolled in <strong>{course.title}</strong>.</p>
                 {invoiceNumber && <p className="text-sm text-gray-500 mb-1">Invoice: <strong>{invoiceNumber}</strong></p>}
                 <p className="text-sm text-gray-500 mb-6">Confirmation sent to <strong>{userEmail}</strong></p>
-                <button onClick={handleClose} className="px-6 py-3 bg-black text-white font-bold rounded-lg hover:bg-gray-900 transition-colors">
+                <button onClick={() => router.push(`/courses/${course.id}`)} className="px-6 py-3 bg-black text-white font-bold rounded-lg hover:bg-gray-900 transition-colors">
                   Start Learning →
                 </button>
               </div>

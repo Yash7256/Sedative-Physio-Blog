@@ -5,7 +5,7 @@ import { formatUserDisplay, getUserEmail } from '@/lib/authUtils';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Loader2, User, Edit2, Save, X, Upload } from 'lucide-react';
+import { Loader2, User, Edit2, Save, X } from 'lucide-react';
 
 interface UserProfile {
   full_name: string | null;
@@ -32,7 +32,6 @@ export default function DashboardPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile>({
     full_name: null,
     avatar_url: null,
@@ -74,9 +73,6 @@ export default function DashboardPage() {
           gender: p.gender || '',
           email: p.email || getUserEmail(session),
         });
-        if (p.avatar_url) {
-          setAvatarPreview(p.avatar_url);
-        }
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -96,23 +92,6 @@ export default function DashboardPage() {
 
   const handleChange = (field: keyof UserProfile, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size must be less than 5MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setAvatarPreview(result);
-        setFormData(prev => ({ ...prev, avatar_url: result }));
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const handleSave = async () => {
@@ -154,7 +133,6 @@ export default function DashboardPage() {
       gender: profile.gender || '',
       email: profile.email || '',
     });
-    setAvatarPreview(profile.avatar_url);
     setIsEditing(false);
     setError(null);
   };
@@ -214,29 +192,8 @@ export default function DashboardPage() {
 
                 {/* Profile Avatar & Name */}
                 <div className="flex items-center gap-6">
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-                      {(avatarPreview || formData.avatar_url) ? (
-                        <img
-                          src={avatarPreview || formData.avatar_url || ''}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <User className="w-12 h-12 text-gray-400" />
-                      )}
-                    </div>
-                    {isEditing && (
-                      <label className="absolute bottom-0 right-0 w-8 h-8 bg-black text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-800 transition">
-                        <Upload className="w-4 h-4" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarChange}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
+                  <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                    <User className="w-12 h-12 text-gray-400" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-800">

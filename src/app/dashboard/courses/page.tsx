@@ -23,28 +23,37 @@ export default function DashboardCoursesPage() {
   const [error, setError] = useState<string | null>(null);
   const [progressMap, setProgressMap] = useState<Record<number, { progressPercent: number; completed: boolean }>>({});
 
-  useEffect(() => {
-    const fetchEnrollments = async () => {
-      try {
-        const response = await fetch('/api/enrollments/user');
-        const data = await response.json();
+  const fetchEnrollments = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/enrollments/user', { cache: 'no-store' });
+      const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch enrollments');
-        }
-
-        setEnrollments(data.enrollments || []);
-      } catch (err: any) {
-        setError(err.message || 'Something went wrong');
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch enrollments');
       }
-    };
 
+      setEnrollments(data.enrollments || []);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (session) {
       fetchEnrollments();
     }
   }, [session]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchEnrollments();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   useEffect(() => {
     const fetchProgress = async () => {
