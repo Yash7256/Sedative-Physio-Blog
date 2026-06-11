@@ -145,7 +145,8 @@ export async function GET(
       );
     }
 
-    const totalLessons = getCourseLessonIds(courseId).length;
+    const course = await getCourseById(String(courseId));
+    const totalLessons = course ? getCourseLessonIds(course).length : 0;
     const completedLessons = progress?.completed_lessons || [];
     const progressPercent =
       totalLessons === 0
@@ -193,7 +194,7 @@ export async function PATCH(
       );
     }
 
-    const course = getCourseById(courseId);
+    const course = await getCourseById(String(courseId));
 
     if (!course) {
       return NextResponse.json(
@@ -215,7 +216,7 @@ export async function PATCH(
       );
     }
 
-    const validLessonIds = getCourseLessonIds(courseId);
+    const validLessonIds = course ? getCourseLessonIds(course) : [];
 
     if (!validLessonIds.includes(lessonId)) {
       return NextResponse.json(

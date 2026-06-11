@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const getSupabase = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient(supabaseUrl, supabaseServiceKey);
+};
 
 // PUT - Update a course
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { courseId: string } }
 ) {
   try {
     const body = await request.json();
-    const { id } = params;
+    const { courseId: id } = params;
 
     const {
       title,
@@ -35,6 +36,7 @@ export async function PUT(
       access_type,
     } = body;
 
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('courses')
       .update({
@@ -75,11 +77,12 @@ export async function PUT(
 // DELETE - Delete a course
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { courseId: string } }
 ) {
   try {
-    const { id } = params;
+    const { courseId: id } = params;
 
+    const supabase = getSupabase();
     const { error } = await supabase
       .from('courses')
       .delete()
@@ -91,7 +94,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting course:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete course' },
+      { success: false, error: 'Failed to update course' },
       { status: 500 }
     );
   }

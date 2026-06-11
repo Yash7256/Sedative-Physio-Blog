@@ -64,7 +64,7 @@ export default function CourseContentPage() {
         return;
       }
 
-      const courseData = getCourseById(courseId);
+      const courseData = await getCourseById(String(courseId));
       if (courseData) {
         setCourse(courseData);
         setExpandedSections([0]);

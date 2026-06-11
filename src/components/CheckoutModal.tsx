@@ -6,7 +6,7 @@ import { X, Check, Loader2, ShieldCheck, CreditCard, Smartphone, Wallet, AlertCi
 import ProfileCompletionModal from "./ProfileCompletionModal";
 
 interface Course {
-  id: number;
+  id: string | number;
   title: string;
   instructor: string;
   instructorImage?: string;

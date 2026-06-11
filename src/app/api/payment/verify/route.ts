@@ -5,10 +5,12 @@ import { createServerClient } from "@supabase/ssr";
 import nodemailer from "nodemailer";
 import Razorpay from "razorpay";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+const getRazorpay = () => {
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID!,
+    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  });
+};
 
 async function sendConfirmationEmail(
   to: string,
@@ -183,6 +185,7 @@ export async function POST(request: NextRequest) {
 
     // Verify order belongs to this user and course
     try {
+      const razorpay = getRazorpay();
       const order = await razorpay.orders.fetch(razorpay_order_id);
       
       // Check if order is paid
