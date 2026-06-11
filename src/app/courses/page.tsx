@@ -1,20 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/SupabaseProvider";
 import { useRouter } from "next/navigation";
 import CheckoutModal from "@/components/CheckoutModal";
 import { CourseOverview, getCourseSummaries } from "@/lib/courseCatalog";
-
-const courses: CourseOverview[] = getCourseSummaries();
 
 export default function CoursesPage() {
   const { session } = useAuth();
   const router = useRouter();
   const [selectedCourse, setSelectedCourse] = useState<CourseOverview | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [courses, setCourses] = useState<CourseOverview[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const userEmail = session?.user?.email || null;
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      const courseData = await getCourseSummaries();
+      setCourses(courseData);
+      setLoading(false);
+    };
+    loadCourses();
+  }, []);
 
   const handleEnroll = (course: CourseOverview) => {
     if (!session) {
@@ -35,7 +44,12 @@ export default function CoursesPage() {
           Master physiotherapy with expert-led courses designed for students and clinicians.
         </p>
 
-        {courses.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-500 text-lg mt-4">Loading courses...</p>
+          </div>
+        ) : courses.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-500 text-lg">No courses available yet. Check back soon!</p>
           </div>

@@ -15,7 +15,7 @@ export interface CourseSection {
 }
 
 export interface CourseOverview {
-  id: number;
+  id: string;
   title: string;
   instructor: string;
   instructorImage?: string;
@@ -39,65 +39,81 @@ export interface CourseContent extends CourseOverview {
   sections: CourseSection[];
 }
 
-// Centralised catalog so UI and API share a single source of truth.
-export const courseCatalog: CourseContent[] = [
-  {
-    id: 3,
-    title: "Orthopedics Batch",
-    instructor: "Dr. Akshay Kumar PT",
-    duration: "Live Batch",
-    coverImage: "",
-    instructorImage: "https://jibonryxreoezswvydnd.supabase.co/storage/v1/object/public/images/WhatsApp%20Image%202026-01-19%20at%2011.57.21%20PM.jpeg",
-    description: "Comprehensive orthopedics course covering fractures, infections, metabolic disorders, bone tumors, congenital cases, surgeries, and joint disorders.",
-    price: 1200,
-    rating: 0,
-    students: "0 Students",
-    isBestseller: true,
-    topicsIncluded: [
-      "Fracture - Introduction, Types & Fracture Healing",
-      "Fractures of Upper Limb (Humerus, Scapula, Clavicle, Radius & Ulna)",
-      "Fractures of Lower Limb (Hip Bone, Femur, Tibia & Fibula)",
-      "Bone infections - Osteomyelitis, Bone TB, Septic Arthritis",
-      "Metabolic Disorders - Osteomalacia, Osteoporosis, Rickets, Fluorosis",
-      "Bone Tumors - Benign & Malignant (Osteoid Osteoma, Osteoclastoma, Metastasis in Bone)",
-      "Congenital Cases - CTEV, Poliomyelitis",
-      "Surgeries - TKR, ACL Reconstruction",
-      "Joint Disorders - OA, RA, Gout",
-    ],
-    batchHighlights: [
-      "Live Lectures",
-      "All the Live lectures will be recorded simultaneously & it can be accessible for lifetime",
-      "Notes & Slides will be provided",
-      "Doubt sessions",
-      "MCQs for practice will be given",
-      "Language - English & Hindi",
-      "Access will be given through google drive",
-    ],
-    sectionsToDiscuss: [
-      "Introduction",
-      "Relevant & Patho anatomy",
-      "Etiology",
-      "Clinical Manifestations",
-      "Radiological Interpretation",
-      "Medical & Surgical Management",
-      "Physiotherapy Management",
-    ],
-    batchStartDate: "13 April 2026",
-    batchTime: "9 pm to 10 pm",
-    language: "English & Hindi",
-    accessType: "Google Drive",
-    sections: [],
-  },
-];
+// Fetch courses from the database
+export const fetchCourses = async (): Promise<CourseOverview[]> => {
+  try {
+    const response = await fetch("/api/courses");
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      return result.data.map((course: any) => ({
+        id: course.id,
+        title: course.title,
+        instructor: course.instructor,
+        instructorImage: course.instructor_image,
+        duration: course.duration,
+        coverImage: course.cover_image,
+        description: course.description,
+        price: course.price,
+        rating: course.rating,
+        students: course.students || "0 Students",
+        isBestseller: course.is_bestseller,
+        topicsIncluded: course.topics_included,
+        batchHighlights: course.batch_highlights,
+        sectionsToDiscuss: course.sections_to_discuss,
+        batchStartDate: course.batch_start_date,
+        batchTime: course.batch_time,
+        language: course.language,
+        accessType: course.access_type,
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching courses:", error);
+    return [];
+  }
+};
 
-export const getCourseById = (id: number): CourseContent | undefined =>
-  courseCatalog.find((course) => course.id === id);
+export const getCourseById = async (id: string): Promise<CourseContent | undefined> => {
+  try {
+    const response = await fetch(`/api/courses/${id}`);
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      const course = result.data;
+      return {
+        id: course.id,
+        title: course.title,
+        instructor: course.instructor,
+        instructorImage: course.instructor_image,
+        duration: course.duration,
+        coverImage: course.cover_image,
+        description: course.description,
+        price: course.price,
+        rating: course.rating,
+        students: course.students || "0 Students",
+        isBestseller: course.is_bestseller,
+        topicsIncluded: course.topics_included,
+        batchHighlights: course.batch_highlights,
+        sectionsToDiscuss: course.sections_to_discuss,
+        batchStartDate: course.batch_start_date,
+        batchTime: course.batch_time,
+        language: course.language,
+        accessType: course.access_type,
+        sections: [],
+      };
+    }
+    return undefined;
+  } catch (error) {
+    console.error("Error fetching course:", error);
+    return undefined;
+  }
+};
 
-export const getCourseLessonIds = (id: number): string[] => {
-  const course = getCourseById(id);
-  if (!course) return [];
+export const getCourseLessonIds = (course: CourseContent): string[] => {
   return course.sections.flatMap((section) => section.lessons.map((lesson) => lesson.id));
 };
 
-export const getCourseSummaries = (): CourseOverview[] =>
-  courseCatalog.map(({ sections, ...summary }) => summary);
+export const getCourseSummaries = async (): Promise<CourseOverview[]> => {
+  return await fetchCourses();
+};

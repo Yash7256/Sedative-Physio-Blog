@@ -16,6 +16,26 @@ interface BlogFormData {
   category?: string;
 }
 
+interface CourseFormData {
+  title: string;
+  instructor: string;
+  instructorImage: string;
+  duration: string;
+  coverImage: string;
+  description: string;
+  price: string;
+  rating: string;
+  students: string;
+  isBestseller: boolean;
+  topicsIncluded: string;
+  batchHighlights: string;
+  sectionsToDiscuss: string;
+  batchStartDate: string;
+  batchTime: string;
+  language: string;
+  accessType: string;
+}
+
   // Admin password is checked server-side via `/api/admin/check-password`.
   // Set the server-side password in `.env.local` as `ADMIN_PASSWORD`.
 
@@ -45,6 +65,31 @@ export default function Admin() {
   const [uploading, setUploading] = useState<boolean>(false);
   const [notes, setNotes] = useState<any[]>([]);
 
+  // States for courses management
+  const [courses, setCourses] = useState<any[]>([]);
+  const [courseFormData, setCourseFormData] = useState<CourseFormData>({
+    title: "",
+    instructor: "",
+    instructorImage: "",
+    duration: "",
+    coverImage: "",
+    description: "",
+    price: "",
+    rating: "",
+    students: "",
+    isBestseller: false,
+    topicsIncluded: "",
+    batchHighlights: "",
+    sectionsToDiscuss: "",
+    batchStartDate: "",
+    batchTime: "",
+    language: "",
+    accessType: "",
+  });
+  const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [courseLoading, setCourseLoading] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("blogs");
+
   // Check if already authenticated on component mount
   useEffect(() => {
     const savedAuth = localStorage.getItem("admin-authenticated");
@@ -57,6 +102,7 @@ export default function Admin() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchBlogs();
+      fetchCourses();
     }
   }, [isAuthenticated]);
 
@@ -124,6 +170,22 @@ export default function Admin() {
       console.error("Error fetching blogs:", error);
       setConnectionError(true);
       toast.error("Database connection failed. Check Supabase configuration.");
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch("/api/courses");
+      const result = await response.json();
+      
+      if (result.success) {
+        setCourses(result.data);
+      } else {
+        toast.error("Failed to fetch courses");
+      }
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      toast.error("Failed to fetch courses");
     }
   };
 
@@ -275,6 +337,156 @@ export default function Admin() {
       featured: false,
     });
     setEditingBlog(null);
+  };
+
+  // Course management functions
+  const handleCourseInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    
+    setCourseFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleCourseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCourseLoading(true);
+
+    try {
+      const courseData = {
+        ...courseFormData,
+        topics_included: courseFormData.topicsIncluded.split(",").map(t => t.trim()).filter(t => t),
+        batch_highlights: courseFormData.batchHighlights.split(",").map(t => t.trim()).filter(t => t),
+        sections_to_discuss: courseFormData.sectionsToDiscuss.split(",").map(t => t.trim()).filter(t => t),
+        price: parseFloat(courseFormData.price) || 0,
+        rating: parseFloat(courseFormData.rating) || 0,
+      };
+
+      let response;
+      if (editingCourse) {
+        response = await fetch(`/api/courses/${editingCourse.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(courseData),
+        });
+      } else {
+        response = await fetch("/api/courses", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(courseData),
+        });
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(editingCourse ? "Course updated successfully!" : "Course created successfully!");
+        setCourseFormData({
+          title: "",
+          instructor: "",
+          instructorImage: "",
+          duration: "",
+          coverImage: "",
+          description: "",
+          price: "",
+          rating: "",
+          students: "",
+          isBestseller: false,
+          topicsIncluded: "",
+          batchHighlights: "",
+          sectionsToDiscuss: "",
+          batchStartDate: "",
+          batchTime: "",
+          language: "",
+          accessType: "",
+        });
+        setEditingCourse(null);
+        fetchCourses();
+      } else {
+        toast.error(result.error || "Failed to save course");
+      }
+    } catch (error) {
+      console.error("Error saving course:", error);
+      toast.error("Failed to save course");
+    } finally {
+      setCourseLoading(false);
+    }
+  };
+
+  const handleEditCourse = (course: any) => {
+    setCourseFormData({
+      title: course.title,
+      instructor: course.instructor,
+      instructorImage: course.instructor_image || "",
+      duration: course.duration,
+      coverImage: course.cover_image,
+      description: course.description,
+      price: course.price?.toString() || "",
+      rating: course.rating?.toString() || "",
+      students: course.students || "",
+      isBestseller: course.is_bestseller || false,
+      topicsIncluded: course.topics_included?.join(",") || "",
+      batchHighlights: course.batch_highlights?.join(",") || "",
+      sectionsToDiscuss: course.sections_to_discuss?.join(",") || "",
+      batchStartDate: course.batch_start_date || "",
+      batchTime: course.batch_time || "",
+      language: course.language || "",
+      accessType: course.access_type || "",
+    });
+    setEditingCourse(course);
+  };
+
+  const handleDeleteCourse = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this course?")) return;
+
+    try {
+      const response = await fetch(`/api/courses/${id}`, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Course deleted successfully!");
+        fetchCourses();
+      } else {
+        toast.error(result.error || "Failed to delete course");
+      }
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      toast.error("Failed to delete course");
+    }
+  };
+
+  const handleCancelCourseEdit = () => {
+    setCourseFormData({
+      title: "",
+      instructor: "",
+      instructorImage: "",
+      duration: "",
+      coverImage: "",
+      description: "",
+      price: "",
+      rating: "",
+      students: "",
+      isBestseller: false,
+      topicsIncluded: "",
+      batchHighlights: "",
+      sectionsToDiscuss: "",
+      batchStartDate: "",
+      batchTime: "",
+      language: "",
+      accessType: "",
+    });
+    setEditingCourse(null);
   };
 
   // Functions for notes upload
@@ -443,14 +655,54 @@ export default function Admin() {
         </div>
       </header>
 
+      {/* Tab Navigation */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab("blogs")}
+              className={`${
+                activeTab === "blogs"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Blogs
+            </button>
+            <button
+              onClick={() => setActiveTab("courses")}
+              className={`${
+                activeTab === "courses"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Courses
+            </button>
+            <button
+              onClick={() => setActiveTab("notes")}
+              className={`${
+                activeTab === "notes"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Notes
+            </button>
+          </nav>
+        </div>
+      </div>
+
       {/* Main Dashboard Content */}
       <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            {editingBlog ? "Edit Research Publication" : "Create New Research Publication"}
-          </h2>
+        {activeTab === "blogs" && (
+          <>
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                {editingBlog ? "Edit Research Publication" : "Create New Research Publication"}
+              </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -587,6 +839,365 @@ export default function Admin() {
           </form>
         </div>
 
+        {/* Existing Blogs */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Existing Research Publications</h2>
+          
+          {blogs.length === 0 ? (
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">No blog posts yet</h3>
+              <p className="mt-1 text-gray-500">Get started by creating your first blog post.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {blogs.map((blog) => (
+                <div key={blog.id || blog._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{blog.title}</h3>
+                      <div className="flex items-center mt-1 space-x-4 text-sm text-gray-500">
+                        <span>By {blog.author}</span>
+                        <span>{blog.published ? "Published" : "Draft"}</span>
+                        <span>{blog.featured ? "Featured" : ""}</span>
+                        <span>{blog.views} views</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEdit(blog)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(blog.slug)}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {blog.tags.map((tag: string) => (
+                      <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+          </>
+        )}
+
+        {activeTab === "courses" && (
+          <>
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                {editingCourse ? "Edit Course" : "Create New Course"}
+              </h2>
+
+              <form onSubmit={handleCourseSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Course Title *
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={courseFormData.title}
+                      onChange={handleCourseInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Instructor *
+                    </label>
+                    <input
+                      type="text"
+                      name="instructor"
+                      value={courseFormData.instructor}
+                      onChange={handleCourseInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Duration *
+                    </label>
+                    <input
+                      type="text"
+                      name="duration"
+                      value={courseFormData.duration}
+                      onChange={handleCourseInputChange}
+                      required
+                      placeholder="e.g., Live Batch, 6 weeks"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Price (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={courseFormData.price}
+                      onChange={handleCourseInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Cover Image URL *
+                    </label>
+                    <input
+                      type="url"
+                      name="coverImage"
+                      value={courseFormData.coverImage}
+                      onChange={handleCourseInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Instructor Image URL
+                    </label>
+                    <input
+                      type="url"
+                      name="instructorImage"
+                      value={courseFormData.instructorImage}
+                      onChange={handleCourseInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Batch Start Date
+                    </label>
+                    <input
+                      type="text"
+                      name="batchStartDate"
+                      value={courseFormData.batchStartDate}
+                      onChange={handleCourseInputChange}
+                      placeholder="e.g., 13 April 2026"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Batch Time
+                    </label>
+                    <input
+                      type="text"
+                      name="batchTime"
+                      value={courseFormData.batchTime}
+                      onChange={handleCourseInputChange}
+                      placeholder="e.g., 9 pm to 10 pm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Language
+                    </label>
+                    <input
+                      type="text"
+                      name="language"
+                      value={courseFormData.language}
+                      onChange={handleCourseInputChange}
+                      placeholder="e.g., English & Hindi"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Access Type
+                    </label>
+                    <input
+                      type="text"
+                      name="accessType"
+                      value={courseFormData.accessType}
+                      onChange={handleCourseInputChange}
+                      placeholder="e.g., Google Drive"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description *
+                  </label>
+                  <textarea
+                    name="description"
+                    value={courseFormData.description}
+                    onChange={handleCourseInputChange}
+                    required
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Topics Included (comma separated)
+                  </label>
+                  <textarea
+                    name="topicsIncluded"
+                    value={courseFormData.topicsIncluded}
+                    onChange={handleCourseInputChange}
+                    rows={3}
+                    placeholder="Topic 1, Topic 2, Topic 3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Batch Highlights (comma separated)
+                  </label>
+                  <textarea
+                    name="batchHighlights"
+                    value={courseFormData.batchHighlights}
+                    onChange={handleCourseInputChange}
+                    rows={3}
+                    placeholder="Highlight 1, Highlight 2, Highlight 3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sections to Discuss (comma separated)
+                  </label>
+                  <textarea
+                    name="sectionsToDiscuss"
+                    value={courseFormData.sectionsToDiscuss}
+                    onChange={handleCourseInputChange}
+                    rows={3}
+                    placeholder="Section 1, Section 2, Section 3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-6">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="isBestseller"
+                      checked={courseFormData.isBestseller}
+                      onChange={handleCourseInputChange}
+                      className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Bestseller</span>
+                  </label>
+                </div>
+
+                <div className="flex space-x-3">
+                  <button
+                    type="submit"
+                    disabled={courseLoading}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center"
+                  >
+                    {courseLoading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                      </>
+                    ) : editingCourse ? "Update Course" : "Create Course"}
+                  </button>
+                  
+                  {editingCourse && (
+                    <button
+                      type="button"
+                      onClick={handleCancelCourseEdit}
+                      className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* Existing Courses */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Existing Courses</h2>
+              
+              {courses.length === 0 ? (
+                <div className="text-center py-12">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <h3 className="mt-4 text-lg font-medium text-gray-900">No courses yet</h3>
+                  <p className="mt-1 text-gray-500">Get started by creating your first course.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {courses.map((course) => (
+                    <div key={course.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{course.title}</h3>
+                          <div className="flex items-center mt-1 space-x-4 text-sm text-gray-500">
+                            <span>By {course.instructor}</span>
+                            <span>{course.duration}</span>
+                            <span>₹{course.price}</span>
+                            {course.is_bestseller && <span className="text-red-600 font-medium">Bestseller</span>}
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEditCourse(course)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCourse(course.id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {activeTab === "notes" && (
+          <>
         {/* Notes Upload Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload Study Notes</h2>
@@ -752,62 +1363,8 @@ export default function Admin() {
             </div>
           </div>
         </div>
-
-        {/* Existing Blogs */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Existing Research Publications</h2>
-          
-          {blogs.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">No blog posts yet</h3>
-              <p className="mt-1 text-gray-500">Get started by creating your first blog post.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {blogs.map((blog) => (
-                <div key={blog.id || blog._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{blog.title}</h3>
-                      <div className="flex items-center mt-1 space-x-4 text-sm text-gray-500">
-                        <span>By {blog.author}</span>
-                        <span>{blog.published ? "Published" : "Draft"}</span>
-                        <span>{blog.featured ? "Featured" : ""}</span>
-                        <span>{blog.views} views</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(blog)}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(blog.slug)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {blog.tags.map((tag: string) => (
-                      <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </main>
     </div>
   );
