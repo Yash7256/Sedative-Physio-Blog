@@ -35,7 +35,7 @@ export function Home() {
           From Scratch, Built to Scale
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-          A fresh start for the Sedative Physio Blog — structured with reusable
+          A fresh start for the Sedative Physio — structured with reusable
           components and dedicated pages.
         </p>
         <div className="mt-8 flex justify-center gap-4">
