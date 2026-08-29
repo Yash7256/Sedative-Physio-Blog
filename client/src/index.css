@@ -1,6 +1,6 @@
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
@@ -111,4 +111,7 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  ::selection { background: var(--lavender); color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 }
