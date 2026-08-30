@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============ ENUMS ============
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum LessonType {
+  VIDEO
+  ARTICLE
+  QUIZ
+  PROJECT
+  LIVE_SESSION
+}
+
+// ============ COURSE ============
+
+model Course {
+  id               String       @id @default(cuid())
+  title            String
+  slug             String       @unique
+  shortDescription String?
+  description      String?      @db.Text
+  thumbnail        String?
+  coverImage       String?
+  level            CourseLevel
+  language         String       @default("English")
+  estimatedHours   Int?
+  status           CourseStatus @default(DRAFT)
+  isPublished      Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  highlights   CourseHighlight[]
+  requirements CourseRequirement[]
+  outcomes     LearningOutcome[]
+  sections     CourseSection[]
+  tags         CourseTag[]
+  categories   CourseCategory[]
+
+  @@index([status])
+  @@index([level])
+  @@index([status, level])
+  @@index([isPublished])
+}
+
+// ============ COURSE HIGHLIGHTS ============
+
+model CourseHighlight {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  icon        String?
+  order       Int
+  courseId    String
+  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, order])
+}
+
+// ============ COURSE REQUIREMENTS ============
+
+model CourseRequirement {
+  id       String @id @default(cuid())
+  content  String
+  order    Int
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, order])
+}
+
+// ============ LEARNING OUTCOMES ============
+
+model LearningOutcome {
+  id       String @id @default(cuid())
+  content  String
+  order    Int
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, order])
+}
+
+// ============ COURSE CURRICULUM ============
+
+model CourseSection {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  order       Int
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId, order])
+}
+
+model Lesson {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String
+  description String?       @db.Text
+  type        LessonType
+  content     String?       @db.Text
+  videoUrl    String?
+  duration    Int?
+  isPreview   Boolean       @default(false)
+  isPublished Boolean       @default(false)
+  order       Int
+  sectionId   String
+  section     CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([sectionId, slug])
+  @@index([sectionId, order])
+}
+
+// ============ CATEGORIES (M2M) ============
+
+model Category {
+  id      String           @id @default(cuid())
+  name    String
+  slug    String           @unique
+  courses CourseCategory[]
+}
+
+model CourseCategory {
+  courseId   String
+  categoryId String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, categoryId])
+  @@index([categoryId])
+}
+
+// ============ TAGS (M2M) ============
+
+model Tag {
+  id      String      @id @default(cuid())
+  name    String
+  slug    String      @unique
+  courses CourseTag[]
+}
+
+model CourseTag {
+  courseId String
+  tagId    String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, tagId])
+  @@index([tagId])
+}
