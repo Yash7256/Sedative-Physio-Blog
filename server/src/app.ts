@@ -2,6 +2,7 @@ import express from "express"
 import cors from "cors"
 
 import { authRouter } from "./auth/router.js"
+import { enrollmentRouter } from "./enrollments/router.js"
 import { healthRouter } from "./routes/health.js"
 
 export function createApp() {
@@ -14,6 +15,7 @@ export function createApp() {
 
   app.use("/api/health", healthRouter)
   app.use("/api/auth", authRouter)
+  app.use("/api/enrollments", enrollmentRouter)
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Not found" })

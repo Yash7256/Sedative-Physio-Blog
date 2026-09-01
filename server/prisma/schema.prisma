@@ -9,6 +9,17 @@ datasource db {
 
 // ============ ENUMS ============
 
+enum EnrollmentSource {
+  PURCHASE
+  FREE
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
 enum CourseLevel {
   BEGINNER
   INTERMEDIATE
@@ -47,12 +58,17 @@ model Course {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  price   Int     @default(0)   // in paise; 0 = free
+  isFree  Boolean @default(true)
+
   highlights   CourseHighlight[]
   requirements CourseRequirement[]
   outcomes     LearningOutcome[]
   sections     CourseSection[]
   tags         CourseTag[]
   categories   CourseCategory[]
+  enrollments  Enrollment[]
+  orders       Order[]
 
   @@index([status])
   @@index([level])
@@ -171,4 +187,41 @@ model CourseTag {
 
   @@id([courseId, tagId])
   @@index([tagId])
+}
+
+// ============ ENROLLMENT ============
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  clerkUserId String
+  courseId    String
+  source      EnrollmentSource
+  enrolledAt  DateTime         @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([clerkUserId, courseId])
+  @@index([clerkUserId])
+  @@index([courseId])
+}
+
+// ============ ORDER ============
+
+model Order {
+  id                String      @id @default(cuid())
+  clerkUserId       String
+  courseId          String
+  razorpayOrderId   String      @unique @db.VarChar(255)
+  razorpayPaymentId String?     @db.VarChar(255)
+  razorpaySignature String?
+  amount            Int
+  currency          String      @default("INR") @db.VarChar(3)
+  status            OrderStatus @default(PENDING)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([clerkUserId])
+  @@index([razorpayOrderId])
 }

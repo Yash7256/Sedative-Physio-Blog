@@ -1,23 +1,86 @@
-import { ArrowRight, Quote, Star } from "lucide-react"
+import { useEffect, useRef } from "react"
+import { ArrowRight, Award, BadgeCheck, Quote } from "lucide-react"
 import { Link } from "react-router-dom"
+import gsap from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { colleges, feedbacks } from "../lib/feedback"
 
-const learningCards = ["Courses", "3D Anatomy Models", "Notes", "AI Assistant", "Journal", "Podcast"]
+const learningCards = [["Courses", "100+ courses"], ["3D Anatomy Models", "100+ models"], ["Notes", "Handwritten notes"], ["AI Assistant", "Ask, revise, repeat"], ["Journal", "Learn from practice"], ["Podcast", "Clinical conversations"]] as const
 
 export function Home() {
-  return <div className="home-page overflow-hidden bg-canvas">
-    <section className="mx-auto grid min-h-[588px] max-w-[1283px] items-center gap-10 px-5 py-14 sm:px-[53px] md:grid-cols-[.95fr_1.05fr] md:py-11"><div className="max-w-[595px]"><h1 className="text-[clamp(2.5rem,4.05vw,3.25rem)] font-bold leading-[1.09] tracking-[-0.035em] text-ink">Everything You Need to Learn Physiotherapy, Better.</h1><p className="mt-6 max-w-[485px] text-[17px] leading-6 text-slate">Access expert-led courses, free study notes, 3D anatomy, videos, podcasts, practice tools and certifications, all in one place.</p><Link to="/about" className="mt-7 inline-flex h-[51px] items-center gap-4 rounded-[5px] bg-ink px-5 text-base font-medium text-canvas transition-transform hover:-translate-y-0.5">Start Learning <ArrowRight size={23} /></Link></div><img src="/hero.png" alt="Hero" className="mx-auto h-[300px] w-full max-w-[587px] rounded-[20px] object-cover sm:h-[430px]" /></section>
-    <section className="border-y border-white/70 bg-[#e5e4e1]/70 overflow-hidden"><div className="marquee relative py-5"><div className="marquee-track marquee-track-strip py-3">{[0, 1].map((set) => <div key={set} className="flex shrink-0 items-center gap-10 pr-10">{colleges.map((institution) => <span key={`${set}-${institution}`} className="whitespace-nowrap px-3 py-2 text-xs text-ink">{institution}</span>)}</div>)}</div><div aria-hidden className="pointer-events-none absolute inset-y-5 left-0 w-24 bg-gradient-to-r from-[#e5e4e1] via-[#e5e4e1]/30 to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_right,black,transparent)] sm:w-36" /><div aria-hidden className="pointer-events-none absolute inset-y-5 right-0 w-24 bg-gradient-to-l from-[#e5e4e1] via-[#e5e4e1]/30 to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_right,transparent,black)] sm:w-36" /></div></section>
-    <section className="bg-ink px-5 py-16 text-canvas"><div className="mx-auto flex max-w-[880px] flex-col items-center justify-center gap-7 sm:flex-row"><div className="flex -space-x-3">{["trust1", "trust2", "trust3", "trust4"].map((src) => <img key={src} src={`/${src}.png`} alt="" className="size-[58px] rounded-full border-canvas/50 border-2 object-cover" />)}</div><div className="hidden h-20 w-px bg-white/30 sm:block" /><div><p className="text-xl font-medium">Trusted by 600+ Physiotherapy students</p><p className="mt-2 flex items-center gap-2 text-lg text-white/90"><Star size={22} fill="#f2c46d" color="#f2c46d" />4.8/5 average rating</p></div></div></section>
-    <section className="px-5 py-28 sm:px-[53px]"><h2 className="text-center text-[clamp(2.2rem,4vw,3.25rem)] font-bold tracking-[-0.035em] text-ink">Learn Your Way</h2><div className="mx-auto mt-16 grid max-w-[1065px] gap-x-10 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">{learningCards.map((card, index) => <article key={card} className="text-center"><img src={`/bento${index + 1}.png`} alt={card} className="mx-auto aspect-square w-full max-w-[319px] rounded-[12px] object-cover shadow-[0_3px_7px_rgba(23,32,51,.14)]" /><h3 className="mt-5 text-xl text-ink">{card}</h3></article>)}</div></section>
-    <section className="bg-[#e8e7e4] px-5 py-20 sm:px-[53px]"><div className="mx-auto grid max-w-[1080px] items-center gap-12 md:grid-cols-2"><div><h2 className="max-w-[450px] text-[clamp(2.2rem,3.6vw,3rem)] font-bold leading-[1.08] tracking-[-.035em] text-ink">Turn what you learn into proof</h2><p className="mt-6 max-w-[420px] leading-6 text-slate">Complete structured courses, build practical knowledge, and earn a certificate that shows what you've learned.</p><Link to="/about" className="mt-7 inline-flex h-11 items-center gap-3 rounded-[5px] bg-ink px-4 text-sm text-canvas">Explore Courses <ArrowRight size={18} /></Link></div><img src="/certificate.png" alt="Certificate" className="mx-auto aspect-[.71] w-full max-w-[285px] rounded-[3px] object-cover" /></div></section>
-    <section className="bg-[#f7f7f7]">
-      <div className="relative mx-auto grid max-w-[1263px] md:grid-cols-[.93fr_.94fr_1.13fr]">
-        <div className="z-10 flex min-h-[470px] flex-col justify-between bg-[#172033] px-12 py-20 text-white sm:px-[52px] md:-mr-[72px] md:pr-[124px]"><p className="max-w-[245px] text-[25px] leading-[1.12] tracking-[.045em]">WHY WE BUILT<br />SEDATIVE PHYSIO</p><div><Quote aria-hidden="true" className="-ml-2 mb-6 size-[108px] text-[#344058]" fill="currentColor" strokeWidth={0} /><h2 className="z-10 text-[clamp(2.1rem,4vw,3rem)] font-bold leading-none tracking-[-.035em] text-white whitespace-nowrap md:absolute md:bottom-[87px] md:left-[52px]">Dr. Akshay Kumar, PT</h2><p className="mt-3 text-sm text-white/75 md:absolute md:bottom-[52px] md:left-[52px] md:mt-0">Physiotherapist & Educator</p></div></div>
-        <img src="/akshay.png" alt="Dr. Akshay Kumar" className="h-full min-h-[470px] w-full object-cover object-center" />
-        <div className="flex min-h-[470px] items-center bg-white px-8 py-14 sm:px-12"><p className="max-w-[320px] text-[15px] leading-[1.52] text-[#101010]">With over 3 years of clinical experience spanning musculoskeletal, neurological, and sports physiotherapy, Dr. Akshay Kumar founded Sedative Physio to bridge the gap between clinical practice and accessible education. Based in Patna, Bihar, he currently runs Moksh Physiotherapy clinic alongside building courses that have helped hundreds of BPT and MPT students master complex subjects through 3D models, structured notes, and practical insights.</p></div>
-      </div>
-    </section>
-    <section className="py-20"><h2 className="text-center text-[clamp(2.2rem,4vw,3.25rem)] font-bold tracking-[-.035em] text-ink">What Our Students Say</h2><div className="marquee relative mt-24 overflow-hidden pt-12" aria-label="Student feedback"><div className="marquee-track">{[0, 1].map((set) => <div key={set} className="flex shrink-0 items-stretch gap-12 pr-12">{feedbacks.map((feedback, index) => <article key={`${set}-${feedback.name}-${index}`} className="relative mt-9 w-[min(66vw,575px)] shrink-0 rounded-bl-[10px] rounded-br-[30px] rounded-tl-[30px] rounded-tr-[10px] border border-black/25 bg-white px-14 pb-7 pt-14 text-center shadow-[0_10px_30px_rgba(41,77,118,.08)]"><img src="/avatar.png" alt={feedback.name} className="absolute -top-20 left-6 size-24 rounded-full border-2 border-white object-cover object-top shadow-[2px_8px_18px_rgba(23,32,51,.12)]" /><Quote aria-hidden="true" className="absolute left-14 top-7 text-ink" size={38} fill="currentColor" /><Quote aria-hidden="true" className="absolute bottom-8 right-12 rotate-180 text-ink" size={38} fill="currentColor" /><p className="mx-auto max-w-[390px] text-sm leading-[1.55] text-[#8c8c8c]">“{feedback.quote}”</p><p className="mt-5 text-sm font-medium text-ink">~ {feedback.name}</p><p className="mt-1 text-xs leading-5 text-[#8c8c8c]">{feedback.college}<br />{feedback.location}</p></article>)}</div>)}</div><div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-canvas via-canvas/30 to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_right,black,transparent)] sm:w-44" /><div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-canvas via-canvas/30 to-transparent backdrop-blur-[3px] [mask-image:linear-gradient(to_right,transparent,black)] sm:w-44" /></div></section>
+  const heroRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
+    gsap.registerPlugin(ScrollTrigger)
+
+    const ctx = gsap.context(() => {
+      const title = el.querySelector<HTMLElement>("[data-hero-title]")
+      if (title && title.dataset.split !== "true") {
+        const words = title.textContent!.trim().split(/\s+/)
+        title.dataset.split = "true"
+        title.innerHTML = words.map((word, i) => {
+          const isAccent = i === words.length - 1
+          return `<span class="hero-word-mask"><span class="hero-word${isAccent ? " hero-word--accent" : ""}">${word}</span></span>`
+        }).join(" ")
+      }
+
+      gsap.fromTo(el.querySelectorAll(".hero-word"),
+        { yPercent: 110, opacity: 0 },
+        { yPercent: 0, opacity: 1, duration: 0.9, stagger: 0.06, ease: "power3.out", delay: 0.1 }
+      )
+
+      gsap.fromTo(el.querySelectorAll("[data-hero-fade]"),
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.9, stagger: 0.12, ease: "power3.out", delay: 0.3 }
+      )
+
+      const page = el.closest(".home-page")
+      if (page) {
+        const sections = Array.from(page.querySelectorAll(":scope > section"))
+        sections.forEach((section) => {
+          gsap.to(section, {
+            opacity: 0.4,
+            y: -70,
+            scale: 0.98,
+            filter: "blur(8px)",
+            ease: "none",
+            scrollTrigger: {
+              trigger: section,
+              start: "top top",
+              end: "bottom 25%",
+              scrub: 0.4,
+            },
+          })
+        })
+
+        const images = Array.from(page.querySelectorAll("section img"))
+        images.forEach((image) => {
+          gsap.timeline({
+            scrollTrigger: {
+              trigger: image,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: 0.4,
+            },
+          })
+            .fromTo(image, { scale: 1.15 }, { scale: 1, ease: "none", duration: 0.5 })
+            .to(image, { scale: 1.15, ease: "none", duration: 0.5 })
+        })
+      }
+    }, el)
+
+    return () => ctx.revert()
+  }, [])
+
+  return <div className="home-page overflow-hidden bg-[#f6f6f4] text-[#0b0b0c]">
+    <section ref={heroRef} className="hero-fade relative overflow-hidden px-5 pb-12 pt-12 sm:px-10 sm:pb-16 lg:px-[52px] lg:pt-16"><div data-hero-scroll className="mx-auto max-w-[1280px]"><p data-hero-fade className="flex items-center gap-2 text-sm font-medium text-[#686a6b] sm:text-base"><BadgeCheck className="size-5" /> Trusted by 600+ Physiotherapy students</p><h1 data-hero-title aria-label="Everything You Need to Learn Physiotherapy, Better." className="mt-8 max-w-[1010px] text-[clamp(2.1875rem,3.4vw,4.0625rem)] font-bold leading-[1.01] tracking-[-.04em]">Everything You Need to Learn Physiotherapy, Better.</h1><div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><p data-hero-fade className="max-w-[650px] text-base leading-[1.45] text-[#686a6b] sm:text-[18px]">Access expert-led courses, free study notes, 3D anatomy, videos, podcasts, practice tools and certifications, all in one place.</p><Link data-hero-fade to="/about" className="group inline-flex h-[60px] shrink-0 items-center justify-center gap-4 rounded-full bg-[#0b0b0c] px-8 text-base font-medium text-[#ececec] transition-transform hover:-translate-y-1 sm:h-[68px] sm:px-10 sm:text-lg">Start Learning <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" /></Link></div></div></section>
+    <section className="overflow-hidden border-y border-black/10 bg-[#dedfdd] py-6"><div className="marquee"><div className="marquee-track marquee-track-strip">{[0, 1].map((set) => <div key={set} className="flex shrink-0 items-center gap-12 pr-12">{colleges.map((college) => <span key={`${college}-${set}`} className="whitespace-nowrap text-sm text-[#686a6b]">{college}</span>)}</div>)}</div></div></section>
+    <section className="px-5 py-16 sm:px-10 sm:py-24 lg:px-[52px]"><div className="mx-auto max-w-[1280px]"><h2 className="text-[clamp(2.5rem,4.2vw,4.1rem)] font-bold leading-none tracking-[-.04em]">Learn Your Way</h2><div className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">{learningCards.map(([title, detail], index) => <article key={title}><div className="aspect-square w-full overflow-hidden rounded-[18px]"><img src={`/bento${index + 1}.png`} alt={title} className="h-full w-full object-cover" /></div><h3 className="mt-4 text-xl font-medium tracking-[-.03em]">{title}</h3><p className="mt-1 text-base text-[#686a6b]">{detail}</p></article>)}</div></div></section>
+    <section className="border-y border-black/10 bg-[#ebebeb] px-5 py-16 sm:px-10 sm:py-24 lg:px-[52px]"><div className="mx-auto grid max-w-[1280px] items-center gap-10 lg:grid-cols-[.9fr_1.1fr]"><div><h2 className="max-w-[620px] text-[clamp(2.5rem,4.3vw,4.1rem)] font-bold leading-[1.04] tracking-[-.04em]">Turn What You Learn Into Proof</h2><p className="mt-6 max-w-[530px] text-lg leading-[1.45] text-[#686a6b]">Finish focused courses, test your knowledge, and collect a certificate that makes your progress visible.</p><Link to="/about" className="group mt-8 inline-flex h-[62px] items-center gap-4 rounded-full bg-[#0b0b0c] px-8 text-lg font-medium text-[#ececec] transition-transform hover:-translate-y-1">Explore Course <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" /></Link></div><div className="mx-auto w-full max-w-[590px]"><div className="overflow-hidden rounded-[18px]"><img src="/certificate.png" alt="Course certificate" className="w-full object-cover" /></div></div></div></section>
+    <section className="px-5 py-16 sm:px-10 sm:py-24 lg:px-[52px]"><div className="mx-auto grid max-w-[1280px] overflow-hidden rounded-[22px] bg-[#0b0b0c] lg:grid-cols-[.9fr_.75fr_1.05fr]"><div className="flex min-h-[340px] flex-col justify-between p-8 text-[#ececec] sm:p-11"><p className="max-w-[260px] text-base uppercase leading-[1.1] tracking-[.08em]">Why we built<br />Sedative Physio</p><div><Quote className="mb-5 size-14 text-[#3c3c3c]" fill="currentColor" strokeWidth={0} /><h2 className="text-[clamp(1.8rem,2.5vw,2.8rem)] font-bold tracking-[-.04em]">Dr. Akshay Kumar, PT</h2><p className="mt-2 text-sm text-[#bcbcbc]">Physiotherapist &amp; Educator</p></div></div><div className="h-full overflow-hidden"><img src="/akshay.png" alt="Dr. Akshay Kumar" className="h-full min-h-[340px] w-full object-cover object-center" /></div><div className="flex min-h-[340px] items-center bg-[#f0f0ef] p-8 sm:p-11"><p className="max-w-[410px] text-base leading-[1.55] text-[#3e3f40]">With years of clinical experience across musculoskeletal, neurological and sports physiotherapy, Dr. Akshay Kumar founded Sedative Physio to bridge clinical practice and accessible education. The platform helps students master complex subjects with structured courses, 3D models, notes and practical insight.</p></div></div></section>
+    <section className="border-t border-black/10 px-5 py-16 sm:px-10 sm:py-24 lg:px-[52px]"><div className="mx-auto max-w-[1280px]"><div className="flex flex-wrap items-end justify-between gap-5"><h2 className="text-[clamp(2.5rem,4.3vw,4.1rem)] font-bold leading-none tracking-[-.04em]">What Our Students Say</h2><p className="flex items-center gap-2 text-base text-[#686a6b]"><Award className="size-5" /> 4.8/5 average rating</p></div><div className="mt-12 flex items-stretch gap-10 overflow-hidden [-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"><div className="marquee-track marquee-track-cards">{[0, 1].map((set) => <div key={set} className="flex shrink-0 items-stretch gap-5 pr-5">{feedbacks.map((feedback) => <article key={`${set}-${feedback.name}`} className="relative w-[min(92vw,580px)] shrink-0 rounded-[16px] bg-white p-4 sm:w-[560px] sm:p-5"><Quote className="size-5 text-[#0b0b0c]" fill="currentColor" strokeWidth={0} /><p className="mt-2 text-base leading-[1.4] text-[#686a6b]">“{feedback.quote}”</p><p className="mt-2 text-sm font-medium">{feedback.name}</p><p className="mt-0.5 text-xs text-[#686a6b]">{[feedback.college, feedback.location].filter((part): part is string => Boolean(part)).join(" · ")}</p></article>)}</div>)}</div></div></div></section>
   </div>
 }
