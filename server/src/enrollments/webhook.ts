@@ -21,8 +21,8 @@ export function verifyRazorpaySignature(
   // Timing-safe comparison
   try {
     return crypto.timingSafeEqual(
-      Buffer.from(expectedSignature, "hex"),
-      Buffer.from(signature, "hex"),
+      new Uint8Array(Buffer.from(expectedSignature, "hex")),
+      new Uint8Array(Buffer.from(signature, "hex")),
     )
   } catch {
     return false
