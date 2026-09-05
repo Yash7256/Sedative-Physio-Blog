@@ -8,18 +8,26 @@ import {
   NotFoundError,
 } from "./errors.js"
 
-if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-  if (process.env.NODE_ENV !== "test") {
-    console.warn(
-      "[enrollment] Warning: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is not set. Payment features will not work.",
-    )
+function createRazorpayClient() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    if (process.env.NODE_ENV !== "test") {
+      console.warn(
+        "[enrollment] Warning: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is not set. Payment features will not work.",
+      )
+    }
+    return null
   }
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  })
 }
 
-export const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID ?? "",
-  key_secret: process.env.RAZORPAY_KEY_SECRET ?? "",
-})
+let _razorpay: ReturnType<typeof createRazorpayClient> = null
+function getRazorpay() {
+  if (_razorpay === null) _razorpay = createRazorpayClient()
+  return _razorpay
+}
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL ?? "" }),
@@ -82,9 +90,14 @@ export async function createOrder(
   }
 
   // 6. Create Razorpay order
+  const client = getRazorpay()
+  if (!client) {
+    throw new GatewayError("Payment gateway is not configured.")
+  }
+
   let razorpayOrder: { id: string; amount: number | string; currency: string }
   try {
-    razorpayOrder = await razorpay.orders.create({
+    razorpayOrder = await client.orders.create({
       amount: course.price,
       currency: "INR",
       receipt: `rcpt_${clerkUserId.slice(-8)}_${courseId.slice(-8)}`,

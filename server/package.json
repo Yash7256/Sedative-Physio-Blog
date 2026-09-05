@@ -12,6 +12,8 @@
     "test": "vitest --run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1125.0",
+    "@aws-sdk/s3-request-presigner": "^3.1125.0",
     "@clerk/backend": "^3.16.13",
     "@clerk/express": "^2.1.64",
     "@prisma/adapter-pg": "^7.10.0",
@@ -19,6 +21,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
+    "multer": "^2.3.0",
+    "nodemailer": "^9.1.1",
     "pg": "^8.23.0",
     "razorpay": "^2.9.8",
     "svix": "^2.1.0"
@@ -26,7 +30,9 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/multer": "^2.2.0",
     "@types/node": "^24.13.3",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.23.1",
     "fast-check": "^4.9.0",
     "oxlint": "^1.79.0",

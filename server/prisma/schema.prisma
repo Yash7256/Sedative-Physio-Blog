@@ -189,6 +189,40 @@ model CourseTag {
   @@index([tagId])
 }
 
+// ============ NOTES ============
+
+model Note {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  tag         String?
+  category    String   @default("notes")
+  image       String?
+  fileKey     String   // object key inside the R2 bucket (e.g. "notes/anatomy-ch1.pdf")
+  fileName    String
+  fileSize    Int?     // bytes
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category, isPublished])
+  @@index([isPublished])
+}
+
+// ============ 3D MODELS ============
+
+model Model3D {
+  id          String   @id @default(cuid())
+  name        String
+  fileKey     String   // path inside the GitHub repo (e.g. "models/human-anatomy.glb")
+  fileName    String
+  fileSize    Int      // bytes
+  jsDelivrUrl String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // ============ ENROLLMENT ============
 
 model Enrollment {

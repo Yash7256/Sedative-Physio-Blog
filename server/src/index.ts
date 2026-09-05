@@ -1,7 +1,5 @@
-import { config } from "dotenv"
+import "dotenv/config"
 import { createApp } from "./app.js"
-
-config()
 
 const port = Number(process.env.PORT ?? 4000)
 const app = createApp()
