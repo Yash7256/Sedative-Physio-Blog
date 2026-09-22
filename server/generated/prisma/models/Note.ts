@@ -41,9 +41,13 @@ export type NoteMinAggregateOutputType = {
   tag: string | null
   category: string | null
   image: string | null
+  imageDark: string | null
+  imagePublicId: string | null
   fileKey: string | null
   fileName: string | null
   fileSize: number | null
+  status: $Enums.NoteStatus | null
+  uploadedAt: Date | null
   isPublished: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -56,9 +60,13 @@ export type NoteMaxAggregateOutputType = {
   tag: string | null
   category: string | null
   image: string | null
+  imageDark: string | null
+  imagePublicId: string | null
   fileKey: string | null
   fileName: string | null
   fileSize: number | null
+  status: $Enums.NoteStatus | null
+  uploadedAt: Date | null
   isPublished: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -71,9 +79,13 @@ export type NoteCountAggregateOutputType = {
   tag: number
   category: number
   image: number
+  imageDark: number
+  imagePublicId: number
   fileKey: number
   fileName: number
   fileSize: number
+  status: number
+  uploadedAt: number
   isPublished: number
   createdAt: number
   updatedAt: number
@@ -96,9 +108,13 @@ export type NoteMinAggregateInputType = {
   tag?: true
   category?: true
   image?: true
+  imageDark?: true
+  imagePublicId?: true
   fileKey?: true
   fileName?: true
   fileSize?: true
+  status?: true
+  uploadedAt?: true
   isPublished?: true
   createdAt?: true
   updatedAt?: true
@@ -111,9 +127,13 @@ export type NoteMaxAggregateInputType = {
   tag?: true
   category?: true
   image?: true
+  imageDark?: true
+  imagePublicId?: true
   fileKey?: true
   fileName?: true
   fileSize?: true
+  status?: true
+  uploadedAt?: true
   isPublished?: true
   createdAt?: true
   updatedAt?: true
@@ -126,9 +146,13 @@ export type NoteCountAggregateInputType = {
   tag?: true
   category?: true
   image?: true
+  imageDark?: true
+  imagePublicId?: true
   fileKey?: true
   fileName?: true
   fileSize?: true
+  status?: true
+  uploadedAt?: true
   isPublished?: true
   createdAt?: true
   updatedAt?: true
@@ -228,9 +252,13 @@ export type NoteGroupByOutputType = {
   tag: string | null
   category: string
   image: string | null
-  fileKey: string
-  fileName: string
+  imageDark: string | null
+  imagePublicId: string | null
+  fileKey: string | null
+  fileName: string | null
   fileSize: number | null
+  status: $Enums.NoteStatus
+  uploadedAt: Date | null
   isPublished: boolean
   createdAt: Date
   updatedAt: Date
@@ -266,9 +294,13 @@ export type NoteWhereInput = {
   tag?: Prisma.StringNullableFilter<"Note"> | string | null
   category?: Prisma.StringFilter<"Note"> | string
   image?: Prisma.StringNullableFilter<"Note"> | string | null
-  fileKey?: Prisma.StringFilter<"Note"> | string
-  fileName?: Prisma.StringFilter<"Note"> | string
+  imageDark?: Prisma.StringNullableFilter<"Note"> | string | null
+  imagePublicId?: Prisma.StringNullableFilter<"Note"> | string | null
+  fileKey?: Prisma.StringNullableFilter<"Note"> | string | null
+  fileName?: Prisma.StringNullableFilter<"Note"> | string | null
   fileSize?: Prisma.IntNullableFilter<"Note"> | number | null
+  status?: Prisma.EnumNoteStatusFilter<"Note"> | $Enums.NoteStatus
+  uploadedAt?: Prisma.DateTimeNullableFilter<"Note"> | Date | string | null
   isPublished?: Prisma.BoolFilter<"Note"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Note"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Note"> | Date | string
@@ -281,9 +313,13 @@ export type NoteOrderByWithRelationInput = {
   tag?: Prisma.SortOrderInput | Prisma.SortOrder
   category?: Prisma.SortOrder
   image?: Prisma.SortOrderInput | Prisma.SortOrder
-  fileKey?: Prisma.SortOrder
-  fileName?: Prisma.SortOrder
+  imageDark?: Prisma.SortOrderInput | Prisma.SortOrder
+  imagePublicId?: Prisma.SortOrderInput | Prisma.SortOrder
+  fileKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  fileName?: Prisma.SortOrderInput | Prisma.SortOrder
   fileSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrder
+  uploadedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -299,9 +335,13 @@ export type NoteWhereUniqueInput = Prisma.AtLeast<{
   tag?: Prisma.StringNullableFilter<"Note"> | string | null
   category?: Prisma.StringFilter<"Note"> | string
   image?: Prisma.StringNullableFilter<"Note"> | string | null
-  fileKey?: Prisma.StringFilter<"Note"> | string
-  fileName?: Prisma.StringFilter<"Note"> | string
+  imageDark?: Prisma.StringNullableFilter<"Note"> | string | null
+  imagePublicId?: Prisma.StringNullableFilter<"Note"> | string | null
+  fileKey?: Prisma.StringNullableFilter<"Note"> | string | null
+  fileName?: Prisma.StringNullableFilter<"Note"> | string | null
   fileSize?: Prisma.IntNullableFilter<"Note"> | number | null
+  status?: Prisma.EnumNoteStatusFilter<"Note"> | $Enums.NoteStatus
+  uploadedAt?: Prisma.DateTimeNullableFilter<"Note"> | Date | string | null
   isPublished?: Prisma.BoolFilter<"Note"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Note"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Note"> | Date | string
@@ -314,9 +354,13 @@ export type NoteOrderByWithAggregationInput = {
   tag?: Prisma.SortOrderInput | Prisma.SortOrder
   category?: Prisma.SortOrder
   image?: Prisma.SortOrderInput | Prisma.SortOrder
-  fileKey?: Prisma.SortOrder
-  fileName?: Prisma.SortOrder
+  imageDark?: Prisma.SortOrderInput | Prisma.SortOrder
+  imagePublicId?: Prisma.SortOrderInput | Prisma.SortOrder
+  fileKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  fileName?: Prisma.SortOrderInput | Prisma.SortOrder
   fileSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrder
+  uploadedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -337,9 +381,13 @@ export type NoteScalarWhereWithAggregatesInput = {
   tag?: Prisma.StringNullableWithAggregatesFilter<"Note"> | string | null
   category?: Prisma.StringWithAggregatesFilter<"Note"> | string
   image?: Prisma.StringNullableWithAggregatesFilter<"Note"> | string | null
-  fileKey?: Prisma.StringWithAggregatesFilter<"Note"> | string
-  fileName?: Prisma.StringWithAggregatesFilter<"Note"> | string
+  imageDark?: Prisma.StringNullableWithAggregatesFilter<"Note"> | string | null
+  imagePublicId?: Prisma.StringNullableWithAggregatesFilter<"Note"> | string | null
+  fileKey?: Prisma.StringNullableWithAggregatesFilter<"Note"> | string | null
+  fileName?: Prisma.StringNullableWithAggregatesFilter<"Note"> | string | null
   fileSize?: Prisma.IntNullableWithAggregatesFilter<"Note"> | number | null
+  status?: Prisma.EnumNoteStatusWithAggregatesFilter<"Note"> | $Enums.NoteStatus
+  uploadedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Note"> | Date | string | null
   isPublished?: Prisma.BoolWithAggregatesFilter<"Note"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Note"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Note"> | Date | string
@@ -352,9 +400,13 @@ export type NoteCreateInput = {
   tag?: string | null
   category?: string
   image?: string | null
-  fileKey: string
-  fileName: string
+  imageDark?: string | null
+  imagePublicId?: string | null
+  fileKey?: string | null
+  fileName?: string | null
   fileSize?: number | null
+  status?: $Enums.NoteStatus
+  uploadedAt?: Date | string | null
   isPublished?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -367,9 +419,13 @@ export type NoteUncheckedCreateInput = {
   tag?: string | null
   category?: string
   image?: string | null
-  fileKey: string
-  fileName: string
+  imageDark?: string | null
+  imagePublicId?: string | null
+  fileKey?: string | null
+  fileName?: string | null
   fileSize?: number | null
+  status?: $Enums.NoteStatus
+  uploadedAt?: Date | string | null
   isPublished?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -382,9 +438,13 @@ export type NoteUpdateInput = {
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   category?: Prisma.StringFieldUpdateOperationsInput | string
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileKey?: Prisma.StringFieldUpdateOperationsInput | string
-  fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  imageDark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePublicId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  status?: Prisma.EnumNoteStatusFieldUpdateOperationsInput | $Enums.NoteStatus
+  uploadedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -397,9 +457,13 @@ export type NoteUncheckedUpdateInput = {
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   category?: Prisma.StringFieldUpdateOperationsInput | string
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileKey?: Prisma.StringFieldUpdateOperationsInput | string
-  fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  imageDark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePublicId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  status?: Prisma.EnumNoteStatusFieldUpdateOperationsInput | $Enums.NoteStatus
+  uploadedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -412,9 +476,13 @@ export type NoteCreateManyInput = {
   tag?: string | null
   category?: string
   image?: string | null
-  fileKey: string
-  fileName: string
+  imageDark?: string | null
+  imagePublicId?: string | null
+  fileKey?: string | null
+  fileName?: string | null
   fileSize?: number | null
+  status?: $Enums.NoteStatus
+  uploadedAt?: Date | string | null
   isPublished?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -427,9 +495,13 @@ export type NoteUpdateManyMutationInput = {
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   category?: Prisma.StringFieldUpdateOperationsInput | string
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileKey?: Prisma.StringFieldUpdateOperationsInput | string
-  fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  imageDark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePublicId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  status?: Prisma.EnumNoteStatusFieldUpdateOperationsInput | $Enums.NoteStatus
+  uploadedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -442,9 +514,13 @@ export type NoteUncheckedUpdateManyInput = {
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   category?: Prisma.StringFieldUpdateOperationsInput | string
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileKey?: Prisma.StringFieldUpdateOperationsInput | string
-  fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  imageDark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePublicId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  status?: Prisma.EnumNoteStatusFieldUpdateOperationsInput | $Enums.NoteStatus
+  uploadedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -457,9 +533,13 @@ export type NoteCountOrderByAggregateInput = {
   tag?: Prisma.SortOrder
   category?: Prisma.SortOrder
   image?: Prisma.SortOrder
+  imageDark?: Prisma.SortOrder
+  imagePublicId?: Prisma.SortOrder
   fileKey?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
   fileSize?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  uploadedAt?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -476,9 +556,13 @@ export type NoteMaxOrderByAggregateInput = {
   tag?: Prisma.SortOrder
   category?: Prisma.SortOrder
   image?: Prisma.SortOrder
+  imageDark?: Prisma.SortOrder
+  imagePublicId?: Prisma.SortOrder
   fileKey?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
   fileSize?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  uploadedAt?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -491,9 +575,13 @@ export type NoteMinOrderByAggregateInput = {
   tag?: Prisma.SortOrder
   category?: Prisma.SortOrder
   image?: Prisma.SortOrder
+  imageDark?: Prisma.SortOrder
+  imagePublicId?: Prisma.SortOrder
   fileKey?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
   fileSize?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  uploadedAt?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -501,6 +589,14 @@ export type NoteMinOrderByAggregateInput = {
 
 export type NoteSumOrderByAggregateInput = {
   fileSize?: Prisma.SortOrder
+}
+
+export type EnumNoteStatusFieldUpdateOperationsInput = {
+  set?: $Enums.NoteStatus
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 
@@ -512,9 +608,13 @@ export type NoteSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   tag?: boolean
   category?: boolean
   image?: boolean
+  imageDark?: boolean
+  imagePublicId?: boolean
   fileKey?: boolean
   fileName?: boolean
   fileSize?: boolean
+  status?: boolean
+  uploadedAt?: boolean
   isPublished?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -527,9 +627,13 @@ export type NoteSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   tag?: boolean
   category?: boolean
   image?: boolean
+  imageDark?: boolean
+  imagePublicId?: boolean
   fileKey?: boolean
   fileName?: boolean
   fileSize?: boolean
+  status?: boolean
+  uploadedAt?: boolean
   isPublished?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -542,9 +646,13 @@ export type NoteSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   tag?: boolean
   category?: boolean
   image?: boolean
+  imageDark?: boolean
+  imagePublicId?: boolean
   fileKey?: boolean
   fileName?: boolean
   fileSize?: boolean
+  status?: boolean
+  uploadedAt?: boolean
   isPublished?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -557,15 +665,19 @@ export type NoteSelectScalar = {
   tag?: boolean
   category?: boolean
   image?: boolean
+  imageDark?: boolean
+  imagePublicId?: boolean
   fileKey?: boolean
   fileName?: boolean
   fileSize?: boolean
+  status?: boolean
+  uploadedAt?: boolean
   isPublished?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type NoteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "tag" | "category" | "image" | "fileKey" | "fileName" | "fileSize" | "isPublished" | "createdAt" | "updatedAt", ExtArgs["result"]["note"]>
+export type NoteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "tag" | "category" | "image" | "imageDark" | "imagePublicId" | "fileKey" | "fileName" | "fileSize" | "status" | "uploadedAt" | "isPublished" | "createdAt" | "updatedAt", ExtArgs["result"]["note"]>
 
 export type $NotePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Note"
@@ -577,9 +689,13 @@ export type $NotePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     tag: string | null
     category: string
     image: string | null
-    fileKey: string
-    fileName: string
+    imageDark: string | null
+    imagePublicId: string | null
+    fileKey: string | null
+    fileName: string | null
     fileSize: number | null
+    status: $Enums.NoteStatus
+    uploadedAt: Date | null
     isPublished: boolean
     createdAt: Date
     updatedAt: Date
@@ -1012,9 +1128,13 @@ export interface NoteFieldRefs {
   readonly tag: Prisma.FieldRef<"Note", 'String'>
   readonly category: Prisma.FieldRef<"Note", 'String'>
   readonly image: Prisma.FieldRef<"Note", 'String'>
+  readonly imageDark: Prisma.FieldRef<"Note", 'String'>
+  readonly imagePublicId: Prisma.FieldRef<"Note", 'String'>
   readonly fileKey: Prisma.FieldRef<"Note", 'String'>
   readonly fileName: Prisma.FieldRef<"Note", 'String'>
   readonly fileSize: Prisma.FieldRef<"Note", 'Int'>
+  readonly status: Prisma.FieldRef<"Note", 'NoteStatus'>
+  readonly uploadedAt: Prisma.FieldRef<"Note", 'DateTime'>
   readonly isPublished: Prisma.FieldRef<"Note", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Note", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Note", 'DateTime'>

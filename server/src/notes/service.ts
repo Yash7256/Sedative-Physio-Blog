@@ -15,7 +15,8 @@ export interface NoteSummary {
   tag: string | null
   category: string
   image: string | null
-  fileName: string
+  imageDark: string | null
+  fileName: string | null
   fileSize: number | null
 }
 
@@ -38,6 +39,7 @@ export async function listNotes(category?: string): Promise<NoteSummary[]> {
       tag: true,
       category: true,
       image: true,
+      imageDark: true,
       fileName: true,
       fileSize: true,
     },
@@ -54,6 +56,9 @@ export async function getDownload(id: string): Promise<NoteDownload> {
   if (!r2Configured()) {
     throw new ValidationError("R2 storage is not configured")
   }
+  if (!note.fileKey) {
+    throw new ValidationError("Note file has not been uploaded yet")
+  }
   const url = await getObjectUrl(note.fileKey)
-  return { fileName: note.fileName, url }
+  return { fileName: note.fileName ?? "note", url }
 }

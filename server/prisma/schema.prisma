@@ -40,6 +40,12 @@ enum LessonType {
   LIVE_SESSION
 }
 
+enum NoteStatus {
+  PENDING
+  UPLOADED
+  FAILED
+}
+
 // ============ COURSE ============
 
 model Course {
@@ -192,21 +198,26 @@ model CourseTag {
 // ============ NOTES ============
 
 model Note {
-  id          String   @id @default(cuid())
-  title       String
-  description String?  @db.Text
-  tag         String?
-  category    String   @default("notes")
-  image       String?
-  fileKey     String   // object key inside the R2 bucket (e.g. "notes/anatomy-ch1.pdf")
-  fileName    String
-  fileSize    Int?     // bytes
-  isPublished Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String     @id @default(cuid())
+  title         String
+  description   String?    @db.Text
+  tag           String?
+  category      String     @default("notes")
+  image         String?
+  imageDark     String?    // cover image shown in dark mode; falls back to `image`
+  imagePublicId String?
+  fileKey       String?    // object key inside the R2 bucket (e.g. "notes/anatomy-ch1.pdf"); null until a file is uploaded
+  fileName      String?
+  fileSize      Int?       // bytes
+  status        NoteStatus @default(PENDING)
+  uploadedAt    DateTime?
+  isPublished   Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@index([category, isPublished])
   @@index([isPublished])
+  @@index([status])
 }
 
 // ============ 3D MODELS ============

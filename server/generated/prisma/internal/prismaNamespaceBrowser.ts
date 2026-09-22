@@ -211,9 +211,13 @@ export const NoteScalarFieldEnum = {
   tag: 'tag',
   category: 'category',
   image: 'image',
+  imageDark: 'imageDark',
+  imagePublicId: 'imagePublicId',
   fileKey: 'fileKey',
   fileName: 'fileName',
   fileSize: 'fileSize',
+  status: 'status',
+  uploadedAt: 'uploadedAt',
   isPublished: 'isPublished',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

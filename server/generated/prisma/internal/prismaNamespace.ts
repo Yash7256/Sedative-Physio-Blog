@@ -1633,9 +1633,13 @@ export const NoteScalarFieldEnum = {
   tag: 'tag',
   category: 'category',
   image: 'image',
+  imageDark: 'imageDark',
+  imagePublicId: 'imagePublicId',
   fileKey: 'fileKey',
   fileName: 'fileName',
   fileSize: 'fileSize',
+  status: 'status',
+  uploadedAt: 'uploadedAt',
   isPublished: 'isPublished',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1803,6 +1807,20 @@ export type EnumLessonTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prism
  * Reference to a field of type 'LessonType[]'
  */
 export type ListEnumLessonTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LessonType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'NoteStatus'
+ */
+export type EnumNoteStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NoteStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'NoteStatus[]'
+ */
+export type ListEnumNoteStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NoteStatus[]'>
     
 
 

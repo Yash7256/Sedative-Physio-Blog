@@ -11,7 +11,13 @@
     "build:server": "npm --prefix server run build",
     "build:client": "npm --prefix client run build",
     "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
-    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "db:seed": "npm --prefix server run db:seed",
+    "db:seed:courses": "npm --prefix server run db:seed:courses",
+    "db:seed:notes": "npm --prefix server run db:seed:notes",
+    "db:seed:models": "npm --prefix server run db:seed:models",
+    "db:seed:categories": "npm --prefix server run db:seed:categories",
+    "db:seed:enrollments": "npm --prefix server run db:seed:enrollments"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",

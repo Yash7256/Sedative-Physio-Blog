@@ -7,6 +7,7 @@ export interface Resource {
   category: ResourceCategory
   tag: string
   image: string
+  imageDark?: string
 }
 
 export interface NoteSummary {
@@ -16,7 +17,8 @@ export interface NoteSummary {
   tag: string | null
   category: string
   image: string | null
-  fileName: string
+  imageDark: string | null
+  fileName: string | null
   fileSize: number | null
 }
 
@@ -97,6 +99,7 @@ export function noteToResource(note: NoteSummary): Resource | null {
     category: note.category,
     tag: note.tag ?? "Notes",
     image: note.image ?? "",
+    imageDark: note.imageDark ?? undefined,
   }
 }
 
