@@ -75,6 +75,22 @@ export async function fetchNoteDownload(id: string): Promise<{ fileName: string;
   return (await res.json()) as { fileName: string; url: string }
 }
 
+/** Trigger a browser download of the note PDF as a same-origin attachment. */
+export async function downloadNoteFile(id: string, fallbackName: string): Promise<void> {
+  const safeName = fallbackName.trim().endsWith(".pdf") ? fallbackName.trim() : `${fallbackName.trim()}.pdf`
+  const res = await fetch(`${API_BASE}/api/notes/${id}/file?download=1`)
+  if (!res.ok) throw new Error(`Failed to fetch note file: ${res.status}`)
+  const blob = await res.blob()
+  const objectUrl = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = objectUrl
+  a.download = safeName
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(objectUrl)
+}
+
 /** Fetch the list of uploaded 3D models from the backend. */
 export async function fetchModels(): Promise<ModelSummary[]> {
   const res = await fetch(`${API_BASE}/api/models`)

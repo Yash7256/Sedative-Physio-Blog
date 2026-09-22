@@ -25,6 +25,12 @@ export interface NoteDownload {
   url: string
 }
 
+export interface NoteFile {
+  fileName: string
+  fileKey: string
+  fileSize: number | null
+}
+
 export async function listNotes(category?: string): Promise<NoteSummary[]> {
   const notes = await prisma.note.findMany({
     where: {
@@ -61,4 +67,19 @@ export async function getDownload(id: string): Promise<NoteDownload> {
   }
   const url = await getObjectUrl(note.fileKey)
   return { fileName: note.fileName ?? "note", url }
+}
+
+export async function getNoteFile(id: string): Promise<NoteFile> {
+  const note = await prisma.note.findFirst({
+    where: { id, isPublished: true },
+    select: { fileKey: true, fileName: true, fileSize: true },
+  })
+  if (!note) throw new NotFoundError("Note not found")
+  if (!r2Configured()) {
+    throw new ValidationError("R2 storage is not configured")
+  }
+  if (!note.fileKey) {
+    throw new ValidationError("Note file has not been uploaded yet")
+  }
+  return { fileName: note.fileName ?? "note.pdf", fileKey: note.fileKey, fileSize: note.fileSize }
 }
