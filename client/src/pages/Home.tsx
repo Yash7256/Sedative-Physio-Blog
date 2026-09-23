@@ -238,9 +238,9 @@ export function Home() {
             <div className="marquee-track marquee-track-cards">
               {[0, 1].map((set) => (
                 <div key={set} className="flex shrink-0 items-stretch gap-5 pr-5">
-                  {feedbacks.map((feedback) => (
+                  {feedbacks.map((feedback, i) => (
                     <article
-                      key={`${set}-${feedback.name}`}
+                      key={`${set}-${i}-${feedback.name}`}
                       className="relative w-[min(92vw,580px)] shrink-0 rounded-[16px] bg-white p-4 sm:w-[560px] sm:p-5"
                     >
                       <Quote className="size-5 text-[#0b0b0c]" fill="currentColor" strokeWidth={0} />
