@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url"
 import sharp from "sharp"
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
-const PUBLIC_DIR = join(REPO_ROOT, "client", "public")
+const PUBLIC_DIR = join(REPO_ROOT, "public")
 const RASTER_EXT = new Set([".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".tif"])
 
 function walk(dir) {
