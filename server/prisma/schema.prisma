@@ -9,27 +9,10 @@ datasource db {
 
 // ============ ENUMS ============
 
-enum EnrollmentSource {
-  PURCHASE
-  FREE
-}
-
-enum OrderStatus {
+enum NoteStatus {
   PENDING
-  COMPLETED
+  UPLOADED
   FAILED
-}
-
-enum CourseLevel {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-}
-
-enum CourseStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
 }
 
 enum LessonType {
@@ -37,162 +20,12 @@ enum LessonType {
   ARTICLE
   QUIZ
   PROJECT
-  LIVE_SESSION
 }
 
-enum NoteStatus {
+enum OrderStatus {
   PENDING
-  UPLOADED
+  PAID
   FAILED
-}
-
-// ============ COURSE ============
-
-model Course {
-  id               String       @id @default(cuid())
-  title            String
-  slug             String       @unique
-  shortDescription String?
-  description      String?      @db.Text
-  thumbnail        String?
-  coverImage       String?
-  level            CourseLevel
-  language         String       @default("English")
-  estimatedHours   Int?
-  status           CourseStatus @default(DRAFT)
-  isPublished      Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  price   Int     @default(0)   // in paise; 0 = free
-  isFree  Boolean @default(true)
-
-  highlights   CourseHighlight[]
-  requirements CourseRequirement[]
-  outcomes     LearningOutcome[]
-  sections     CourseSection[]
-  tags         CourseTag[]
-  categories   CourseCategory[]
-  enrollments  Enrollment[]
-  orders       Order[]
-
-  @@index([status])
-  @@index([level])
-  @@index([status, level])
-  @@index([isPublished])
-}
-
-// ============ COURSE HIGHLIGHTS ============
-
-model CourseHighlight {
-  id          String  @id @default(cuid())
-  title       String
-  description String?
-  icon        String?
-  order       Int
-  courseId    String
-  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId, order])
-}
-
-// ============ COURSE REQUIREMENTS ============
-
-model CourseRequirement {
-  id       String @id @default(cuid())
-  content  String
-  order    Int
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId, order])
-}
-
-// ============ LEARNING OUTCOMES ============
-
-model LearningOutcome {
-  id       String @id @default(cuid())
-  content  String
-  order    Int
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId, order])
-}
-
-// ============ COURSE CURRICULUM ============
-
-model CourseSection {
-  id          String   @id @default(cuid())
-  title       String
-  description String?  @db.Text
-  order       Int
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons     Lesson[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([courseId, order])
-}
-
-model Lesson {
-  id          String        @id @default(cuid())
-  title       String
-  slug        String
-  description String?       @db.Text
-  type        LessonType
-  content     String?       @db.Text
-  videoUrl    String?
-  duration    Int?
-  isPreview   Boolean       @default(false)
-  isPublished Boolean       @default(false)
-  order       Int
-  sectionId   String
-  section     CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  @@unique([sectionId, slug])
-  @@index([sectionId, order])
-}
-
-// ============ CATEGORIES (M2M) ============
-
-model Category {
-  id      String           @id @default(cuid())
-  name    String
-  slug    String           @unique
-  courses CourseCategory[]
-}
-
-model CourseCategory {
-  courseId   String
-  categoryId String
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@id([courseId, categoryId])
-  @@index([categoryId])
-}
-
-// ============ TAGS (M2M) ============
-
-model Tag {
-  id      String      @id @default(cuid())
-  name    String
-  slug    String      @unique
-  courses CourseTag[]
-}
-
-model CourseTag {
-  courseId String
-  tagId    String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([courseId, tagId])
-  @@index([tagId])
 }
 
 // ============ NOTES ============
@@ -234,39 +67,107 @@ model Model3D {
   @@index([createdAt])
 }
 
-// ============ ENROLLMENT ============
+// ============ TUTORS ============
 
-model Enrollment {
-  id          String           @id @default(cuid())
-  clerkUserId String
-  courseId    String
-  source      EnrollmentSource
-  enrolledAt  DateTime         @default(now())
-
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([clerkUserId, courseId])
-  @@index([clerkUserId])
-  @@index([courseId])
+model Tutor {
+  id          String   @id @default(cuid())
+  name        String
+  designation String?
+  image       String?
+  bio         String?  @db.Text
+  courses     Course[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-// ============ ORDER ============
+// ============ COURSES ============
+
+model Course {
+  id               String         @id @default(cuid())
+  title            String
+  slug             String         @unique
+  shortDescription String?        @db.Text
+  thumbnail        String?
+  level            String         @default("Beginner")
+  language         String         @default("English")
+  estimatedHours   Int?
+  highlights       String[]       @default([])
+  price            Int            @default(0) // in paise; 0 = free
+  isFree           Boolean        @default(true)
+  isPublished      Boolean        @default(false)
+  tutorId          String?
+  tutor            Tutor?         @relation(fields: [tutorId], references: [id], onDelete: SetNull)
+  sections         CourseSection[]
+  enrollments      Enrollment[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([isPublished])
+}
+
+model CourseSection {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  order       Int
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId, order])
+}
+
+model Lesson {
+  id          String        @id @default(cuid())
+  sectionId   String
+  section     CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title       String
+  slug        String
+  type        LessonType
+  content     String?       @db.Text
+  videoUrl    String?
+  duration    Int?
+  isPreview   Boolean       @default(false)
+  isPublished Boolean       @default(false)
+  order       Int
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([sectionId, slug])
+  @@index([sectionId, order])
+}
+
+// ============ ORDERS & PAYMENTS ============
 
 model Order {
   id                String      @id @default(cuid())
-  clerkUserId       String
-  courseId          String
-  razorpayOrderId   String      @unique @db.VarChar(255)
-  razorpayPaymentId String?     @db.VarChar(255)
-  razorpaySignature String?
-  amount            Int
-  currency          String      @default("INR") @db.VarChar(3)
+  userId            String?     // clerk userId
+  userEmail         String?
+  userName          String?
+  amount            Int         // in paise
+  currency          String      @default("INR")
   status            OrderStatus @default(PENDING)
+  razorpayOrderId   String      @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+  courseIds         String[]
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([status])
+}
 
-  @@index([clerkUserId])
-  @@index([razorpayOrderId])
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String   // clerk userId
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
 }

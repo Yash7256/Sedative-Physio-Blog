@@ -31,8 +31,8 @@ export * from "./enums.js"
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more Courses
- * const courses = await prisma.course.findMany()
+ * // Fetch zero or more Notes
+ * const notes = await prisma.note.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -41,56 +41,6 @@ export const PrismaClient = $Class.getPrismaClientClass()
 export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
 export { Prisma }
 
-/**
- * Model Course
- * 
- */
-export type Course = Prisma.CourseModel
-/**
- * Model CourseHighlight
- * 
- */
-export type CourseHighlight = Prisma.CourseHighlightModel
-/**
- * Model CourseRequirement
- * 
- */
-export type CourseRequirement = Prisma.CourseRequirementModel
-/**
- * Model LearningOutcome
- * 
- */
-export type LearningOutcome = Prisma.LearningOutcomeModel
-/**
- * Model CourseSection
- * 
- */
-export type CourseSection = Prisma.CourseSectionModel
-/**
- * Model Lesson
- * 
- */
-export type Lesson = Prisma.LessonModel
-/**
- * Model Category
- * 
- */
-export type Category = Prisma.CategoryModel
-/**
- * Model CourseCategory
- * 
- */
-export type CourseCategory = Prisma.CourseCategoryModel
-/**
- * Model Tag
- * 
- */
-export type Tag = Prisma.TagModel
-/**
- * Model CourseTag
- * 
- */
-export type CourseTag = Prisma.CourseTagModel
 /**
  * Model Note
  * 
@@ -102,12 +52,32 @@ export type Note = Prisma.NoteModel
  */
 export type Model3D = Prisma.Model3DModel
 /**
- * Model Enrollment
+ * Model Tutor
  * 
  */
-export type Enrollment = Prisma.EnrollmentModel
+export type Tutor = Prisma.TutorModel
+/**
+ * Model Course
+ * 
+ */
+export type Course = Prisma.CourseModel
+/**
+ * Model CourseSection
+ * 
+ */
+export type CourseSection = Prisma.CourseSectionModel
+/**
+ * Model Lesson
+ * 
+ */
+export type Lesson = Prisma.LessonModel
 /**
  * Model Order
  * 
  */
 export type Order = Prisma.OrderModel
+/**
+ * Model Enrollment
+ * 
+ */
+export type Enrollment = Prisma.EnrollmentModel

@@ -8,6 +8,7 @@ export interface Resource {
   tag: string
   image: string
   imageDark?: string
+  slug?: string
 }
 
 export interface NoteSummary {
@@ -33,6 +34,39 @@ export interface CourseSummary {
   estimatedHours: number | null
   price: number
   isFree: boolean
+}
+
+export type LessonType = "VIDEO" | "ARTICLE" | "QUIZ" | "PROJECT"
+
+export interface CourseLesson {
+  id: string
+  title: string
+  slug: string
+  type: LessonType
+  duration: number | null
+  isPreview: boolean
+}
+
+export interface CourseSection {
+  id: string
+  title: string
+  description: string | null
+  order: number
+  lessons: CourseLesson[]
+}
+
+export interface CourseTutor {
+  id: string
+  name: string
+  designation: string | null
+  image: string | null
+  bio: string | null
+}
+
+export interface CourseDetail extends CourseSummary {
+  highlights: string[]
+  sections: CourseSection[]
+  tutor: CourseTutor | null
 }
 
 export const categoryMeta: Record<ResourceCategory, { label: string; color: string; bg: string }> = {
@@ -105,6 +139,16 @@ export async function fetchCourses(): Promise<CourseSummary[]> {
   return (await res.json()) as CourseSummary[]
 }
 
+/** Fetch a single course's details (syllabus + tutor) by slug. */
+export async function fetchCourseDetail(slug: string): Promise<CourseDetail> {
+  const res = await fetch(`${API_BASE}/api/courses/${encodeURIComponent(slug)}`)
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Course not found")
+    throw new Error(`Failed to fetch course: ${res.status}`)
+  }
+  return (await res.json()) as CourseDetail
+}
+
 /** Map a NoteSummary to the Resource shape used by the UI, or null if category is not a resource category. */
 export function noteToResource(note: NoteSummary): Resource | null {
   if (note.category !== "notes") return null
@@ -140,6 +184,7 @@ export function courseToResource(course: CourseSummary): Resource {
     category: "courses",
     tag: course.level.charAt(0) + course.level.slice(1).toLowerCase(),
     image: course.thumbnail ?? "",
+    slug: course.slug,
   }
 }
 

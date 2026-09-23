@@ -2,12 +2,13 @@ import { Router } from "express"
 import { Readable } from "node:stream"
 import { listNotes, getDownload, getNoteFile } from "./service.js"
 import { getObjectUrl } from "./r2.js"
-import { handleError } from "../enrollments/errors.js"
+import { handleError } from "../lib/errors.js"
+import { cacheControl, fileEtag } from "../lib/cache.js"
 
 export const notesRouter = Router()
 
 // GET /api/notes — list published notes (optionally filtered by ?category=)
-notesRouter.get("/", async (req, res) => {
+notesRouter.get("/", cacheControl({ browser: 60, cdn: 300, swr: 86400 }), async (req, res) => {
   try {
     const category = typeof req.query["category"] === "string" ? req.query["category"] : undefined
     const notes = await listNotes(category)
@@ -30,10 +31,19 @@ notesRouter.get("/:id/download", async (req, res) => {
 
 // GET /api/notes/:id/file — stream the note's PDF (same-origin so the client PDF viewer can read it)
 // ?download=1 forces an attachment download instead of inline preview
+// Note files are immutable once uploaded, so cache aggressively and answer
+// If-None-Match with a 304 before even contacting R2.
 notesRouter.get("/:id/file", async (req, res) => {
   try {
     const id = req.params["id"]!
     const note = await getNoteFile(id)
+
+    const etag = fileEtag(note.fileKey, note.fileSize)
+    if (req.headers["if-none-match"] === etag) {
+      res.status(304)
+      res.end()
+      return
+    }
 
     const url = await getObjectUrl(note.fileKey)
     const upstream = await fetch(url)
@@ -46,6 +56,8 @@ notesRouter.get("/:id/file", async (req, res) => {
     const safeName = note.fileName.replace(/["\\\r\n]/g, "")
     res.setHeader("Content-Type", "application/pdf")
     res.setHeader("Content-Disposition", `${disposition}; filename="${safeName}"`)
+    res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
+    res.setHeader("ETag", etag)
     if (note.fileSize) {
       res.setHeader("Content-Length", String(note.fileSize))
     }

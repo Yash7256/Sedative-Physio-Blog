@@ -2,7 +2,8 @@ import { Router } from "express"
 import multer from "multer"
 import { requireAuth } from "../auth/middleware.js"
 import { listModels, uploadModel, deleteModel, syncModels } from "./service.js"
-import { handleError } from "../enrollments/errors.js"
+import { handleError } from "../lib/errors.js"
+import { cacheControl } from "../lib/cache.js"
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -19,7 +20,7 @@ const upload = multer({
 export const modelsRouter = Router()
 
 // GET /api/models — list all uploaded 3D models
-modelsRouter.get("/", async (_req, res) => {
+modelsRouter.get("/", cacheControl({ browser: 60, cdn: 300, swr: 86400 }), async (_req, res) => {
   try {
     const models = await listModels()
     res.status(200).json(models)

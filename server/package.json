@@ -14,9 +14,7 @@
     "db:seed": "tsx prisma/seeds/seed.ts",
     "db:seed:courses": "tsx prisma/seeds/courses.ts",
     "db:seed:notes": "tsx prisma/seeds/notes.ts",
-    "db:seed:models": "tsx prisma/seeds/models.ts",
-    "db:seed:categories": "tsx prisma/seeds/categories.ts",
-    "db:seed:enrollments": "tsx prisma/seeds/enrollments.ts"
+    "db:seed:models": "tsx prisma/seeds/models.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",
@@ -32,6 +30,7 @@
     "nodemailer": "^9.1.1",
     "pg": "^8.23.0",
     "razorpay": "^2.9.8",
+    "sharp": "^0.35.4",
     "svix": "^2.1.0"
   },
   "devDependencies": {

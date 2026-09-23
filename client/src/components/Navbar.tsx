@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import { Menu, Moon, Search, ShoppingCart, Sun, UserRound, X } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useUser, useClerk } from "@clerk/react"
 import { UserMenu } from "./UserMenu"
 import { AuthModal } from "./AuthModal"
+import { useCart } from "../lib/cartContext"
 
 const navItems = [
   { label: "Resources", to: "/resources" },
@@ -19,6 +20,9 @@ export function Navbar() {
   const [isVisible, setIsVisible] = useState(true)
   const { isSignedIn, user } = useUser()
   const { signOut } = useClerk()
+  const navigate = useNavigate()
+  const { items } = useCart()
+  const cartCount = items.length
   const displayName = user?.fullName ?? user?.primaryEmailAddress?.emailAddress ?? "Account"
 
   useEffect(() => {
@@ -61,5 +65,5 @@ export function Navbar() {
     setIsDark(nextTheme)
   }
 
-  return <header className={`site-header fixed inset-x-0 top-0 z-30 px-4 pt-4 sm:px-8 sm:pt-6 lg:px-[51px] lg:pt-10 ${isVisible || menuOpen ? "site-header--visible" : "site-header--hidden"}`}><nav className="site-nav mx-auto grid min-h-[68px] max-w-[1280px] grid-cols-[1fr_auto_1fr] items-center rounded-full border px-6 sm:min-h-[80px] sm:px-10"><div className="hidden items-center gap-7 md:flex">{navItems.map((item) => <Link key={item.label} to={item.to} className="site-nav-link text-sm transition-opacity hover:opacity-55">{item.label}</Link>)}</div><Link to="/" className="site-nav-link justify-self-center text-center text-lg font-bold tracking-[-.04em]">Sedative Physio</Link><div className="flex items-center justify-self-end gap-4 sm:gap-6"><button type="button" onClick={toggleTheme} aria-label={`Switch to ${isDark ? "light" : "dark"} mode`} title={`Switch to ${isDark ? "light" : "dark"} mode`} className="theme-toggle grid size-9 place-items-center rounded-full transition-colors">{isDark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}</button><button aria-label="Search" className="site-nav-link hidden sm:block"><Search className="size-[18px]" /></button><button aria-label="Cart" className="site-nav-link hidden sm:block"><ShoppingCart className="size-[18px]" /></button>{isSignedIn ? <UserMenu displayName={displayName} onSignOut={() => signOut()} /> : <button aria-label="Log in" className="site-nav-link" onClick={() => setAuthModalOpen(true)}><UserRound className="size-[18px]" /></button>}<button className="site-nav-link md:hidden" aria-label={menuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X /> : <Menu />}</button></div></nav>{menuOpen && <div className="site-menu absolute inset-x-4 top-full rounded-b-[24px] border px-6 py-4 shadow-lg sm:inset-x-8 lg:hidden">{navItems.map((item) => <Link key={item.label} to={item.to} onClick={() => setMenuOpen(false)} className="block border-b py-3 last:border-0">{item.label}</Link>)}</div>}<AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} /></header>
+  return <header className={`site-header fixed inset-x-0 top-0 z-30 px-4 pt-4 sm:px-8 sm:pt-6 lg:px-[51px] lg:pt-10 ${isVisible || menuOpen ? "site-header--visible" : "site-header--hidden"}`}><nav className="site-nav mx-auto grid min-h-[68px] max-w-[1280px] grid-cols-[1fr_auto_1fr] items-center rounded-full border px-6 sm:min-h-[80px] sm:px-10"><div className="hidden items-center gap-7 md:flex">{navItems.map((item) => <Link key={item.label} to={item.to} className="site-nav-link text-sm transition-opacity hover:opacity-55">{item.label}</Link>)}</div><Link to="/" className="site-nav-link justify-self-center text-center text-lg font-bold tracking-[-.04em]">Sedative Physio</Link><div className="flex items-center justify-self-end gap-4 sm:gap-6"><button type="button" onClick={toggleTheme} aria-label={`Switch to ${isDark ? "light" : "dark"} mode`} title={`Switch to ${isDark ? "light" : "dark"} mode`} className="theme-toggle grid size-9 place-items-center rounded-full transition-colors">{isDark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}</button><button aria-label="Search" className="site-nav-link hidden sm:block"><Search className="size-[18px]" /></button><button aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount > 1 ? "s" : ""}` : ""}`} onClick={() => navigate("/cart")} className="site-nav-link relative hidden sm:block"><ShoppingCart className="size-[18px]" />{cartCount > 0 && <span className="absolute -right-1.5 -top-1.5 grid size-4 place-items-center rounded-full bg-[#1683f6] text-[9px] font-bold text-white">{cartCount > 9 ? "9+" : cartCount}</span>}</button>{isSignedIn ? <UserMenu displayName={displayName} onSignOut={() => signOut()} /> : <button aria-label="Log in" className="site-nav-link" onClick={() => setAuthModalOpen(true)}><UserRound className="size-[18px]" /></button>}<button className="site-nav-link md:hidden" aria-label={menuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X /> : <Menu />}</button></div></nav>{menuOpen && <div className="site-menu absolute inset-x-4 top-full rounded-b-[24px] border px-6 py-4 shadow-lg sm:inset-x-8 lg:hidden">{navItems.map((item) => <Link key={item.label} to={item.to} onClick={() => setMenuOpen(false)} className="block border-b py-3 last:border-0">{item.label}</Link>)}</div>}<AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} /></header>
 }

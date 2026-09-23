@@ -26,52 +26,46 @@ export type AggregateEnrollment = {
 
 export type EnrollmentMinAggregateOutputType = {
   id: string | null
-  clerkUserId: string | null
+  userId: string | null
   courseId: string | null
-  source: $Enums.EnrollmentSource | null
-  enrolledAt: Date | null
+  createdAt: Date | null
 }
 
 export type EnrollmentMaxAggregateOutputType = {
   id: string | null
-  clerkUserId: string | null
+  userId: string | null
   courseId: string | null
-  source: $Enums.EnrollmentSource | null
-  enrolledAt: Date | null
+  createdAt: Date | null
 }
 
 export type EnrollmentCountAggregateOutputType = {
   id: number
-  clerkUserId: number
+  userId: number
   courseId: number
-  source: number
-  enrolledAt: number
+  createdAt: number
   _all: number
 }
 
 
 export type EnrollmentMinAggregateInputType = {
   id?: true
-  clerkUserId?: true
+  userId?: true
   courseId?: true
-  source?: true
-  enrolledAt?: true
+  createdAt?: true
 }
 
 export type EnrollmentMaxAggregateInputType = {
   id?: true
-  clerkUserId?: true
+  userId?: true
   courseId?: true
-  source?: true
-  enrolledAt?: true
+  createdAt?: true
 }
 
 export type EnrollmentCountAggregateInputType = {
   id?: true
-  clerkUserId?: true
+  userId?: true
   courseId?: true
-  source?: true
-  enrolledAt?: true
+  createdAt?: true
   _all?: true
 }
 
@@ -149,10 +143,9 @@ export type EnrollmentGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 
 export type EnrollmentGroupByOutputType = {
   id: string
-  clerkUserId: string
+  userId: string
   courseId: string
-  source: $Enums.EnrollmentSource
-  enrolledAt: Date
+  createdAt: Date
   _count: EnrollmentCountAggregateOutputType | null
   _min: EnrollmentMinAggregateOutputType | null
   _max: EnrollmentMaxAggregateOutputType | null
@@ -178,41 +171,37 @@ export type EnrollmentWhereInput = {
   OR?: Prisma.EnrollmentWhereInput[]
   NOT?: Prisma.EnrollmentWhereInput | Prisma.EnrollmentWhereInput[]
   id?: Prisma.StringFilter<"Enrollment"> | string
-  clerkUserId?: Prisma.StringFilter<"Enrollment"> | string
+  userId?: Prisma.StringFilter<"Enrollment"> | string
   courseId?: Prisma.StringFilter<"Enrollment"> | string
-  source?: Prisma.EnumEnrollmentSourceFilter<"Enrollment"> | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
   course?: Prisma.XOR<Prisma.CourseScalarRelationFilter, Prisma.CourseWhereInput>
 }
 
 export type EnrollmentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  clerkUserId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
-  source?: Prisma.SortOrder
-  enrolledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   course?: Prisma.CourseOrderByWithRelationInput
 }
 
 export type EnrollmentWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  clerkUserId_courseId?: Prisma.EnrollmentClerkUserIdCourseIdCompoundUniqueInput
+  userId_courseId?: Prisma.EnrollmentUserIdCourseIdCompoundUniqueInput
   AND?: Prisma.EnrollmentWhereInput | Prisma.EnrollmentWhereInput[]
   OR?: Prisma.EnrollmentWhereInput[]
   NOT?: Prisma.EnrollmentWhereInput | Prisma.EnrollmentWhereInput[]
-  clerkUserId?: Prisma.StringFilter<"Enrollment"> | string
+  userId?: Prisma.StringFilter<"Enrollment"> | string
   courseId?: Prisma.StringFilter<"Enrollment"> | string
-  source?: Prisma.EnumEnrollmentSourceFilter<"Enrollment"> | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
   course?: Prisma.XOR<Prisma.CourseScalarRelationFilter, Prisma.CourseWhereInput>
-}, "id" | "clerkUserId_courseId">
+}, "id" | "userId_courseId">
 
 export type EnrollmentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  clerkUserId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
-  source?: Prisma.SortOrder
-  enrolledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   _count?: Prisma.EnrollmentCountOrderByAggregateInput
   _max?: Prisma.EnrollmentMaxOrderByAggregateInput
   _min?: Prisma.EnrollmentMinOrderByAggregateInput
@@ -223,65 +212,57 @@ export type EnrollmentScalarWhereWithAggregatesInput = {
   OR?: Prisma.EnrollmentScalarWhereWithAggregatesInput[]
   NOT?: Prisma.EnrollmentScalarWhereWithAggregatesInput | Prisma.EnrollmentScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Enrollment"> | string
-  clerkUserId?: Prisma.StringWithAggregatesFilter<"Enrollment"> | string
+  userId?: Prisma.StringWithAggregatesFilter<"Enrollment"> | string
   courseId?: Prisma.StringWithAggregatesFilter<"Enrollment"> | string
-  source?: Prisma.EnumEnrollmentSourceWithAggregatesFilter<"Enrollment"> | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeWithAggregatesFilter<"Enrollment"> | Date | string
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"Enrollment"> | Date | string
 }
 
 export type EnrollmentCreateInput = {
   id?: string
-  clerkUserId: string
-  source: $Enums.EnrollmentSource
-  enrolledAt?: Date | string
+  userId: string
+  createdAt?: Date | string
   course: Prisma.CourseCreateNestedOneWithoutEnrollmentsInput
 }
 
 export type EnrollmentUncheckedCreateInput = {
   id?: string
-  clerkUserId: string
+  userId: string
   courseId: string
-  source: $Enums.EnrollmentSource
-  enrolledAt?: Date | string
+  createdAt?: Date | string
 }
 
 export type EnrollmentUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clerkUserId?: Prisma.StringFieldUpdateOperationsInput | string
-  source?: Prisma.EnumEnrollmentSourceFieldUpdateOperationsInput | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   course?: Prisma.CourseUpdateOneRequiredWithoutEnrollmentsNestedInput
 }
 
 export type EnrollmentUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clerkUserId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
-  source?: Prisma.EnumEnrollmentSourceFieldUpdateOperationsInput | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type EnrollmentCreateManyInput = {
   id?: string
-  clerkUserId: string
+  userId: string
   courseId: string
-  source: $Enums.EnrollmentSource
-  enrolledAt?: Date | string
+  createdAt?: Date | string
 }
 
 export type EnrollmentUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clerkUserId?: Prisma.StringFieldUpdateOperationsInput | string
-  source?: Prisma.EnumEnrollmentSourceFieldUpdateOperationsInput | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type EnrollmentUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clerkUserId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
-  source?: Prisma.EnumEnrollmentSourceFieldUpdateOperationsInput | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type EnrollmentListRelationFilter = {
@@ -294,33 +275,30 @@ export type EnrollmentOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type EnrollmentClerkUserIdCourseIdCompoundUniqueInput = {
-  clerkUserId: string
+export type EnrollmentUserIdCourseIdCompoundUniqueInput = {
+  userId: string
   courseId: string
 }
 
 export type EnrollmentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  clerkUserId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
-  source?: Prisma.SortOrder
-  enrolledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
 }
 
 export type EnrollmentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  clerkUserId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
-  source?: Prisma.SortOrder
-  enrolledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
 }
 
 export type EnrollmentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  clerkUserId?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
-  source?: Prisma.SortOrder
-  enrolledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
 }
 
 export type EnrollmentCreateNestedManyWithoutCourseInput = {
@@ -365,22 +343,16 @@ export type EnrollmentUncheckedUpdateManyWithoutCourseNestedInput = {
   deleteMany?: Prisma.EnrollmentScalarWhereInput | Prisma.EnrollmentScalarWhereInput[]
 }
 
-export type EnumEnrollmentSourceFieldUpdateOperationsInput = {
-  set?: $Enums.EnrollmentSource
-}
-
 export type EnrollmentCreateWithoutCourseInput = {
   id?: string
-  clerkUserId: string
-  source: $Enums.EnrollmentSource
-  enrolledAt?: Date | string
+  userId: string
+  createdAt?: Date | string
 }
 
 export type EnrollmentUncheckedCreateWithoutCourseInput = {
   id?: string
-  clerkUserId: string
-  source: $Enums.EnrollmentSource
-  enrolledAt?: Date | string
+  userId: string
+  createdAt?: Date | string
 }
 
 export type EnrollmentCreateOrConnectWithoutCourseInput = {
@@ -414,78 +386,69 @@ export type EnrollmentScalarWhereInput = {
   OR?: Prisma.EnrollmentScalarWhereInput[]
   NOT?: Prisma.EnrollmentScalarWhereInput | Prisma.EnrollmentScalarWhereInput[]
   id?: Prisma.StringFilter<"Enrollment"> | string
-  clerkUserId?: Prisma.StringFilter<"Enrollment"> | string
+  userId?: Prisma.StringFilter<"Enrollment"> | string
   courseId?: Prisma.StringFilter<"Enrollment"> | string
-  source?: Prisma.EnumEnrollmentSourceFilter<"Enrollment"> | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
 }
 
 export type EnrollmentCreateManyCourseInput = {
   id?: string
-  clerkUserId: string
-  source: $Enums.EnrollmentSource
-  enrolledAt?: Date | string
+  userId: string
+  createdAt?: Date | string
 }
 
 export type EnrollmentUpdateWithoutCourseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clerkUserId?: Prisma.StringFieldUpdateOperationsInput | string
-  source?: Prisma.EnumEnrollmentSourceFieldUpdateOperationsInput | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type EnrollmentUncheckedUpdateWithoutCourseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clerkUserId?: Prisma.StringFieldUpdateOperationsInput | string
-  source?: Prisma.EnumEnrollmentSourceFieldUpdateOperationsInput | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type EnrollmentUncheckedUpdateManyWithoutCourseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clerkUserId?: Prisma.StringFieldUpdateOperationsInput | string
-  source?: Prisma.EnumEnrollmentSourceFieldUpdateOperationsInput | $Enums.EnrollmentSource
-  enrolledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
 
 export type EnrollmentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  clerkUserId?: boolean
+  userId?: boolean
   courseId?: boolean
-  source?: boolean
-  enrolledAt?: boolean
+  createdAt?: boolean
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["enrollment"]>
 
 export type EnrollmentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  clerkUserId?: boolean
+  userId?: boolean
   courseId?: boolean
-  source?: boolean
-  enrolledAt?: boolean
+  createdAt?: boolean
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["enrollment"]>
 
 export type EnrollmentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  clerkUserId?: boolean
+  userId?: boolean
   courseId?: boolean
-  source?: boolean
-  enrolledAt?: boolean
+  createdAt?: boolean
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["enrollment"]>
 
 export type EnrollmentSelectScalar = {
   id?: boolean
-  clerkUserId?: boolean
+  userId?: boolean
   courseId?: boolean
-  source?: boolean
-  enrolledAt?: boolean
+  createdAt?: boolean
 }
 
-export type EnrollmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clerkUserId" | "courseId" | "source" | "enrolledAt", ExtArgs["result"]["enrollment"]>
+export type EnrollmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "courseId" | "createdAt", ExtArgs["result"]["enrollment"]>
 export type EnrollmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
 }
@@ -503,10 +466,9 @@ export type $EnrollmentPayload<ExtArgs extends runtime.Types.Extensions.Internal
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    clerkUserId: string
+    userId: string
     courseId: string
-    source: $Enums.EnrollmentSource
-    enrolledAt: Date
+    createdAt: Date
   }, ExtArgs["result"]["enrollment"]>
   composites: {}
 }
@@ -932,10 +894,9 @@ export interface Prisma__EnrollmentClient<T, Null = never, ExtArgs extends runti
  */
 export interface EnrollmentFieldRefs {
   readonly id: Prisma.FieldRef<"Enrollment", 'String'>
-  readonly clerkUserId: Prisma.FieldRef<"Enrollment", 'String'>
+  readonly userId: Prisma.FieldRef<"Enrollment", 'String'>
   readonly courseId: Prisma.FieldRef<"Enrollment", 'String'>
-  readonly source: Prisma.FieldRef<"Enrollment", 'EnrollmentSource'>
-  readonly enrolledAt: Prisma.FieldRef<"Enrollment", 'DateTime'>
+  readonly createdAt: Prisma.FieldRef<"Enrollment", 'DateTime'>
 }
     
 

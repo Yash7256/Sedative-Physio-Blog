@@ -18,25 +18,25 @@ export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
+ * Model Note
+ * 
+ */
+export type Note = Prisma.NoteModel
+/**
+ * Model Model3D
+ * 
+ */
+export type Model3D = Prisma.Model3DModel
+/**
+ * Model Tutor
+ * 
+ */
+export type Tutor = Prisma.TutorModel
+/**
  * Model Course
  * 
  */
 export type Course = Prisma.CourseModel
-/**
- * Model CourseHighlight
- * 
- */
-export type CourseHighlight = Prisma.CourseHighlightModel
-/**
- * Model CourseRequirement
- * 
- */
-export type CourseRequirement = Prisma.CourseRequirementModel
-/**
- * Model LearningOutcome
- * 
- */
-export type LearningOutcome = Prisma.LearningOutcomeModel
 /**
  * Model CourseSection
  * 
@@ -48,42 +48,12 @@ export type CourseSection = Prisma.CourseSectionModel
  */
 export type Lesson = Prisma.LessonModel
 /**
- * Model Category
+ * Model Order
  * 
  */
-export type Category = Prisma.CategoryModel
-/**
- * Model CourseCategory
- * 
- */
-export type CourseCategory = Prisma.CourseCategoryModel
-/**
- * Model Tag
- * 
- */
-export type Tag = Prisma.TagModel
-/**
- * Model CourseTag
- * 
- */
-export type CourseTag = Prisma.CourseTagModel
-/**
- * Model Note
- * 
- */
-export type Note = Prisma.NoteModel
-/**
- * Model Model3D
- * 
- */
-export type Model3D = Prisma.Model3DModel
+export type Order = Prisma.OrderModel
 /**
  * Model Enrollment
  * 
  */
 export type Enrollment = Prisma.EnrollmentModel
-/**
- * Model Order
- * 
- */
-export type Order = Prisma.OrderModel

@@ -38,9 +38,9 @@ export type LessonSumAggregateOutputType = {
 
 export type LessonMinAggregateOutputType = {
   id: string | null
+  sectionId: string | null
   title: string | null
   slug: string | null
-  description: string | null
   type: $Enums.LessonType | null
   content: string | null
   videoUrl: string | null
@@ -48,16 +48,15 @@ export type LessonMinAggregateOutputType = {
   isPreview: boolean | null
   isPublished: boolean | null
   order: number | null
-  sectionId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type LessonMaxAggregateOutputType = {
   id: string | null
+  sectionId: string | null
   title: string | null
   slug: string | null
-  description: string | null
   type: $Enums.LessonType | null
   content: string | null
   videoUrl: string | null
@@ -65,16 +64,15 @@ export type LessonMaxAggregateOutputType = {
   isPreview: boolean | null
   isPublished: boolean | null
   order: number | null
-  sectionId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type LessonCountAggregateOutputType = {
   id: number
+  sectionId: number
   title: number
   slug: number
-  description: number
   type: number
   content: number
   videoUrl: number
@@ -82,7 +80,6 @@ export type LessonCountAggregateOutputType = {
   isPreview: number
   isPublished: number
   order: number
-  sectionId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -101,9 +98,9 @@ export type LessonSumAggregateInputType = {
 
 export type LessonMinAggregateInputType = {
   id?: true
+  sectionId?: true
   title?: true
   slug?: true
-  description?: true
   type?: true
   content?: true
   videoUrl?: true
@@ -111,16 +108,15 @@ export type LessonMinAggregateInputType = {
   isPreview?: true
   isPublished?: true
   order?: true
-  sectionId?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type LessonMaxAggregateInputType = {
   id?: true
+  sectionId?: true
   title?: true
   slug?: true
-  description?: true
   type?: true
   content?: true
   videoUrl?: true
@@ -128,16 +124,15 @@ export type LessonMaxAggregateInputType = {
   isPreview?: true
   isPublished?: true
   order?: true
-  sectionId?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type LessonCountAggregateInputType = {
   id?: true
+  sectionId?: true
   title?: true
   slug?: true
-  description?: true
   type?: true
   content?: true
   videoUrl?: true
@@ -145,7 +140,6 @@ export type LessonCountAggregateInputType = {
   isPreview?: true
   isPublished?: true
   order?: true
-  sectionId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -239,9 +233,9 @@ export type LessonGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 
 export type LessonGroupByOutputType = {
   id: string
+  sectionId: string
   title: string
   slug: string
-  description: string | null
   type: $Enums.LessonType
   content: string | null
   videoUrl: string | null
@@ -249,7 +243,6 @@ export type LessonGroupByOutputType = {
   isPreview: boolean
   isPublished: boolean
   order: number
-  sectionId: string
   createdAt: Date
   updatedAt: Date
   _count: LessonCountAggregateOutputType | null
@@ -279,9 +272,9 @@ export type LessonWhereInput = {
   OR?: Prisma.LessonWhereInput[]
   NOT?: Prisma.LessonWhereInput | Prisma.LessonWhereInput[]
   id?: Prisma.StringFilter<"Lesson"> | string
+  sectionId?: Prisma.StringFilter<"Lesson"> | string
   title?: Prisma.StringFilter<"Lesson"> | string
   slug?: Prisma.StringFilter<"Lesson"> | string
-  description?: Prisma.StringNullableFilter<"Lesson"> | string | null
   type?: Prisma.EnumLessonTypeFilter<"Lesson"> | $Enums.LessonType
   content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   videoUrl?: Prisma.StringNullableFilter<"Lesson"> | string | null
@@ -289,7 +282,6 @@ export type LessonWhereInput = {
   isPreview?: Prisma.BoolFilter<"Lesson"> | boolean
   isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
   order?: Prisma.IntFilter<"Lesson"> | number
-  sectionId?: Prisma.StringFilter<"Lesson"> | string
   createdAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   section?: Prisma.XOR<Prisma.CourseSectionScalarRelationFilter, Prisma.CourseSectionWhereInput>
@@ -297,9 +289,9 @@ export type LessonWhereInput = {
 
 export type LessonOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  sectionId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   slug?: Prisma.SortOrder
-  description?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   videoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -307,7 +299,6 @@ export type LessonOrderByWithRelationInput = {
   isPreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   order?: Prisma.SortOrder
-  sectionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   section?: Prisma.CourseSectionOrderByWithRelationInput
@@ -319,9 +310,9 @@ export type LessonWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.LessonWhereInput | Prisma.LessonWhereInput[]
   OR?: Prisma.LessonWhereInput[]
   NOT?: Prisma.LessonWhereInput | Prisma.LessonWhereInput[]
+  sectionId?: Prisma.StringFilter<"Lesson"> | string
   title?: Prisma.StringFilter<"Lesson"> | string
   slug?: Prisma.StringFilter<"Lesson"> | string
-  description?: Prisma.StringNullableFilter<"Lesson"> | string | null
   type?: Prisma.EnumLessonTypeFilter<"Lesson"> | $Enums.LessonType
   content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   videoUrl?: Prisma.StringNullableFilter<"Lesson"> | string | null
@@ -329,7 +320,6 @@ export type LessonWhereUniqueInput = Prisma.AtLeast<{
   isPreview?: Prisma.BoolFilter<"Lesson"> | boolean
   isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
   order?: Prisma.IntFilter<"Lesson"> | number
-  sectionId?: Prisma.StringFilter<"Lesson"> | string
   createdAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   section?: Prisma.XOR<Prisma.CourseSectionScalarRelationFilter, Prisma.CourseSectionWhereInput>
@@ -337,9 +327,9 @@ export type LessonWhereUniqueInput = Prisma.AtLeast<{
 
 export type LessonOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  sectionId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   slug?: Prisma.SortOrder
-  description?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   videoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -347,7 +337,6 @@ export type LessonOrderByWithAggregationInput = {
   isPreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   order?: Prisma.SortOrder
-  sectionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.LessonCountOrderByAggregateInput
@@ -362,9 +351,9 @@ export type LessonScalarWhereWithAggregatesInput = {
   OR?: Prisma.LessonScalarWhereWithAggregatesInput[]
   NOT?: Prisma.LessonScalarWhereWithAggregatesInput | Prisma.LessonScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Lesson"> | string
+  sectionId?: Prisma.StringWithAggregatesFilter<"Lesson"> | string
   title?: Prisma.StringWithAggregatesFilter<"Lesson"> | string
   slug?: Prisma.StringWithAggregatesFilter<"Lesson"> | string
-  description?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
   type?: Prisma.EnumLessonTypeWithAggregatesFilter<"Lesson"> | $Enums.LessonType
   content?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
   videoUrl?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
@@ -372,7 +361,6 @@ export type LessonScalarWhereWithAggregatesInput = {
   isPreview?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
   isPublished?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
   order?: Prisma.IntWithAggregatesFilter<"Lesson"> | number
-  sectionId?: Prisma.StringWithAggregatesFilter<"Lesson"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Lesson"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Lesson"> | Date | string
 }
@@ -381,7 +369,6 @@ export type LessonCreateInput = {
   id?: string
   title: string
   slug: string
-  description?: string | null
   type: $Enums.LessonType
   content?: string | null
   videoUrl?: string | null
@@ -396,9 +383,9 @@ export type LessonCreateInput = {
 
 export type LessonUncheckedCreateInput = {
   id?: string
+  sectionId: string
   title: string
   slug: string
-  description?: string | null
   type: $Enums.LessonType
   content?: string | null
   videoUrl?: string | null
@@ -406,7 +393,6 @@ export type LessonUncheckedCreateInput = {
   isPreview?: boolean
   isPublished?: boolean
   order: number
-  sectionId: string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -415,7 +401,6 @@ export type LessonUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumLessonTypeFieldUpdateOperationsInput | $Enums.LessonType
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -430,9 +415,9 @@ export type LessonUpdateInput = {
 
 export type LessonUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  sectionId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumLessonTypeFieldUpdateOperationsInput | $Enums.LessonType
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -440,16 +425,15 @@ export type LessonUncheckedUpdateInput = {
   isPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   order?: Prisma.IntFieldUpdateOperationsInput | number
-  sectionId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type LessonCreateManyInput = {
   id?: string
+  sectionId: string
   title: string
   slug: string
-  description?: string | null
   type: $Enums.LessonType
   content?: string | null
   videoUrl?: string | null
@@ -457,7 +441,6 @@ export type LessonCreateManyInput = {
   isPreview?: boolean
   isPublished?: boolean
   order: number
-  sectionId: string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -466,7 +449,6 @@ export type LessonUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumLessonTypeFieldUpdateOperationsInput | $Enums.LessonType
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -480,9 +462,9 @@ export type LessonUpdateManyMutationInput = {
 
 export type LessonUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  sectionId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumLessonTypeFieldUpdateOperationsInput | $Enums.LessonType
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -490,7 +472,6 @@ export type LessonUncheckedUpdateManyInput = {
   isPreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   order?: Prisma.IntFieldUpdateOperationsInput | number
-  sectionId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -512,9 +493,9 @@ export type LessonSectionIdSlugCompoundUniqueInput = {
 
 export type LessonCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  sectionId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   slug?: Prisma.SortOrder
-  description?: Prisma.SortOrder
   type?: Prisma.SortOrder
   content?: Prisma.SortOrder
   videoUrl?: Prisma.SortOrder
@@ -522,7 +503,6 @@ export type LessonCountOrderByAggregateInput = {
   isPreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   order?: Prisma.SortOrder
-  sectionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -534,9 +514,9 @@ export type LessonAvgOrderByAggregateInput = {
 
 export type LessonMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  sectionId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   slug?: Prisma.SortOrder
-  description?: Prisma.SortOrder
   type?: Prisma.SortOrder
   content?: Prisma.SortOrder
   videoUrl?: Prisma.SortOrder
@@ -544,16 +524,15 @@ export type LessonMaxOrderByAggregateInput = {
   isPreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   order?: Prisma.SortOrder
-  sectionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type LessonMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  sectionId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   slug?: Prisma.SortOrder
-  description?: Prisma.SortOrder
   type?: Prisma.SortOrder
   content?: Prisma.SortOrder
   videoUrl?: Prisma.SortOrder
@@ -561,7 +540,6 @@ export type LessonMinOrderByAggregateInput = {
   isPreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
   order?: Prisma.SortOrder
-  sectionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -621,7 +599,6 @@ export type LessonCreateWithoutSectionInput = {
   id?: string
   title: string
   slug: string
-  description?: string | null
   type: $Enums.LessonType
   content?: string | null
   videoUrl?: string | null
@@ -637,7 +614,6 @@ export type LessonUncheckedCreateWithoutSectionInput = {
   id?: string
   title: string
   slug: string
-  description?: string | null
   type: $Enums.LessonType
   content?: string | null
   videoUrl?: string | null
@@ -680,9 +656,9 @@ export type LessonScalarWhereInput = {
   OR?: Prisma.LessonScalarWhereInput[]
   NOT?: Prisma.LessonScalarWhereInput | Prisma.LessonScalarWhereInput[]
   id?: Prisma.StringFilter<"Lesson"> | string
+  sectionId?: Prisma.StringFilter<"Lesson"> | string
   title?: Prisma.StringFilter<"Lesson"> | string
   slug?: Prisma.StringFilter<"Lesson"> | string
-  description?: Prisma.StringNullableFilter<"Lesson"> | string | null
   type?: Prisma.EnumLessonTypeFilter<"Lesson"> | $Enums.LessonType
   content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   videoUrl?: Prisma.StringNullableFilter<"Lesson"> | string | null
@@ -690,7 +666,6 @@ export type LessonScalarWhereInput = {
   isPreview?: Prisma.BoolFilter<"Lesson"> | boolean
   isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
   order?: Prisma.IntFilter<"Lesson"> | number
-  sectionId?: Prisma.StringFilter<"Lesson"> | string
   createdAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
 }
@@ -699,7 +674,6 @@ export type LessonCreateManySectionInput = {
   id?: string
   title: string
   slug: string
-  description?: string | null
   type: $Enums.LessonType
   content?: string | null
   videoUrl?: string | null
@@ -715,7 +689,6 @@ export type LessonUpdateWithoutSectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumLessonTypeFieldUpdateOperationsInput | $Enums.LessonType
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -731,7 +704,6 @@ export type LessonUncheckedUpdateWithoutSectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumLessonTypeFieldUpdateOperationsInput | $Enums.LessonType
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -747,7 +719,6 @@ export type LessonUncheckedUpdateManyWithoutSectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumLessonTypeFieldUpdateOperationsInput | $Enums.LessonType
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -763,9 +734,9 @@ export type LessonUncheckedUpdateManyWithoutSectionInput = {
 
 export type LessonSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  sectionId?: boolean
   title?: boolean
   slug?: boolean
-  description?: boolean
   type?: boolean
   content?: boolean
   videoUrl?: boolean
@@ -773,7 +744,6 @@ export type LessonSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   isPreview?: boolean
   isPublished?: boolean
   order?: boolean
-  sectionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   section?: boolean | Prisma.CourseSectionDefaultArgs<ExtArgs>
@@ -781,9 +751,9 @@ export type LessonSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
 
 export type LessonSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  sectionId?: boolean
   title?: boolean
   slug?: boolean
-  description?: boolean
   type?: boolean
   content?: boolean
   videoUrl?: boolean
@@ -791,7 +761,6 @@ export type LessonSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   isPreview?: boolean
   isPublished?: boolean
   order?: boolean
-  sectionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   section?: boolean | Prisma.CourseSectionDefaultArgs<ExtArgs>
@@ -799,9 +768,9 @@ export type LessonSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
 
 export type LessonSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  sectionId?: boolean
   title?: boolean
   slug?: boolean
-  description?: boolean
   type?: boolean
   content?: boolean
   videoUrl?: boolean
@@ -809,7 +778,6 @@ export type LessonSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   isPreview?: boolean
   isPublished?: boolean
   order?: boolean
-  sectionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   section?: boolean | Prisma.CourseSectionDefaultArgs<ExtArgs>
@@ -817,9 +785,9 @@ export type LessonSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
 
 export type LessonSelectScalar = {
   id?: boolean
+  sectionId?: boolean
   title?: boolean
   slug?: boolean
-  description?: boolean
   type?: boolean
   content?: boolean
   videoUrl?: boolean
@@ -827,12 +795,11 @@ export type LessonSelectScalar = {
   isPreview?: boolean
   isPublished?: boolean
   order?: boolean
-  sectionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type LessonOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "slug" | "description" | "type" | "content" | "videoUrl" | "duration" | "isPreview" | "isPublished" | "order" | "sectionId" | "createdAt" | "updatedAt", ExtArgs["result"]["lesson"]>
+export type LessonOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sectionId" | "title" | "slug" | "type" | "content" | "videoUrl" | "duration" | "isPreview" | "isPublished" | "order" | "createdAt" | "updatedAt", ExtArgs["result"]["lesson"]>
 export type LessonInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   section?: boolean | Prisma.CourseSectionDefaultArgs<ExtArgs>
 }
@@ -850,9 +817,9 @@ export type $LessonPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    sectionId: string
     title: string
     slug: string
-    description: string | null
     type: $Enums.LessonType
     content: string | null
     videoUrl: string | null
@@ -860,7 +827,6 @@ export type $LessonPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     isPreview: boolean
     isPublished: boolean
     order: number
-    sectionId: string
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["lesson"]>
@@ -1288,9 +1254,9 @@ export interface Prisma__LessonClient<T, Null = never, ExtArgs extends runtime.T
  */
 export interface LessonFieldRefs {
   readonly id: Prisma.FieldRef<"Lesson", 'String'>
+  readonly sectionId: Prisma.FieldRef<"Lesson", 'String'>
   readonly title: Prisma.FieldRef<"Lesson", 'String'>
   readonly slug: Prisma.FieldRef<"Lesson", 'String'>
-  readonly description: Prisma.FieldRef<"Lesson", 'String'>
   readonly type: Prisma.FieldRef<"Lesson", 'LessonType'>
   readonly content: Prisma.FieldRef<"Lesson", 'String'>
   readonly videoUrl: Prisma.FieldRef<"Lesson", 'String'>
@@ -1298,7 +1264,6 @@ export interface LessonFieldRefs {
   readonly isPreview: Prisma.FieldRef<"Lesson", 'Boolean'>
   readonly isPublished: Prisma.FieldRef<"Lesson", 'Boolean'>
   readonly order: Prisma.FieldRef<"Lesson", 'Int'>
-  readonly sectionId: Prisma.FieldRef<"Lesson", 'String'>
   readonly createdAt: Prisma.FieldRef<"Lesson", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Lesson", 'DateTime'>
 }

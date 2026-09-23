@@ -8,18 +8,12 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/Course.js'
-export type * from './models/CourseHighlight.js'
-export type * from './models/CourseRequirement.js'
-export type * from './models/LearningOutcome.js'
-export type * from './models/CourseSection.js'
-export type * from './models/Lesson.js'
-export type * from './models/Category.js'
-export type * from './models/CourseCategory.js'
-export type * from './models/Tag.js'
-export type * from './models/CourseTag.js'
 export type * from './models/Note.js'
 export type * from './models/Model3D.js'
-export type * from './models/Enrollment.js'
+export type * from './models/Tutor.js'
+export type * from './models/Course.js'
+export type * from './models/CourseSection.js'
+export type * from './models/Lesson.js'
 export type * from './models/Order.js'
+export type * from './models/Enrollment.js'
 export type * from './commonInputTypes.js'

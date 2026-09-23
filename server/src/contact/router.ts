@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { sendContactEmail } from "./service.js"
-import { handleError } from "../enrollments/errors.js"
+import { handleError } from "../lib/errors.js"
 
 export const contactRouter = Router()
 

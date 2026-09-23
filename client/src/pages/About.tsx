@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react"
 import { ArrowRight } from "lucide-react"
 import { Link } from "react-router-dom"
 import gsap from "gsap"
+import { SmartImage } from "../components/SmartImage"
 
 // ── Figma assets ─────────────────────────────────────────────────────────────
 const imgHeroMockup =
@@ -89,7 +90,7 @@ export function About() {
         </div>
 
         <div data-hero-fade className="mx-auto mt-8 max-w-[1280px] overflow-hidden rounded-[18px]">
-          <img
+          <SmartImage
             data-parallax
             src={imgHeroMockup}
             alt="Sedative Physio platform preview"
@@ -194,7 +195,7 @@ export function About() {
                 </div>
               </div>
               <div className="relative min-h-[280px] overflow-hidden bg-[#1a1a1a] lg:min-h-0">
-                <img src={imgFounder1} alt="Dr. Akshay Kumar" className="h-full w-full object-cover object-top" />
+                <SmartImage src={imgFounder1} alt="Dr. Akshay Kumar" className="h-full w-full object-cover object-top" />
               </div>
             </div>
           </div>
@@ -206,7 +207,7 @@ export function About() {
           >
             <div className="grid lg:grid-cols-[.42fr_.58fr]">
               <div className="relative min-h-[280px] overflow-hidden bg-[#1a1a1a] lg:min-h-0">
-                <img src={imgFounder2} alt="Anushka Kumari" className="h-full w-full object-cover object-top" />
+                <SmartImage src={imgFounder2} alt="Anushka Kumari" className="h-full w-full object-cover object-top" />
               </div>
               <div className="relative bg-[#0b0b0c] p-8 text-[#ececec] sm:p-11">
                 <h3 className="text-[clamp(1.5rem,2.2vw,2.5rem)] font-black leading-[1.05] tracking-[-0.03em]">
@@ -254,7 +255,7 @@ export function About() {
             {offerItems.map(({ title, detail, badge, img }) => (
               <article key={title} data-reveal className="group min-w-0">
                 <div className="relative aspect-square overflow-hidden rounded-[16px] border border-black/[0.06]">
-                  <img
+                  <SmartImage
                     data-parallax
                     src={img}
                     alt={title}
@@ -291,7 +292,7 @@ export function About() {
                 key={i}
                 className="flex items-center justify-center rounded-[10px] bg-[#d8d8d7] px-6 py-8"
               >
-                <img src={src} alt={`Partner ${i + 1}`} className="h-7 w-auto object-contain opacity-70" />
+                <SmartImage src={src} alt={`Partner ${i + 1}`} className="h-7 w-auto object-contain opacity-70" />
               </div>
             ))}
           </div>

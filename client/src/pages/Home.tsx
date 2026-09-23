@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react"
 import { ArrowRight, Award, BadgeCheck, Quote, Star } from "lucide-react"
 import { Link } from "react-router-dom"
 import gsap from "gsap"
+import { SmartImage } from "../components/SmartImage"
 import { colleges, feedbacks } from "../lib/feedback"
 
 const learningCards = [
@@ -117,7 +118,7 @@ export function Home() {
         <div className="mx-auto flex max-w-[1060px] flex-col items-center justify-center gap-7 sm:flex-row sm:gap-10">
           <div className="flex -space-x-3">
             {["trust1", "trust2", "trust3", "trust4"].map((src) => (
-              <img
+              <SmartImage
                 key={src}
                 src={`/${src}.png`}
                 alt=""
@@ -145,7 +146,7 @@ export function Home() {
             {learningCards.map(([title, detail], index) => (
               <article key={title} data-reveal>
                 <div className="aspect-square w-full overflow-hidden rounded-[18px]">
-                  <img
+                  <SmartImage
                     data-parallax
                     src={`/bento${index + 1}.png`}
                     alt={title}
@@ -180,7 +181,7 @@ export function Home() {
           </div>
           <div className="mx-auto w-full max-w-[590px]" data-reveal>
             <div className="overflow-hidden rounded-[18px]">
-              <img data-parallax src="/certificate.png" alt="Course certificate" className="w-full object-cover" />
+              <SmartImage data-parallax src="/certificate.png" alt="Course certificate" className="w-full object-cover" />
             </div>
           </div>
         </div>
@@ -204,7 +205,7 @@ export function Home() {
             </div>
           </div>
           <div className="h-full overflow-hidden">
-            <img
+            <SmartImage
               data-parallax
               src="/akshay.png"
               alt="Dr. Akshay Kumar"

@@ -1,3 +1,3 @@
-import { BadRequestError } from "../enrollments/errors.js"
+import { BadRequestError } from "../lib/errors.js"
 
 export class ModelValidationError extends BadRequestError {}

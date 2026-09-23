@@ -9,52 +9,6 @@
 * 🟢 You can import this file directly.
 */
 
-export const EnrollmentSource = {
-  PURCHASE: 'PURCHASE',
-  FREE: 'FREE'
-} as const
-
-export type EnrollmentSource = (typeof EnrollmentSource)[keyof typeof EnrollmentSource]
-
-
-export const OrderStatus = {
-  PENDING: 'PENDING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED'
-} as const
-
-export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
-
-
-export const CourseLevel = {
-  BEGINNER: 'BEGINNER',
-  INTERMEDIATE: 'INTERMEDIATE',
-  ADVANCED: 'ADVANCED'
-} as const
-
-export type CourseLevel = (typeof CourseLevel)[keyof typeof CourseLevel]
-
-
-export const CourseStatus = {
-  DRAFT: 'DRAFT',
-  PUBLISHED: 'PUBLISHED',
-  ARCHIVED: 'ARCHIVED'
-} as const
-
-export type CourseStatus = (typeof CourseStatus)[keyof typeof CourseStatus]
-
-
-export const LessonType = {
-  VIDEO: 'VIDEO',
-  ARTICLE: 'ARTICLE',
-  QUIZ: 'QUIZ',
-  PROJECT: 'PROJECT',
-  LIVE_SESSION: 'LIVE_SESSION'
-} as const
-
-export type LessonType = (typeof LessonType)[keyof typeof LessonType]
-
-
 export const NoteStatus = {
   PENDING: 'PENDING',
   UPLOADED: 'UPLOADED',
@@ -62,3 +16,22 @@ export const NoteStatus = {
 } as const
 
 export type NoteStatus = (typeof NoteStatus)[keyof typeof NoteStatus]
+
+
+export const LessonType = {
+  VIDEO: 'VIDEO',
+  ARTICLE: 'ARTICLE',
+  QUIZ: 'QUIZ',
+  PROJECT: 'PROJECT'
+} as const
+
+export type LessonType = (typeof LessonType)[keyof typeof LessonType]
+
+
+export const OrderStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED'
+} as const
+
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]

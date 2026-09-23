@@ -1,12 +1,7 @@
-import { PrismaPg } from "@prisma/adapter-pg"
-import { PrismaClient } from "../../generated/prisma/client.js"
-import { NotFoundError } from "../enrollments/errors.js"
+import { prisma } from "../lib/prisma.js"
+import { NotFoundError } from "../lib/errors.js"
 import { ValidationError } from "./errors.js"
 import { getObjectUrl, r2Configured } from "./r2.js"
-
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL ?? "" }),
-})
 
 export interface NoteSummary {
   id: string
