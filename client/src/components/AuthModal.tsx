@@ -7,9 +7,11 @@ import { RegisterForm } from "./RegisterForm"
 interface AuthModalProps {
   open: boolean
   onClose: () => void
+  /** Invoked when the user successfully signs in or registers */
+  onSuccess?: () => void
 }
 
-export function AuthModal({ open, onClose }: AuthModalProps) {
+export function AuthModal({ open, onClose, onSuccess }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login")
 
   // Reset to login tab whenever the modal opens
@@ -18,6 +20,11 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       setActiveTab("login")
     }
   }, [open])
+
+  const handleFormSuccess = () => {
+    onSuccess?.()
+    onClose()
+  }
 
   return (
     <Dialog.Root open={open} onOpenChange={onClose}>
@@ -66,12 +73,12 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           {/* Active form */}
           {activeTab === "login" ? (
             <LoginForm
-              onSuccess={onClose}
+              onSuccess={handleFormSuccess}
               onSwitchToRegister={() => setActiveTab("register")}
             />
           ) : (
             <RegisterForm
-              onSuccess={onClose}
+              onSuccess={handleFormSuccess}
               onSwitchToLogin={() => setActiveTab("login")}
             />
           )}

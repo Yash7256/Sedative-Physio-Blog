@@ -5,7 +5,8 @@ import { Box, Check, Download, Eye, Loader2, ShoppingCart, Sparkles } from "luci
 import { CourseDetailModal } from "../components/CourseDetailModal"
 import { NotePreviewModal } from "../components/NotePreviewModal"
 import { SmartImage } from "../components/SmartImage"
-import { useCart } from "../lib/cartContext"
+import { AuthModal } from "../components/AuthModal"
+import { useCart, type CartItem } from "../lib/cartContext"
 import {
   fetchNotes,
   fetchNoteDownload,
@@ -180,6 +181,9 @@ function LiveCard({
 }) {
   const { addItem, isInCart } = useCart()
   const navigate = useNavigate()
+  const { isSignedIn } = useUser()
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [pendingAdd, setPendingAdd] = useState<CartItem | null>(null)
   const isDownloading = downloadingId === card.id
   const isCourse = card.kind === "course"
   const inCart = isInCart(card.id)
@@ -213,7 +217,7 @@ function LiveCard({
     if (inCart) {
       navigate("/cart")
     } else {
-      addItem({
+      const item: CartItem = {
         id: card.id,
         title: card.title,
         slug: card.slug ?? card.id,
@@ -222,8 +226,23 @@ function LiveCard({
         thumbnail: card.image || null,
         level: card.tag ?? "Beginner",
         language: "English",
-      })
+      }
+      // Buying a course requires an account: prompt login before adding to cart
+      if (!isSignedIn) {
+        setPendingAdd(item)
+        setAuthModalOpen(true)
+        return
+      }
+      addItem(item)
     }
+  }
+
+  const handleAuthSuccess = () => {
+    if (pendingAdd) {
+      addItem(pendingAdd)
+      setPendingAdd(null)
+    }
+    setAuthModalOpen(false)
   }
 
   return (
@@ -290,6 +309,7 @@ function LiveCard({
           )
         )}
       </div>
+      <AuthModal open={authModalOpen} onClose={() => { setAuthModalOpen(false); setPendingAdd(null) }} onSuccess={handleAuthSuccess} />
     </article>
   )
 }
