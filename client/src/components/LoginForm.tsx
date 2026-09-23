@@ -73,11 +73,17 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     setIsGoogleLoading(true)
     setClerkError(null)
     try {
-      await signIn.sso({
+      // Full-page OAuth redirect: /sso-callback completes the handshake,
+      // then the user lands back on the current origin.
+      const { error } = await signIn.sso({
         strategy: "oauth_google",
-        redirectUrl: window.location.origin,
-        redirectCallbackUrl: window.location.origin,
+        redirectUrl: "/sso-callback",
+        redirectCallbackUrl: "/sso-callback",
       })
+      if (error) {
+        setClerkError(error.message ?? "Google sign-in failed. Please try again.")
+        setIsGoogleLoading(false)
+      }
     } catch (err: unknown) {
       const message =
         (err as any).errors?.[0]?.message ?? "Google sign-in failed. Please try again."
