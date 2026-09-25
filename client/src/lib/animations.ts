@@ -11,6 +11,29 @@ import Lenis from "lenis"
 
 gsap.registerPlugin(ScrollTrigger)
 
+/**
+ * The Lenis instance for the current page, or null when smooth scroll is off
+ * (reduced motion, or between routes). Exposed so navigation code can drive
+ * scroll through Lenis instead of fighting it with window.scrollTo.
+ */
+let activeLenis: Lenis | null = null
+
+/**
+ * Scroll the window to the top of the page.
+ *
+ * Route changes must use `immediate` — the new page has just mounted, so
+ * animating would show the previous page's scroll offset sweeping away. A
+ * deliberate "back to top" tap wants the smooth glide instead.
+ */
+export function scrollToTop(smooth = false): void {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  if (activeLenis && !reduced) {
+    activeLenis.scrollTo(0, { immediate: !smooth, force: true })
+  } else {
+    window.scrollTo({ top: 0, left: 0, behavior: smooth && !reduced ? "smooth" : "auto" })
+  }
+}
+
 export function initPageAnimations(): () => void {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return () => {}
@@ -22,6 +45,7 @@ export function initPageAnimations(): () => void {
     easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     smoothWheel: true,
   })
+  activeLenis = lenis
 
   // Keep a stable reference so gsap.ticker.remove can match it exactly on cleanup
   const lenisRaf = (time: number) => lenis.raf(time * 1000)
@@ -34,23 +58,31 @@ export function initPageAnimations(): () => void {
   const triggers: ScrollTrigger[] = []
 
   // ── Section scroll-fade (exit effect) ─────────────────────────────────────
-  // Only target semantic <section> elements that are marked with data-scroll-fade.
-  // We add this attribute in each page. Utility strips (marquee, trust bar) are excluded.
-  // Using fromTo so re-entry after back-navigation always starts from a clean state.
-  const scrollFadeSections = document.querySelectorAll<HTMLElement>("[data-scroll-fade]")
-  scrollFadeSections.forEach((section) => {
-    const st = ScrollTrigger.create({
-      trigger: section,
-      start: "top top",
-      end: "bottom 20%",
-      scrub: 0.5,
-      animation: gsap.fromTo(
-        section,
-        { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
-        { opacity: 0.35, y: -60, scale: 0.98, filter: "blur(6px)", ease: "none" }
-      ),
+  // Only semantic <section> elements marked data-scroll-fade. Utility strips
+  // (marquee, trust bar) are excluded. Using fromTo so re-entry after
+  // back-navigation always starts from a clean state.
+  //
+  // Desktop + fine pointer only. This scrubs a blur filter across a whole
+  // section every frame, which is costly to composite on small or touch
+  // screens — and on a phone it just smears the content being scrolled.
+  // matchMedia reverts the whole context when the query stops matching, so
+  // resizing across the breakpoint swaps the effect on and off live.
+  const mm = gsap.matchMedia()
+
+  mm.add("(min-width: 1024px) and (pointer: fine)", () => {
+    document.querySelectorAll<HTMLElement>("[data-scroll-fade]").forEach((section) => {
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "bottom 20%",
+        scrub: 0.5,
+        animation: gsap.fromTo(
+          section,
+          { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
+          { opacity: 0.35, y: -60, scale: 0.98, filter: "blur(6px)", ease: "none" }
+        ),
+      })
     })
-    triggers.push(st)
   })
 
   // ── Image parallax ────────────────────────────────────────────────────────
@@ -89,6 +121,8 @@ export function initPageAnimations(): () => void {
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
   return () => {
+    activeLenis = null
+    mm.revert()
     triggers.forEach((st) => st.kill())
     gsap.ticker.remove(lenisRaf)
     lenis.destroy()

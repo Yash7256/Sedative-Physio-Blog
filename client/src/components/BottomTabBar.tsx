@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom"
 import { Home, Search, Clock, LayoutDashboard, User } from "lucide-react"
+import { scrollToTop } from "@/lib/animations"
 
 const tabs = [
   { label: "Home", icon: Home, to: "/" },
@@ -29,6 +30,12 @@ export function BottomTabBar() {
           <Link
             key={label}
             to={to}
+            // Tapping the tab you're already on is a "take me home" gesture.
+            // Routing won't fire (same path), so scroll back up by hand.
+            // Real navigation is handled by Layout's route-change reset.
+            onClick={() => {
+              if (active) scrollToTop(true)
+            }}
             className={`flex flex-1 flex-col items-center justify-center gap-1.5 py-2 text-[11px] transition-colors ${
               active
                 ? "text-[#0b0b0c] dark:text-[#f5f4ef]"

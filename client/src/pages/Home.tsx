@@ -272,7 +272,7 @@ function TestimonialCarousel({ feedbacks }: { feedbacks: Feedback[] }) {
   const metricsRef = useRef({ a1: 0, seg: 0, stride: 0, step: 0, per: 1, bleed: 0, vpW: 0 })
   const pageRef = useRef(0)
   const rafRef = useRef(0)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pausedRef = useRef(false)
 
   const [perView, setPerView] = useState(1)
@@ -371,7 +371,7 @@ function TestimonialCarousel({ feedbacks }: { feedbacks: Feedback[] }) {
   }
 
   const clearTimer = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current)
+    if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = null
   }, [])
 
@@ -380,7 +380,10 @@ function TestimonialCarousel({ feedbacks }: { feedbacks: Feedback[] }) {
   const schedule = useCallback(() => {
     clearTimer()
     if (reduced || pausedRef.current) return
-    timerRef.current = setTimeout(() => {
+    // A repeating interval, not a one-shot timeout — a timeout only advanced a
+    // single page and then the carousel sat still until the user touched it.
+    // The smooth glide is ~620ms, well inside AUTO_MS, so ticks never overlap.
+    timerRef.current = setInterval(() => {
       const viewport = viewportRef.current
       if (!viewport) return
       viewport.scrollTo({

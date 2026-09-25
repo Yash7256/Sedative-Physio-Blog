@@ -1,9 +1,9 @@
-import { useEffect } from "react"
+import { useEffect, useLayoutEffect } from "react"
 import { Outlet, useLocation } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
 import { BottomTabBar } from "@/components/BottomTabBar"
-import { initPageAnimations } from "@/lib/animations"
+import { initPageAnimations, scrollToTop } from "@/lib/animations"
 
 export function Layout() {
   const { pathname } = useLocation()
@@ -22,6 +22,13 @@ export function Layout() {
     }
     // Re-run on every route change so ScrollTriggers are fresh
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
+  // Start every route at the top. Without this the browser keeps the previous
+  // page's offset, so navigating to a short page lands you part-way down it.
+  // Runs after the init effect above, so Lenis is already live.
+  useLayoutEffect(() => {
+    scrollToTop()
   }, [pathname])
 
   return (
