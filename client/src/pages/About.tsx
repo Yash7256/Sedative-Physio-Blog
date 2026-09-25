@@ -1,8 +1,7 @@
-import { useEffect, useRef } from "react"
 import { ArrowRight } from "lucide-react"
 import { Link } from "react-router-dom"
-import gsap from "gsap"
 import { SmartImage } from "../components/SmartImage"
+import { useHeroReveal } from "../components/about/animations"
 
 // ── Figma assets ─────────────────────────────────────────────────────────────
 const imgHeroMockup =
@@ -49,20 +48,7 @@ const partners = [
 ]
 
 export function About() {
-  const heroRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const el = heroRef.current
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        el.querySelectorAll("[data-hero-fade]"),
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.85, stagger: 0.09, ease: "power3.out", delay: 0.1 },
-      )
-    }, el)
-    return () => ctx.revert()
-  }, [])
+  const heroRef = useHeroReveal()
 
   return (
     <div className="about-page overflow-hidden bg-[#f6f6f4] text-[#0b0b0c]">
