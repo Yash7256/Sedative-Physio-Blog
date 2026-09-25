@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { useAuth, useUser } from "@clerk/react"
 import {
-  AlertCircle,
   ArrowLeft,
   BarChart3,
   BookOpen,
@@ -21,11 +19,9 @@ import {
   Tag,
   Trash2,
 } from "lucide-react"
-import { useCart, type CartItem } from "../lib/cartContext"
-import { AuthModal } from "../components/AuthModal"
+import { useCart } from "../lib/cartContext"
 import { PaymentSuccessModal } from "../components/PaymentSuccessModal"
 import { SmartImage } from "../components/SmartImage"
-import { loadRazorpayScript } from "../lib/razorpay"
 import {
   fetchCourseDetail,
   type CourseDetail,
@@ -33,8 +29,6 @@ import {
   type CourseSection,
   type LessonType,
 } from "../lib/resources"
-
-const API_BASE = import.meta.env.VITE_API_URL ?? ""
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 
@@ -255,20 +249,15 @@ function CourseDetails({ slug, expanded }: { slug: string; expanded: boolean }) 
 /* ─── main Cart page ──────────────────────────────────────────── */
 
 export function Cart() {
-  const { isSignedIn, user } = useUser()
-  const { getToken } = useAuth()
   const { items, removeItem, total, clearCart } = useCart()
   const paidItems = items.filter((i) => !i.isFree)
   const freeItems = items.filter((i) => i.isFree)
 
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({})
-  const [authModalOpen, setAuthModalOpen] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([])
   const [successModalData, setSuccessModalData] = useState<{
     open: boolean
-    items: CartItem[]
+    items: ReturnType<typeof useCart>["items"]
     paymentId?: string
     orderId?: string
     isFree?: boolean
@@ -277,191 +266,26 @@ export function Cart() {
   const toggle = (id: string) =>
     setExpandedMap((prev) => ({ ...prev, [id]: !prev[id] }))
 
-  // Seed state for newly added items; auto-open when cart drops to 1 item
+  // Auto-open when cart drops to 1 item
   useEffect(() => {
     setExpandedMap((prev) => {
       const next = { ...prev }
       for (const item of items) {
-        if (!(item.id in next)) {
-          next[item.id] = items.length === 1
-        }
+        if (!(item.id in next)) next[item.id] = items.length === 1
       }
       if (items.length === 1) next[items[0].id] = true
       return next
     })
   }, [items])
 
-  // Fetch user's existing enrollments to guard against duplicate purchases
-  useEffect(() => {
-    if (!isSignedIn) {
-      setEnrolledCourseIds([])
-      return
-    }
-
-    let cancelled = false
-    getToken().then((token) => {
-      fetch(`${API_BASE}/api/payments/my-enrollments`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then((res) => (res.ok ? res.json() : []))
-        .then((ids) => {
-          if (!cancelled && Array.isArray(ids)) {
-            setEnrolledCourseIds(ids)
-          }
-        })
-        .catch(() => {})
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [isSignedIn, getToken])
-
-  const duplicateEnrolledItems = items.filter((i) => enrolledCourseIds.includes(i.id))
-  const hasDuplicateEnrollments = duplicateEnrolledItems.length > 0
-
-  /* ── Checkout Handler ── */
   const handleCheckout = async () => {
-    if (!isSignedIn) {
-      setAuthModalOpen(true)
-      return
-    }
-
-    if (hasDuplicateEnrollments) {
-      setCheckoutError(
-        `You already own ${duplicateEnrolledItems.map((i) => `"${i.title}"`).join(", ")}. Please remove before continuing.`,
-      )
-      return
-    }
-
-    setCheckoutError(null)
     setCheckingOut(true)
-
-    try {
-      const token = await getToken()
-      const authHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      }
-
-      // ── Free Enrollment Flow ──
-      if (total === 0) {
-        const res = await fetch(`${API_BASE}/api/payments/free-enroll`, {
-          method: "POST",
-          headers: authHeaders,
-          body: JSON.stringify({
-            courseIds: items.map((i) => i.id),
-          }),
-        })
-
-        const data = await res.json()
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to complete free enrollment")
-        }
-
-        const enrolledItems = [...items]
-        setEnrolledCourseIds((prev) => [...prev, ...items.map((i) => i.id)])
-        clearCart()
-        setSuccessModalData({
-          open: true,
-          items: enrolledItems,
-          isFree: true,
-        })
-        return
-      }
-
-      // ── Paid Razorpay Flow ──
-      const scriptLoaded = await loadRazorpayScript()
-      if (!scriptLoaded || !window.Razorpay) {
-        throw new Error("Unable to load Razorpay payment gateway. Please check your internet connection.")
-      }
-
-      // 1. Create order on backend (with duplicate purchase & pending reuse protection)
-      const orderRes = await fetch(`${API_BASE}/api/payments/create-order`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          courseIds: items.map((i) => i.id),
-          userEmail: user?.primaryEmailAddress?.emailAddress,
-          userName: user?.fullName,
-        }),
-      })
-
-      const orderData = await orderRes.json()
-      if (!orderRes.ok) {
-        throw new Error(orderData.error || "Failed to create payment order")
-      }
-
-      const { orderId, amount, currency, keyId } = orderData
-      const enrolledItems = [...items]
-
-      // 2. Open Razorpay modal
-      const rzp = new window.Razorpay({
-        key: keyId,
-        amount,
-        currency: currency || "INR",
-        name: "Sedative Physio",
-        description: `Course Enrollment (${items.length} ${items.length === 1 ? "course" : "courses"})`,
-        image: "/bento4.png",
-        order_id: orderId,
-        handler: async (response) => {
-          try {
-            setCheckingOut(true)
-            const verifyToken = await getToken()
-            const verifyRes = await fetch(`${API_BASE}/api/payments/verify`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(verifyToken ? { Authorization: `Bearer ${verifyToken}` } : {}),
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            })
-
-            const verifyData = await verifyRes.json()
-            if (!verifyRes.ok) {
-              throw new Error(verifyData.error || "Payment verification failed")
-            }
-
-            setEnrolledCourseIds((prev) => [...prev, ...enrolledItems.map((i) => i.id)])
-            clearCart()
-            setSuccessModalData({
-              open: true,
-              items: enrolledItems,
-              paymentId: response.razorpay_payment_id,
-              orderId: response.razorpay_order_id,
-              isFree: false,
-            })
-          } catch (verifyErr) {
-            setCheckoutError(
-              verifyErr instanceof Error ? verifyErr.message : "Payment verification failed",
-            )
-          } finally {
-            setCheckingOut(false)
-          }
-        },
-        prefill: {
-          name: user?.fullName || "",
-          email: user?.primaryEmailAddress?.emailAddress || "",
-        },
-        theme: {
-          color: "#111214",
-        },
-        modal: {
-          ondismiss: () => {
-            setCheckingOut(false)
-          },
-        },
-      })
-
-      rzp.open()
-    } catch (err) {
-      setCheckoutError(err instanceof Error ? err.message : "Checkout failed")
-      setCheckingOut(false)
-    }
+    // Simulate a brief processing delay, then show success modal
+    await new Promise((r) => setTimeout(r, 800))
+    const enrolledItems = [...items]
+    clearCart()
+    setSuccessModalData({ open: true, items: enrolledItems, isFree: total === 0 })
+    setCheckingOut(false)
   }
 
   /* ── Empty state ── */
@@ -525,16 +349,10 @@ export function Cart() {
           <section className="min-w-0 space-y-6">
             {items.map((item) => {
               const isExpanded = !!expandedMap[item.id]
-              const isAlreadyEnrolled = enrolledCourseIds.includes(item.id)
 
               return (
                 <div key={item.id}>
-                  {/* Cart item card */}
-                  <article
-                    className={`overflow-hidden rounded-[18px] border bg-white/70 transition-colors ${
-                      isAlreadyEnrolled ? "border-amber-300 ring-1 ring-amber-300/40" : "border-black/10"
-                    }`}
-                  >
+                  <article className="overflow-hidden rounded-[18px] border border-black/10 bg-white/70 transition-colors">
                     <div className="flex gap-4 p-4 sm:gap-5 sm:p-5">
                       {/* Thumbnail */}
                       <div className="relative aspect-[16/10] w-[120px] shrink-0 overflow-hidden rounded-xl bg-[#dedfdd] sm:w-[160px]">
@@ -550,14 +368,10 @@ export function Cart() {
                         )}
                         <span
                           className={`absolute right-1.5 top-1.5 rounded-full px-2 py-0.5 text-[8px] font-bold tracking-wide ${
-                            isAlreadyEnrolled
-                              ? "bg-amber-600 text-white"
-                              : item.isFree
-                              ? "bg-[#22c55e] text-white"
-                              : "bg-[#111214]/90 text-white"
+                            item.isFree ? "bg-[#22c55e] text-white" : "bg-[#111214]/90 text-white"
                           }`}
                         >
-                          {isAlreadyEnrolled ? "Already Owned" : item.isFree ? "Free" : "Paid"}
+                          {item.isFree ? "Free" : "Paid"}
                         </span>
                       </div>
 
@@ -565,16 +379,9 @@ export function Cart() {
                       <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex min-w-0 items-start justify-between gap-2">
-                            <div>
-                              <h2 className="text-sm font-semibold leading-snug tracking-[-.025em] sm:text-base">
-                                {item.title}
-                              </h2>
-                              {isAlreadyEnrolled && (
-                                <p className="mt-0.5 text-xs font-medium text-amber-700">
-                                  You are already enrolled in this course.
-                                </p>
-                              )}
-                            </div>
+                            <h2 className="text-sm font-semibold leading-snug tracking-[-.025em] sm:text-base">
+                              {item.title}
+                            </h2>
                             <button
                               type="button"
                               onClick={() => removeItem(item.id)}
@@ -593,15 +400,13 @@ export function Cart() {
                             </span>
                           </div>
                         </div>
-                        <span
-                          className={`text-lg font-bold tracking-[-.03em] ${item.isFree ? "text-[#22c55e]" : "text-[#0b0b0c]"}`}
-                        >
+                        <span className={`text-lg font-bold tracking-[-.03em] ${item.isFree ? "text-[#22c55e]" : "text-[#0b0b0c]"}`}>
                           {formatPrice(item.price, item.isFree)}
                         </span>
                       </div>
                     </div>
 
-                    {/* ── Show / Hide Details toggle button ── */}
+                    {/* Show / Hide Details toggle */}
                     <button
                       type="button"
                       onClick={() => toggle(item.id)}
@@ -610,13 +415,10 @@ export function Cart() {
                       className="flex w-full items-center justify-center gap-1.5 border-t border-black/[0.07] px-5 py-2.5 text-xs font-semibold text-[#1683f6] transition-colors hover:bg-[#1683f6]/[0.04]"
                     >
                       {isExpanded ? "Hide Details" : "Show Details"}
-                      <ChevronDown
-                        className={`size-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                      />
+                      <ChevronDown className={`size-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                     </button>
                   </article>
 
-                  {/* ── Expandable full course details panel ── */}
                   <div id={`details-${item.id}`} className="px-1">
                     <CourseDetails slug={item.slug} expanded={isExpanded} />
                   </div>
@@ -652,7 +454,6 @@ export function Cart() {
                         <dd className="font-medium">{paidItems.length}</dd>
                       </div>
                     )}
-                    {/* Per-item price breakdown */}
                     {items.map((item) => (
                       <div key={item.id} className="flex items-center justify-between py-2.5">
                         <dt className="max-w-[160px] truncate text-[#717376]">{item.title}</dt>
@@ -669,25 +470,6 @@ export function Cart() {
                 </div>
               </div>
 
-              {/* Duplicate enrollment warning */}
-              {hasDuplicateEnrollments && (
-                <div className="flex items-start gap-2.5 rounded-[14px] border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-800">
-                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600" />
-                  <p className="leading-relaxed">
-                    You already own some courses in your cart. Please remove them using the trash icon
-                    before proceeding to avoid duplicate charges.
-                  </p>
-                </div>
-              )}
-
-              {/* Error message */}
-              {checkoutError && (
-                <div className="flex items-start gap-2.5 rounded-[14px] border border-red-200 bg-red-50 p-3.5 text-xs text-red-800">
-                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-600" />
-                  <p className="leading-relaxed">{checkoutError}</p>
-                </div>
-              )}
-
               {/* Promo hint */}
               {total > 0 && (
                 <div className="flex items-start gap-3 rounded-[14px] border border-black/10 bg-white/50 px-4 py-3.5">
@@ -698,23 +480,17 @@ export function Cart() {
                 </div>
               )}
 
-              {/* Checkout / Enroll button */}
+              {/* Checkout button */}
               <button
                 type="button"
                 onClick={handleCheckout}
-                disabled={checkingOut || hasDuplicateEnrollments}
+                disabled={checkingOut}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#111214] px-5 py-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-black/80 active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 {checkingOut ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Processing…
-                  </>
+                  <><Loader2 className="size-4 animate-spin" /> Processing…</>
                 ) : (
-                  <>
-                    <CreditCard className="size-4" />
-                    {total === 0 ? "Enroll for Free" : "Proceed to Checkout"}
-                  </>
+                  <><CreditCard className="size-4" /> {total === 0 ? "Enroll for Free" : "Proceed to Checkout"}</>
                 )}
               </button>
 
@@ -748,10 +524,6 @@ export function Cart() {
         </div>
       </main>
 
-      {/* Auth Modal for unauthenticated users */}
-      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-
-      {/* Success Modal */}
       <PaymentSuccessModal
         open={successModalData.open}
         onClose={() => setSuccessModalData({ open: false, items: [] })}

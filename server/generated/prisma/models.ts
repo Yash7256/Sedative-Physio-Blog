@@ -8,6 +8,10 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/User.js'
+export type * from './models/RefreshToken.js'
+export type * from './models/VerificationToken.js'
+export type * from './models/AuthAuditLog.js'
 export type * from './models/Note.js'
 export type * from './models/Model3D.js'
 export type * from './models/Tutor.js'

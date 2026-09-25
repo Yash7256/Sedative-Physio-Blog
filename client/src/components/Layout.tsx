@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { Outlet, useLocation } from "react-router-dom"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
+import { BottomTabBar } from "@/components/BottomTabBar"
 import { initPageAnimations } from "@/lib/animations"
 
 export function Layout() {
@@ -26,10 +27,12 @@ export function Layout() {
   return (
     <div className="flex min-h-svh flex-col">
       <Navbar />
-      <main className="flex-1 pt-[92px] sm:pt-[116px] lg:pt-[132px]">
+      {/* pb-[72px] on mobile to avoid content hiding behind the bottom tab bar */}
+      <main className="flex-1 pt-[68px] pb-[72px] sm:pt-[116px] sm:pb-0 lg:pt-[132px]">
         <Outlet />
       </main>
       <Footer />
+      <BottomTabBar />
     </div>
   )
 }

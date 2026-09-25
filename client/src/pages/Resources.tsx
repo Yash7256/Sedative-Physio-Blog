@@ -1,12 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useAuth, useUser } from "@clerk/react"
 import { Box, Check, Download, Eye, Loader2, ShoppingCart, Sparkles } from "lucide-react"
 import { CourseDetailModal } from "../components/CourseDetailModal"
 import { NotePreviewModal } from "../components/NotePreviewModal"
 import { SmartImage } from "../components/SmartImage"
-import { AuthModal } from "../components/AuthModal"
-import { useCart, type CartItem } from "../lib/cartContext"
+import { useCart } from "../lib/cartContext"
 import {
   fetchNotes,
   fetchNoteDownload,
@@ -18,8 +16,6 @@ import {
   type Resource,
   type ResourceCategory,
 } from "../lib/resources"
-
-const API_BASE = import.meta.env.VITE_API_URL ?? ""
 
 const ModelViewerModal = lazy(() => import("../components/ModelViewerModal").then((m) => ({ default: m.ModelViewerModal })))
 
@@ -42,38 +38,12 @@ const librarySections: Array<{ key: ResourceCategory | "podcast"; title: string;
 
 export function Resources() {
   const isProd = import.meta.env.PROD
-  const { isSignedIn } = useUser()
-  const { getToken } = useAuth()
   const [active, setActive] = useState<ResourceCategory | "all">("all")
   const [cards, setCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [preview, setPreview] = useState<PreviewState>(null)
-  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([])
-
-  useEffect(() => {
-    if (!isSignedIn) {
-      setEnrolledCourseIds([])
-      return
-    }
-    let cancelled = false
-    getToken().then((token) => {
-      fetch(`${API_BASE}/api/payments/my-enrollments`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-        .then((res) => (res.ok ? res.json() : []))
-        .then((ids) => {
-          if (!cancelled && Array.isArray(ids)) {
-            setEnrolledCourseIds(ids)
-          }
-        })
-        .catch(() => {})
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [isSignedIn, getToken])
 
   useEffect(() => {
     let cancelled = false
@@ -153,10 +123,10 @@ export function Resources() {
         const dynamic = section.key === "podcast" ? [] : cards.filter((card) => card.category === section.key)
         const limited = active === "all" ? dynamic.slice(0, 3) : dynamic
         if (comingSoon) {
-          return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,2vw,2.1rem)] font-bold tracking-[-.045em]">{section.title}</h2></div><div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-center text-white" data-reveal><div><p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80"><Box className="size-3.5" /> Coming Soon</p><p className="mx-auto mt-5 max-w-[560px] text-[clamp(1.25rem,2.5vw,2rem)] font-semibold leading-tight tracking-[-.03em]">Interactive 3D anatomy models are on their way.</p><p className="mx-auto mt-3 max-w-[480px] text-sm leading-relaxed text-white/70">Explore bones, muscles, and joints in fully explorable 3D — coming soon to Sedative Physio.</p></div></div></section>
+          return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,2vw,2.1rem)] font-bold tracking-[-.045em]">{section.title}</h2></div><div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-center text-white" data-reveal><div><p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80"><Box className="size-3.5" /> Coming Soon</p><p className="font-display mx-auto mt-5 max-w-[560px] text-[clamp(1.25rem,2.5vw,2rem)] font-semibold leading-tight tracking-[-.03em]">Interactive 3D anatomy models are on their way.</p><p className="mx-auto mt-3 max-w-[480px] text-sm leading-relaxed text-white/70">Explore bones, muscles, and joints in fully explorable 3D — coming soon to Sedative Physio.</p></div></div></section>
         }
         if (limited.length === 0) return null
-        return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,2vw,2.1rem)] font-bold tracking-[-.045em]">{section.title}</h2>{active === "all" && <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="text-xs text-[#696b6d] underline-offset-4 hover:underline">View all</button>}</div><div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 lg:grid-cols-3">{limited.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} isEnrolled={enrolledCourseIds.includes(card.id)} />)}</div><button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="mt-8 flex w-full items-center justify-center border-t border-black/10 pt-5 text-sm text-[#707275] transition-colors hover:text-black">{section.explore}</button></section>
+        return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,2vw,2.1rem)] font-bold tracking-[-.045em]">{section.title}</h2>{active === "all" && <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="text-xs text-[#696b6d] underline-offset-4 hover:underline">View all</button>}</div><div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 lg:grid-cols-3">{limited.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div><button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="mt-8 flex w-full items-center justify-center border-t border-black/10 pt-5 text-sm text-[#707275] transition-colors hover:text-black">{section.explore}</button></section>
       })}</div>
       <section data-scroll-fade className="mt-16 overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-white sm:mt-24 sm:px-12 sm:py-14"><h2 data-reveal className="text-[clamp(2rem,4vw,4rem)] font-bold tracking-[-.055em]">Coming Soon</h2><p className="mt-4 max-w-[690px] text-sm leading-relaxed text-white/75">We’re continuously expanding our resource library. More tools and materials will be added soon to support your learning journey.</p><div className="mt-7 flex flex-wrap gap-2">{["Study Guides", "Clinical Protocols", "Video Tutorials", "Research Papers"].map((item) => <span key={item} className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/80">{item}</span>)}</div></section>
     </main>
@@ -171,53 +141,38 @@ function LiveCard({
   downloadingId,
   onOpen,
   onDownload,
-  isEnrolled = false,
 }: {
   card: Card
   downloadingId: string | null
   onOpen: (card: Card) => void
   onDownload: (id: string) => void
-  isEnrolled?: boolean
 }) {
   const { addItem, isInCart } = useCart()
   const navigate = useNavigate()
-  const { isSignedIn } = useUser()
-  const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [pendingAdd, setPendingAdd] = useState<CartItem | null>(null)
   const isDownloading = downloadingId === card.id
   const isCourse = card.kind === "course"
   const inCart = isInCart(card.id)
 
   const badge =
     card.kind === "model" ? "MODEL" :
-    isCourse ? (isEnrolled ? "ENROLLED" : card.isFree ? "FREE" : formatCoursePrice(card.price)) :
+    isCourse ? (card.isFree ? "FREE" : formatCoursePrice(card.price)) :
     "NOTE"
 
   const topBadge =
-    isEnrolled ? "Enrolled" :
     isCourse ? (card.isFree ? "Free" : "Paid") :
     card.kind === "model" ? "MODEL" : "NOTE"
   const topBadgeClass =
-    isEnrolled ? "bg-[#22c55e] text-white" :
     isCourse ? (card.isFree ? "bg-[#22c55e] text-white" : "bg-[#111214]/90 text-white") :
     "bg-white/90 text-[#55575a]"
-
-  const open = () => {
-    onOpen(card)
-  }
 
   const priceBanner =
     isCourse ? (card.isFree ? "Free" : formatCoursePrice(card.price)) : null
 
   const handleCartAction = () => {
-    if (isEnrolled) {
-      open()
-      return
-    }
     if (inCart) {
       navigate("/cart")
     } else {
-      const item: CartItem = {
+      addItem({
         id: card.id,
         title: card.title,
         slug: card.slug ?? card.id,
@@ -226,28 +181,13 @@ function LiveCard({
         thumbnail: card.image || null,
         level: card.tag ?? "Beginner",
         language: "English",
-      }
-      // Buying a course requires an account: prompt login before adding to cart
-      if (!isSignedIn) {
-        setPendingAdd(item)
-        setAuthModalOpen(true)
-        return
-      }
-      addItem(item)
+      })
     }
-  }
-
-  const handleAuthSuccess = () => {
-    if (pendingAdd) {
-      addItem(pendingAdd)
-      setPendingAdd(null)
-    }
-    setAuthModalOpen(false)
   }
 
   return (
     <article className="group min-w-0">
-      <button type="button" onClick={open} className="relative block aspect-[1.18] w-full overflow-hidden rounded-[12px] bg-[#dedfdd] text-left">
+      <button type="button" onClick={() => onOpen(card)} className="relative block aspect-[1.18] w-full overflow-hidden rounded-[12px] bg-[#dedfdd] text-left">
         {card.image || card.imageDark
           ? <div className="absolute inset-0">
               {card.image && <SmartImage src={card.image} alt={card.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035] dark:hidden" />}
@@ -283,33 +223,22 @@ function LiveCard({
         )}
       </div>
       <div className={`mt-3 grid ${isCourse ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
-        <button type="button" onClick={open} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/15 bg-transparent px-3 py-2 text-xs font-medium text-[#111214] transition-colors hover:bg-black hover:text-white">
+        <button type="button" onClick={() => onOpen(card)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/15 bg-transparent px-3 py-2 text-xs font-medium text-[#111214] transition-colors hover:bg-black hover:text-white">
           <Eye className="size-3.5" /> View Details
         </button>
         {isCourse && (
-          isEnrolled ? (
-            <button
-              type="button"
-              onClick={open}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#22c55e]/15 px-3 py-2 text-xs font-semibold text-[#16a34a] transition-colors hover:bg-[#22c55e]/25"
-            >
-              <Check className="size-3.5" /> Enrolled
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleCartAction}
-              className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${inCart ? "bg-[#22c55e] text-white hover:bg-[#16a34a]" : "bg-[#111214] text-white hover:bg-black/80"}`}
-            >
-              {inCart
-                ? <><Check className="size-3.5" /> Go to Cart</>
-                : <><ShoppingCart className="size-3.5" /> Add to Cart</>
-              }
-            </button>
-          )
+          <button
+            type="button"
+            onClick={handleCartAction}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${inCart ? "bg-[#22c55e] text-white hover:bg-[#16a34a]" : "bg-[#111214] text-white hover:bg-black/80"}`}
+          >
+            {inCart
+              ? <><Check className="size-3.5" /> Go to Cart</>
+              : <><ShoppingCart className="size-3.5" /> Add to Cart</>
+            }
+          </button>
         )}
       </div>
-      <AuthModal open={authModalOpen} onClose={() => { setAuthModalOpen(false); setPendingAdd(null) }} onSuccess={handleAuthSuccess} />
     </article>
   )
 }

@@ -123,7 +123,7 @@ export function About() {
           <div className="grid gap-8 sm:grid-cols-3" data-reveal>
             {stats.map(({ value, label }) => (
               <div key={label} className="text-center">
-                <p className="text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-none tracking-[-0.04em]">
+                <p className="font-display text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-none tracking-[-0.04em]">
                   {value}
                 </p>
                 <p className="mt-1.5 text-sm text-[#686a6b] sm:text-base">{label}</p>

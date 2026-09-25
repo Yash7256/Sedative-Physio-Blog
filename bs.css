@@ -1,0 +1,30 @@
+/* Bespoke Serif */
+@font-face {
+  font-family: 'Bespoke Serif';
+  src: url('//cdn.fontshare.com/wf/DGL7AR63QELJFTOEASXHFYM5NAKYODNK/GYJUWP667LEHZ5W2WM5CQDIWDFJX2DFY/DLLWXFUYSJGEWBBZLWVRWRKWK2K5HHIO.woff2') format('woff2'),
+       url('//cdn.fontshare.com/wf/DGL7AR63QELJFTOEASXHFYM5NAKYODNK/GYJUWP667LEHZ5W2WM5CQDIWDFJX2DFY/DLLWXFUYSJGEWBBZLWVRWRKWK2K5HHIO.woff') format('woff'),
+       url('//cdn.fontshare.com/wf/DGL7AR63QELJFTOEASXHFYM5NAKYODNK/GYJUWP667LEHZ5W2WM5CQDIWDFJX2DFY/DLLWXFUYSJGEWBBZLWVRWRKWK2K5HHIO.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bespoke Serif';
+  src: url('//cdn.fontshare.com/wf/DYICCTZBCCH62HF7GQ6ZMCYOHJCWBHNL/7CG3OJC5WSDEHMZZL5MZI6GFNBUCLJKE/NT532Z6ZTWPIGDDHF7MLSYPXJ2FSVF3O.woff2') format('woff2'),
+       url('//cdn.fontshare.com/wf/DYICCTZBCCH62HF7GQ6ZMCYOHJCWBHNL/7CG3OJC5WSDEHMZZL5MZI6GFNBUCLJKE/NT532Z6ZTWPIGDDHF7MLSYPXJ2FSVF3O.woff') format('woff'),
+       url('//cdn.fontshare.com/wf/DYICCTZBCCH62HF7GQ6ZMCYOHJCWBHNL/7CG3OJC5WSDEHMZZL5MZI6GFNBUCLJKE/NT532Z6ZTWPIGDDHF7MLSYPXJ2FSVF3O.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Bespoke Serif';
+  src: url('//cdn.fontshare.com/wf/LJ2MIWBZLOP5ROTPIATJWJHTCINMBNEE/S7KFQDT7WDO3EXV2IMELFT6AAOX24DTM/A3D35MFKWQ3EIKAD2QI6LGKQ7ZD2BKN5.woff2') format('woff2'),
+       url('//cdn.fontshare.com/wf/LJ2MIWBZLOP5ROTPIATJWJHTCINMBNEE/S7KFQDT7WDO3EXV2IMELFT6AAOX24DTM/A3D35MFKWQ3EIKAD2QI6LGKQ7ZD2BKN5.woff') format('woff'),
+       url('//cdn.fontshare.com/wf/LJ2MIWBZLOP5ROTPIATJWJHTCINMBNEE/S7KFQDT7WDO3EXV2IMELFT6AAOX24DTM/A3D35MFKWQ3EIKAD2QI6LGKQ7ZD2BKN5.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+  font-style: normal;
+}
+
+

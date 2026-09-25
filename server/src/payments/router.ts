@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { getAuth } from "../auth/middleware.js"
+import { authenticate } from "../auth/middleware.js"
 import { BadRequestError, handleError, UnauthorizedError } from "../lib/errors.js"
 import {
   createRazorpayOrder,
@@ -11,6 +11,10 @@ import {
 } from "./service.js"
 
 export const paymentsRouter = Router()
+
+// Populates req.auth when a valid Bearer token is present; never rejects.
+// Individual routes decide whether auth is required.
+paymentsRouter.use(authenticate)
 
 // GET /api/payments/config — returns Razorpay keyId
 paymentsRouter.get("/config", (_req, res) => {
@@ -25,7 +29,7 @@ paymentsRouter.get("/config", (_req, res) => {
 // GET /api/payments/my-enrollments — returns list of courseIds user is enrolled in
 paymentsRouter.get("/my-enrollments", async (req, res) => {
   try {
-    const { userId } = getAuth(req)
+    const userId = req.auth?.userId
     if (!userId) {
       res.status(200).json([])
       return
@@ -40,12 +44,12 @@ paymentsRouter.get("/my-enrollments", async (req, res) => {
 // POST /api/payments/create-order — creates or reuses a Razorpay order
 paymentsRouter.post("/create-order", async (req, res) => {
   try {
-    const { userId } = getAuth(req)
     const { courseIds, userEmail, userName } = req.body
+    const userId = req.auth?.userId ?? null
 
     const order = await createRazorpayOrder({
       courseIds,
-      userId: userId ?? null,
+      userId,
       userEmail: userEmail ?? null,
       userName: userName ?? null,
     })
@@ -59,7 +63,7 @@ paymentsRouter.post("/create-order", async (req, res) => {
 // POST /api/payments/verify — verifies payment signature and registers enrollment atomically
 paymentsRouter.post("/verify", async (req, res) => {
   try {
-    const { userId } = getAuth(req)
+    const userId = req.auth?.userId ?? null
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
 
     const result = await verifyRazorpayPayment({
@@ -78,7 +82,7 @@ paymentsRouter.post("/verify", async (req, res) => {
 // POST /api/payments/free-enroll — enrolls logged-in user in free course(s)
 paymentsRouter.post("/free-enroll", async (req, res) => {
   try {
-    const { userId } = getAuth(req)
+    const userId = req.auth?.userId ?? null
     if (!userId) {
       throw new UnauthorizedError("Please sign in to enroll in this course")
     }
