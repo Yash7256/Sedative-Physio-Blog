@@ -102,7 +102,7 @@ export function Home() {
                 <div className="aspect-square w-full overflow-hidden rounded-[12px] sm:rounded-[18px]">
                   <SmartImage
                     data-parallax
-                    src={`/bento${index + 1}.png`}
+                    src={`/mockup/bento${index + 1}.webp`}
                     alt={title}
                     className="h-full w-full object-cover"
                   />
@@ -129,7 +129,7 @@ export function Home() {
           </div>
           <div className="mx-auto w-full max-w-[590px]" data-reveal>
             <div className="overflow-hidden rounded-[14px] sm:rounded-[18px]">
-              <SmartImage data-parallax src="/certificate.png" alt="Course certificate" className="w-full object-cover" />
+              <SmartImage data-parallax src="/certificate.webp" alt="Course certificate" className="w-full object-cover" />
             </div>
           </div>
         </div>

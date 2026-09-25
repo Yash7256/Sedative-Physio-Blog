@@ -7,4 +7,5 @@
  * engine in `lib/animations.ts` off those attributes — there is no per-page
  * code to own.
  */
+export { useCountUp } from "./useCountUp"
 export { useHeroReveal } from "./useHeroReveal"

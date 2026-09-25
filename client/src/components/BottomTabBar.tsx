@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom"
-import { Home, Search, Clock, LayoutDashboard, User } from "lucide-react"
+import { Home, Contact, Clock, CircleUser, User } from "lucide-react"
 import { scrollToTop } from "@/lib/animations"
 
 const tabs = [
   { label: "Home", icon: Home, to: "/" },
-  { label: "Search", icon: Search, to: "/resources" },
   { label: "Resources", icon: Clock, to: "/resources" },
-  { label: "Cart", icon: LayoutDashboard, to: "/cart" },
+  { label: "Contact", icon: Contact, to: "/contact" },
+  { label: "Profile", icon: CircleUser, to: "/cart" },
   { label: "About", icon: User, to: "/about" },
 ] as const
 

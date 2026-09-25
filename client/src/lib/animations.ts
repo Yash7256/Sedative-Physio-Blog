@@ -57,34 +57,6 @@ export function initPageAnimations(): () => void {
   // ── Scoped trigger registry — avoids nuking third-party ScrollTriggers ───
   const triggers: ScrollTrigger[] = []
 
-  // ── Section scroll-fade (exit effect) ─────────────────────────────────────
-  // Only semantic <section> elements marked data-scroll-fade. Utility strips
-  // (marquee, trust bar) are excluded. Using fromTo so re-entry after
-  // back-navigation always starts from a clean state.
-  //
-  // Desktop + fine pointer only. This scrubs a blur filter across a whole
-  // section every frame, which is costly to composite on small or touch
-  // screens — and on a phone it just smears the content being scrolled.
-  // matchMedia reverts the whole context when the query stops matching, so
-  // resizing across the breakpoint swaps the effect on and off live.
-  const mm = gsap.matchMedia()
-
-  mm.add("(min-width: 1024px) and (pointer: fine)", () => {
-    document.querySelectorAll<HTMLElement>("[data-scroll-fade]").forEach((section) => {
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "bottom 20%",
-        scrub: 0.5,
-        animation: gsap.fromTo(
-          section,
-          { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
-          { opacity: 0.35, y: -60, scale: 0.98, filter: "blur(6px)", ease: "none" }
-        ),
-      })
-    })
-  })
-
   // ── Image parallax ────────────────────────────────────────────────────────
   // All images with data-parallax attribute
   const parallaxImages = document.querySelectorAll<HTMLElement>("[data-parallax]")
@@ -122,7 +94,6 @@ export function initPageAnimations(): () => void {
   // ── Cleanup ───────────────────────────────────────────────────────────────
   return () => {
     activeLenis = null
-    mm.revert()
     triggers.forEach((st) => st.kill())
     gsap.ticker.remove(lenisRaf)
     lenis.destroy()

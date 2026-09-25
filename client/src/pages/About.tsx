@@ -1,31 +1,10 @@
+import { useEffect, useRef } from "react"
 import { ArrowRight } from "lucide-react"
 import { Link } from "react-router-dom"
+import gsap from "gsap"
+import { useCountUp } from "../components/about/animations"
 import { SmartImage } from "../components/SmartImage"
-import { useHeroReveal } from "../components/about/animations"
 
-// ── Figma assets ─────────────────────────────────────────────────────────────
-const imgHeroMockup =
-  "https://www.figma.com/api/mcp/asset/426166d7-8d55-4186-9319-56b89d6f92d8.png"
-const imgFounder1 =
-  "https://www.figma.com/api/mcp/asset/36175c5d-cf54-4ac2-a51a-6c024f49c80b.png"
-const imgFounder2 =
-  "https://www.figma.com/api/mcp/asset/00633f36-e45d-4d1f-a6fa-dc0810ad728a.png"
-
-const imgOffer1 = "https://www.figma.com/api/mcp/asset/eb080f05-efae-47b0-adc0-286813b5cf5a.png"
-const imgOffer2 = "https://www.figma.com/api/mcp/asset/2454a5c0-cee6-478f-a68a-7bbb396d61a9.png"
-const imgOffer3 = "https://www.figma.com/api/mcp/asset/0c823db6-7056-40b8-a95d-1c26ae898386.png"
-const imgOffer4 = "https://www.figma.com/api/mcp/asset/39b524e7-13e7-4638-9504-98d75f0c0609.png"
-const imgOffer5 = "https://www.figma.com/api/mcp/asset/a05bf17d-17bc-4179-8d4f-e2e812051687.png"
-const imgOffer6 = "https://www.figma.com/api/mcp/asset/1c4403c0-5715-4d28-a27a-1e295227c5e5.png"
-
-const imgPartner1 = "https://www.figma.com/api/mcp/asset/0bbb420f-7337-4ce5-8e8c-e413fccd04f4.svg"
-const imgPartner2 = "https://www.figma.com/api/mcp/asset/b7dcd65b-a440-42f4-8125-e1e34a27ef1e.svg"
-const imgPartner3 = "https://www.figma.com/api/mcp/asset/83649c82-ab7a-45ac-81b7-f227677ddc54.svg"
-const imgPartner4 = "https://www.figma.com/api/mcp/asset/5a2caf4e-1fb5-4321-b8c8-e592c822f11a.svg"
-const imgPartner5 = "https://www.figma.com/api/mcp/asset/fc417056-1bd8-456b-9532-f0c1adc53055.svg"
-const imgPartner6 = "https://www.figma.com/api/mcp/asset/78f52518-8b49-4969-9c8f-49089bfe2ce1.svg"
-const imgPartner7 = "https://www.figma.com/api/mcp/asset/98e69034-ce26-4eab-8a8e-440abb5fc769.svg"
-const imgPartner8 = "https://www.figma.com/api/mcp/asset/46ec3493-bc40-4f28-8d32-2e6e4019ef2b.svg"
 
 const stats = [
   { value: "600+", label: "Students Enrolled" },
@@ -34,21 +13,31 @@ const stats = [
 ]
 
 const offerItems = [
-  { title: "Courses", detail: "100+ courses", badge: "NEW", img: imgOffer1 },
-  { title: "3D Anatomy Models", detail: "100+ Models", badge: "BESTSELLER", img: imgOffer2 },
-  { title: "Notes", detail: "Handwritten Notes", badge: "BESTSELLER", img: imgOffer3 },
-  { title: "AI Assistant", detail: "Clear Your Doubts 24/7", badge: "NEW", img: imgOffer4 },
-  { title: "Journal", detail: "100+ Journals", badge: "BESTSELLER", img: imgOffer5 },
-  { title: "Podcast", detail: "World Class Physiotherapists", badge: "POPULAR", img: imgOffer6 },
+  { title: "Courses", detail: "100+ courses", img: "/mockup/bento1.webp" },
+  { title: "3D Anatomy Models", detail: "100+ Models", img: "/mockup/bento2.webp" },
+  { title: "Notes", detail: "Handwritten Notes", img: "/mockup/bento3.webp" },
+  { title: "AI Assistant", detail: "Clear Your Doubts 24/7", img: "/mockup/bento4.webp" },
+  { title: "Journal", detail: "100+ Journals", img: "/mockup/bento5.webp" },
+  { title: "Podcast", detail: "World Class Physiotherapists", img: "/mockup/bento6.webp" },
 ]
 
-const partners = [
-  imgPartner1, imgPartner2, imgPartner3, imgPartner4,
-  imgPartner5, imgPartner6, imgPartner7, imgPartner8,
-]
 
 export function About() {
-  const heroRef = useHeroReveal()
+  const heroRef = useRef<HTMLDivElement>(null)
+  const statsRef = useCountUp()
+
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        el.querySelectorAll("[data-hero-fade]"),
+        { y: 24, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.85, stagger: 0.09, ease: "power3.out", delay: 0.1 },
+      )
+    }, el)
+    return () => ctx.revert()
+  }, [])
 
   return (
     <div className="about-page overflow-hidden bg-[#f6f6f4] text-[#0b0b0c]">
@@ -62,13 +51,13 @@ export function About() {
         <div className="mx-auto max-w-[1280px]">
           <h1
             data-hero-fade
-            className="text-[clamp(2.4rem,5.5vw,5rem)] font-bold leading-[0.95] tracking-[-0.04em]"
+            className="text-[clamp(2rem,7vw,4.35rem)] font-bold leading-[1.01] tracking-[-.04em]"
           >
             About Us
           </h1>
           <p
             data-hero-fade
-            className="mt-4 max-w-[560px] text-base leading-[1.5] text-[#686a6b] sm:text-lg"
+            className="mt-4 max-w-[320px] text-[10px] leading-[1.45] text-[#686a6b] sm:mt-6 sm:max-w-[555px] sm:text-base md:text-[18px]"
           >
             We bring courses, clinical resources, 3D anatomy models, journals, podcasts, and AI-powered
             learning together in one place.
@@ -78,8 +67,10 @@ export function About() {
         <div data-hero-fade className="mx-auto mt-8 max-w-[1280px] overflow-hidden rounded-[18px]">
           <SmartImage
             data-parallax
-            src={imgHeroMockup}
+            src="/mockup/about-head.svg"
             alt="Sedative Physio platform preview"
+            loading="eager"
+            fetchPriority="high"
             className="h-[clamp(220px,36vw,520px)] w-full object-cover"
           />
         </div>
@@ -91,7 +82,7 @@ export function About() {
 
           <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
             <div data-reveal>
-              <h2 className="text-[clamp(2rem,4.5vw,4rem)] font-bold leading-[0.97] tracking-[-0.04em]">
+              <h2 className="text-[clamp(1.75rem,6vw,4.1rem)] font-bold leading-none tracking-[-.04em]">
                 Our Mission
               </h2>
             </div>
@@ -106,10 +97,13 @@ export function About() {
           <div className="my-10 h-px w-full bg-black/10" />
 
           {/* Stats */}
-          <div className="grid gap-8 sm:grid-cols-3" data-reveal>
+          <div ref={statsRef} className="grid grid-cols-3 gap-4 sm:gap-8" data-reveal>
             {stats.map(({ value, label }) => (
               <div key={label} className="text-center">
-                <p className="font-display text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-none tracking-[-0.04em]">
+                <p
+                  data-count={value}
+                  className="font-display text-[clamp(1.5rem,3.5vw,3rem)] font-bold leading-none tracking-[-0.04em]"
+                >
                   {value}
                 </p>
                 <p className="mt-1.5 text-sm text-[#686a6b] sm:text-base">{label}</p>
@@ -126,7 +120,7 @@ export function About() {
               </p>
             </div>
             <div data-reveal className="order-1 lg:order-2">
-              <h2 className="text-[clamp(2rem,4.5vw,4rem)] font-bold leading-[0.97] tracking-[-0.04em] lg:text-right">
+              <h2 className="text-[clamp(1.75rem,6vw,4.1rem)] font-bold leading-none tracking-[-.04em] lg:text-right">
                 Our Mission
               </h2>
             </div>
@@ -134,14 +128,14 @@ export function About() {
         </div>
       </section>
 
-      {/* ── Meet the Founders ── */}
+      {/* ── Meet the Team ── */}
       <section data-scroll-fade className="px-5 py-14 sm:px-10 sm:py-20 lg:px-[52px]">
         <div className="mx-auto max-w-[1280px]">
           <div data-reveal>
-            <h2 className="text-[clamp(2rem,4.5vw,4rem)] font-bold leading-[0.97] tracking-[-0.04em]">
-              Meet the Founders
+            <h2 className="text-[clamp(1.75rem,6vw,4.1rem)] font-bold leading-none tracking-[-.04em]">
+              Meet the Team
             </h2>
-            <p className="mt-2 text-base text-[#686a6b] sm:text-lg">
+            <p className="mt-2 text-sm leading-[1.45] text-[#686a6b] sm:text-lg">
               The People Behind Sedative Physio
             </p>
           </div>
@@ -149,39 +143,35 @@ export function About() {
           {/* Founder 1 */}
           <div
             data-reveal
-            className="about-founder-card mt-10 overflow-hidden rounded-[18px] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)]"
+            className="about-founder-card mt-10 overflow-hidden rounded-[16px] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)] sm:rounded-[22px]"
           >
-            <div className="grid lg:grid-cols-[.58fr_.42fr]">
-              <div className="relative bg-[#0b0b0c] p-8 text-[#ececec] sm:p-11">
-                <h3 className="text-[clamp(1.5rem,2.2vw,2.5rem)] font-black leading-[1.05] tracking-[-0.03em]">
+            <div className="grid grid-cols-2 lg:grid-cols-[.58fr_.42fr]">
+              <div className="relative bg-[#0b0b0c] p-3 text-[#ececec] sm:p-11">
+                <h3 className="text-[clamp(.75rem,3.5vw,2.8rem)] font-black leading-[1.1] tracking-[-.03em]">
                   Dr. Akshay Kumar PT
                 </h3>
-                <p className="mt-1.5 text-[#bcbcbc]">Physiotherapist &amp; Educator</p>
-                <p className="mt-1 text-sm text-[#888]">
-                  BPT · IIHERCOMT Certified · NDT Certified · ACLS · PALS · BLS · WHO Certified
+                <p className="mt-0.5 text-[9px] text-[#bcbcbc] sm:mt-2 sm:text-sm">Physiotherapist &amp; Educator</p>
+                <p className="mt-0.5 hidden text-[9px] text-[#888] sm:mt-1 sm:block sm:text-sm">
+                  BPT · NDT Certified · ACLS · PALS · BLS
                 </p>
-                <p className="mt-6 max-w-[480px] text-sm leading-[1.7] text-[#b8b8b8] sm:text-base">
-                  With over 3 years of clinical experience spanning musculoskeletal, neurological, and sports
-                  physiotherapy, Dr. Akshay Kumar founded Sedative Physio to bridge the gap between clinical
-                  practice and accessible education. Based in Patna, Bihar, he currently runs Moksh
-                  Physiotherapy clinic alongside building courses that have helped hundreds of BPT and MPT
-                  students.
+                <p className="mt-2 text-[9px] leading-[1.5] text-[#b8b8b8] sm:mt-6 sm:text-base">
+                  A qualified BPT physiotherapist and educator with 4+ years of experience in physiotherapy education and clinical practice. He has successfully mentored and tutored 500+ physiotherapy students and professionals.
                 </p>
-                <div className="mt-8 grid grid-cols-3 gap-4 border-t border-white/10 pt-7">
+                <div className="mt-3 grid grid-cols-3 gap-1 border-t border-white/10 pt-2 sm:mt-8 sm:gap-4 sm:pt-7">
                   {[
-                    { value: "3+ Years", label: "Clinical Experience" },
-                    { value: "3 yrs 7 mo", label: "Teaching" },
-                    { value: "5+", label: "Certifications" },
+                    { value: "3+", label: "Years Exp." },
+                    { value: "3.5yr", label: "Teaching" },
+                    { value: "5+", label: "Certs" },
                   ].map(({ value, label }) => (
                     <div key={label}>
-                      <p className="text-lg font-bold sm:text-xl">{value}</p>
-                      <p className="mt-0.5 text-xs text-[#888]">{label}</p>
+                      <p className="text-xs font-bold sm:text-xl">{value}</p>
+                      <p className="mt-0.5 text-[8px] text-[#888] sm:text-xs">{label}</p>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="relative min-h-[280px] overflow-hidden bg-[#1a1a1a] lg:min-h-0">
-                <SmartImage src={imgFounder1} alt="Dr. Akshay Kumar" className="h-full w-full object-cover object-top" />
+              <div className="relative min-h-[180px] overflow-hidden bg-[#1a1a1a] sm:min-h-[340px]">
+                <SmartImage src="/team/akshay.svg" alt="Dr. Akshay Kumar" className="h-full w-full object-cover object-top" />
               </div>
             </div>
           </div>
@@ -189,56 +179,93 @@ export function About() {
           {/* Founder 2 */}
           <div
             data-reveal
-            className="about-founder-card mt-5 overflow-hidden rounded-[18px] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)]"
+            className="about-founder-card mt-5 overflow-hidden rounded-[16px] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)] sm:rounded-[22px]"
           >
-            <div className="grid lg:grid-cols-[.42fr_.58fr]">
-              <div className="relative min-h-[280px] overflow-hidden bg-[#1a1a1a] lg:min-h-0">
-                <SmartImage src={imgFounder2} alt="Anushka Kumari" className="h-full w-full object-cover object-top" />
+            <div className="grid grid-cols-2 lg:grid-cols-[.42fr_.58fr]">
+              <div className="relative min-h-[180px] overflow-hidden bg-[#1a1a1a] sm:min-h-[340px]">
+                <SmartImage src="/team/anushka.svg" alt="Anushka Kumari" className="h-full w-full object-cover object-top" />
               </div>
-              <div className="relative bg-[#0b0b0c] p-8 text-[#ececec] sm:p-11">
-                <h3 className="text-[clamp(1.5rem,2.2vw,2.5rem)] font-black leading-[1.05] tracking-[-0.03em]">
+              <div className="relative bg-[#0b0b0c] p-3 text-[#ececec] sm:p-11">
+                <h3 className="text-[clamp(.75rem,3.5vw,2.8rem)] font-black leading-[1.1] tracking-[-.03em]">
                   Anushka Kumari
                 </h3>
-                <p className="mt-1.5 text-[#bcbcbc]">Physiotherapist</p>
-                <p className="mt-1 text-sm text-[#888]">
-                  BPT (2020–2024) · Kinesio Taping · Cupping Therapy · Manual Therapy · IASTM Certified
+                <p className="mt-0.5 text-[9px] text-[#bcbcbc] sm:mt-2 sm:text-sm">Physiotherapist</p>
+                <p className="mt-0.5 hidden text-[9px] text-[#888] sm:mt-1 sm:block sm:text-sm">
+                  BPT (2020–2024) · Kinesio Taping · Cupping Therapy · IASTM Certified
                 </p>
-                <p className="mt-6 max-w-[480px] text-sm leading-[1.7] text-[#b8b8b8] sm:text-base">
-                  A compassionate, evidence-based physiotherapist focused on effective treatment and patient
-                  education, with strong communication skills and a patient-first approach.
+                <p className="mt-2 text-[9px] leading-[1.5] text-[#b8b8b8] sm:mt-6 sm:text-base">
+                  A compassionate, evidence-based physiotherapist focused on effective treatment and patient education, with strong communication skills and a patient-first approach.
                 </p>
-                <div className="mt-8 grid grid-cols-3 gap-4 border-t border-white/10 pt-7">
+                <div className="mt-3 grid grid-cols-3 gap-1 border-t border-white/10 pt-2 sm:mt-8 sm:gap-4 sm:pt-7">
                   {[
-                    { value: "2 Years", label: "Clinical Experience" },
-                    { value: "2020–2024", label: "BPT Education" },
-                    { value: "4", label: "Certifications" },
+                    { value: "2yr", label: "Exp." },
+                    { value: "2024", label: "BPT" },
+                    { value: "4+", label: "Certs" },
                   ].map(({ value, label }) => (
                     <div key={label}>
-                      <p className="text-lg font-bold sm:text-xl">{value}</p>
-                      <p className="mt-0.5 text-xs text-[#888]">{label}</p>
+                      <p className="text-xs font-bold sm:text-xl">{value}</p>
+                      <p className="mt-0.5 text-[8px] text-[#888] sm:text-xs">{label}</p>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Team Member */}
+          <div
+            data-reveal
+            className="about-founder-card mt-5 overflow-hidden rounded-[16px] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.07)] sm:rounded-[22px]"
+          >
+            <div className="grid grid-cols-2 lg:grid-cols-[.58fr_.42fr]">
+              <div className="relative bg-[#0b0b0c] p-3 text-[#ececec] sm:p-11">
+                <h3 className="text-[clamp(.75rem,3.5vw,2.8rem)] font-black leading-[1.1] tracking-[-.03em]">
+                  Dr. Roopali Bhowal PT
+                </h3>
+                <p className="mt-0.5 text-[9px] text-[#bcbcbc] sm:mt-2 sm:text-sm">Physiotherapist</p>
+                <p className="mt-0.5 hidden text-[9px] text-[#888] sm:mt-1 sm:block sm:text-sm">
+                  MPT (Neurology) · Asst. Professor, IIHER
+                </p>
+                <p className="mt-2 text-[9px] leading-[1.5] text-[#b8b8b8] sm:mt-6 sm:text-base">
+                  An experienced physiotherapist and academician with 10+ years of clinical and academic experience, specializing in Neurological Physiotherapy.
+                </p>
+                <div className="mt-3 grid grid-cols-3 gap-1 border-t border-white/10 pt-2 sm:mt-8 sm:gap-4 sm:pt-7">
+                  {[
+                    { value: "10+", label: "Yrs Exp." },
+                    { value: "MPT", label: "Neuro" },
+                    { value: "4+", label: "Certs" },
+                  ].map(({ value, label }) => (
+                    <div key={label}>
+                      <p className="text-xs font-bold sm:text-xl">{value}</p>
+                      <p className="mt-0.5 text-[8px] text-[#888] sm:text-xs">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="relative min-h-[180px] overflow-hidden bg-[#1a1a1a] sm:min-h-[340px]">
+                <SmartImage src="/team/roopali.jpg" alt="Dr. Roopali Bhowal PT" className="h-full w-full object-cover object-top" />
+              </div>
+            </div>
+          </div>
         </div>
+
+
       </section>
 
       {/* ── What We Offer ── */}
       <section data-scroll-fade className="px-5 py-14 sm:px-10 sm:py-20 lg:px-[52px]">
         <div className="mx-auto max-w-[1280px]">
           <div data-reveal>
-            <h2 className="text-[clamp(2rem,4.5vw,4rem)] font-bold leading-[0.97] tracking-[-0.04em]">
+            <h2 className="text-[clamp(1.75rem,6vw,4.1rem)] font-bold leading-none tracking-[-.04em]">
               What We Offer
             </h2>
-            <p className="mt-2 text-base text-[#686a6b] sm:text-lg">
+            <p className="mt-2 text-sm leading-[1.45] text-[#686a6b] sm:text-lg">
               Everything you need to learn physiotherapy, in one place.
             </p>
           </div>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {offerItems.map(({ title, detail, badge, img }) => (
+          <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-6 sm:mt-10 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">
+            {offerItems.map(({ title, detail, img }) => (
               <article key={title} data-reveal className="group min-w-0">
                 <div className="relative aspect-square overflow-hidden rounded-[16px] border border-black/[0.06]">
                   <SmartImage
@@ -247,39 +274,10 @@ export function About() {
                     alt={title}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                   />
-                  <span className="absolute right-2.5 top-2.5 rounded-full border border-black/[0.08] bg-[#ececec] px-2.5 py-0.5 text-[9px] font-semibold tracking-wide text-[#0b0b0c]">
-                    {badge}
-                  </span>
                 </div>
-                <h3 className="mt-2.5 text-base font-semibold tracking-[-0.025em]">{title}</h3>
-                <p className="mt-0.5 text-sm text-[#686a6b]">{detail}</p>
+                <h3 className="mt-2 text-sm font-medium tracking-[-.03em] sm:mt-4 sm:text-xl">{title}</h3>
+                <p className="mt-0.5 text-xs text-[#686a6b] sm:mt-1 sm:text-base">{detail}</p>
               </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Trusted Partners ── */}
-      <section data-scroll-fade className="border-t border-black/10 px-5 py-14 sm:px-10 sm:py-20 lg:px-[52px]">
-        <div className="mx-auto max-w-[1280px]">
-          <div data-reveal>
-            <h2 className="text-[clamp(2rem,4.5vw,4rem)] font-bold leading-[0.97] tracking-[-0.04em]">
-              Trusted Partners
-            </h2>
-            <p className="mt-2 max-w-[620px] text-base text-[#686a6b] sm:text-lg">
-              Students from universities and institutions across India use Sedative Physio to strengthen their
-              physiotherapy knowledge.
-            </p>
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4" data-reveal>
-            {partners.map((src, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-center rounded-[10px] bg-[#d8d8d7] px-6 py-8"
-              >
-                <SmartImage src={src} alt={`Partner ${i + 1}`} className="h-7 w-auto object-contain opacity-70" />
-              </div>
             ))}
           </div>
         </div>
@@ -288,7 +286,7 @@ export function About() {
       {/* ── CTA ── */}
       <section data-scroll-fade className="px-5 py-16 sm:px-10 sm:py-24 lg:px-[52px]">
         <div className="mx-auto max-w-[1280px] text-center" data-reveal>
-          <p className="text-xs uppercase tracking-[0.12em] text-[#686a6b]">Ready to Learn Better?</p>
+          <p className="text-[10px] uppercase leading-[1.2] tracking-[.08em] text-[#686a6b] sm:text-base">Ready to Learn Better?</p>
           <h2 className="mx-auto mt-4 max-w-[580px] text-[clamp(1.8rem,3.8vw,3.4rem)] font-bold leading-[1.06] tracking-[-0.04em]">
             Start building stronger clinical knowledge with Sedative Physio
           </h2>
