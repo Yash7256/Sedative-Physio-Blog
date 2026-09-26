@@ -181,6 +181,16 @@
 
 @media (prefers-reduced-motion: reduce) { .site-header { transition: opacity 120ms linear; } .site-header--hidden { transform: translateY(0); } }
 
+/* FAQ "See more" reveal: questions that were hidden rise into place in sequence
+   so the extra rows read as arriving, not blinking on. Stagger is supplied
+   per-item as an inline animation-delay. */
+@keyframes contact-faq-reveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.contact-page .faq-reveal { animation: contact-faq-reveal 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) { .contact-page .faq-reveal { animation: none; } }
+
 .dark .home-page { background: var(--canvas) !important; color: var(--ink) !important; }
 .dark .home-page .text-\[\#686a6b\], .dark .home-page .text-\[\#3e3f40\] { color: var(--slate) !important; }
 .dark .home-page .text-\[\#0b0b0c\] { color: var(--ink) !important; }
