@@ -1,6 +1,6 @@
 import { Router } from "express"
 import multer from "multer"
-import { requireAuth } from "../auth/middleware.js"
+import { requireAuth } from "../auth/middleware/require-auth.js"
 import { listModels, uploadModel, deleteModel, syncModels } from "./service.js"
 import { handleError } from "../lib/errors.js"
 import { cacheControl } from "../lib/cache.js"

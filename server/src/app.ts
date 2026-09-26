@@ -2,6 +2,7 @@ import express from "express"
 import cors from "cors"
 import helmet from "helmet"
 import cookieParser from "cookie-parser"
+import { clerkMiddleware } from "@clerk/express"
 
 import { authRouter } from "./auth/router.js"
 import { notesRouter } from "./notes/router.js"
@@ -13,9 +14,12 @@ import { imagesRouter } from "./images/router.js"
 import { healthRouter } from "./routes/health.js"
 
 /**
- * Allowed browser origins for CORS (the refresh token is an HttpOnly cookie,
- * so credentials must be explicit). Comma-separated env var, e.g.
+ * Allowed browser origins for CORS. Comma-separated env var, e.g.
  *   CORS_ALLOWED_ORIGINS=https://sedativephysio.example,http://localhost:5173
+ *
+ * `credentials: true` is still required: Clerk's session cookies are HttpOnly
+ * and must be sent cross-origin for `getToken()` and SSR session checks to
+ * work.
  */
 const ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS ?? "http://localhost:5173")
   .split(",")
@@ -47,7 +51,17 @@ export function createApp() {
   } }))
   app.use(cookieParser())
 
+  // Health is mounted before Clerk on purpose: if the Clerk keys are missing or
+  // wrong, every authenticated route breaks, and a health check that fails for
+  // the same reason tells you nothing about whether the app is otherwise up.
   app.use("/api/health", healthRouter)
+
+  // Clerk verifies the session token (header or `__session` cookie) and attaches
+  // the result to `req.auth` on every request. It does not reject anonymous
+  // callers — that distinction is drawn later, by `requireAuth` for protected
+  // routes and by `req.auth?.userId` checks for optional-auth routes.
+  app.use(clerkMiddleware())
+
   app.use("/api/auth", authRouter)
   app.use("/api/notes", notesRouter)
   app.use("/api/models", modelsRouter)

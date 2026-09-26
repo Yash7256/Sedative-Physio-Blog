@@ -20,104 +20,86 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
-  _avg: UserAvgAggregateOutputType | null
-  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
 
-export type UserAvgAggregateOutputType = {
-  failedLoginCount: number | null
-}
-
-export type UserSumAggregateOutputType = {
-  failedLoginCount: number | null
-}
-
 export type UserMinAggregateOutputType = {
   id: string | null
+  clerkUserId: string | null
   email: string | null
-  passwordHash: string | null
   emailVerifiedAt: Date | null
+  fullName: string | null
+  collegeName: string | null
   role: string | null
-  failedLoginCount: number | null
-  lockedUntil: Date | null
-  lastLoginAt: Date | null
+  deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type UserMaxAggregateOutputType = {
   id: string | null
+  clerkUserId: string | null
   email: string | null
-  passwordHash: string | null
   emailVerifiedAt: Date | null
+  fullName: string | null
+  collegeName: string | null
   role: string | null
-  failedLoginCount: number | null
-  lockedUntil: Date | null
-  lastLoginAt: Date | null
+  deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type UserCountAggregateOutputType = {
   id: number
+  clerkUserId: number
   email: number
-  passwordHash: number
   emailVerifiedAt: number
+  fullName: number
+  collegeName: number
   role: number
-  failedLoginCount: number
-  lockedUntil: number
-  lastLoginAt: number
+  deletedAt: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
 
-export type UserAvgAggregateInputType = {
-  failedLoginCount?: true
-}
-
-export type UserSumAggregateInputType = {
-  failedLoginCount?: true
-}
-
 export type UserMinAggregateInputType = {
   id?: true
+  clerkUserId?: true
   email?: true
-  passwordHash?: true
   emailVerifiedAt?: true
+  fullName?: true
+  collegeName?: true
   role?: true
-  failedLoginCount?: true
-  lockedUntil?: true
-  lastLoginAt?: true
+  deletedAt?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type UserMaxAggregateInputType = {
   id?: true
+  clerkUserId?: true
   email?: true
-  passwordHash?: true
   emailVerifiedAt?: true
+  fullName?: true
+  collegeName?: true
   role?: true
-  failedLoginCount?: true
-  lockedUntil?: true
-  lastLoginAt?: true
+  deletedAt?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type UserCountAggregateInputType = {
   id?: true
+  clerkUserId?: true
   email?: true
-  passwordHash?: true
   emailVerifiedAt?: true
+  fullName?: true
+  collegeName?: true
   role?: true
-  failedLoginCount?: true
-  lockedUntil?: true
-  lastLoginAt?: true
+  deletedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -161,18 +143,6 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
-   * Select which fields to average
-  **/
-  _avg?: UserAvgAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
-   * Select which fields to sum
-  **/
-  _sum?: UserSumAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -203,26 +173,22 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
-  _avg?: UserAvgAggregateInputType
-  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
 
 export type UserGroupByOutputType = {
   id: string
-  email: string
-  passwordHash: string
+  clerkUserId: string | null
+  email: string | null
   emailVerifiedAt: Date | null
+  fullName: string | null
+  collegeName: string | null
   role: string
-  failedLoginCount: number
-  lockedUntil: Date | null
-  lastLoginAt: Date | null
+  deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
-  _avg: UserAvgAggregateOutputType | null
-  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -247,77 +213,69 @@ export type UserWhereInput = {
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   id?: Prisma.StringFilter<"User"> | string
-  email?: Prisma.StringFilter<"User"> | string
-  passwordHash?: Prisma.StringFilter<"User"> | string
+  clerkUserId?: Prisma.StringNullableFilter<"User"> | string | null
+  email?: Prisma.StringNullableFilter<"User"> | string | null
   emailVerifiedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  fullName?: Prisma.StringNullableFilter<"User"> | string | null
+  collegeName?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.StringFilter<"User"> | string
-  failedLoginCount?: Prisma.IntFilter<"User"> | number
-  lockedUntil?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
-  lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   orders?: Prisma.OrderListRelationFilter
   enrollments?: Prisma.EnrollmentListRelationFilter
-  refreshTokens?: Prisma.RefreshTokenListRelationFilter
-  verificationTokens?: Prisma.VerificationTokenListRelationFilter
   authAuditLogs?: Prisma.AuthAuditLogListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  email?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
+  clerkUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  fullName?: Prisma.SortOrderInput | Prisma.SortOrder
+  collegeName?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
-  failedLoginCount?: Prisma.SortOrder
-  lockedUntil?: Prisma.SortOrderInput | Prisma.SortOrder
-  lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   orders?: Prisma.OrderOrderByRelationAggregateInput
   enrollments?: Prisma.EnrollmentOrderByRelationAggregateInput
-  refreshTokens?: Prisma.RefreshTokenOrderByRelationAggregateInput
-  verificationTokens?: Prisma.VerificationTokenOrderByRelationAggregateInput
   authAuditLogs?: Prisma.AuthAuditLogOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  clerkUserId?: string
   email?: string
   AND?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
-  passwordHash?: Prisma.StringFilter<"User"> | string
   emailVerifiedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  fullName?: Prisma.StringNullableFilter<"User"> | string | null
+  collegeName?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.StringFilter<"User"> | string
-  failedLoginCount?: Prisma.IntFilter<"User"> | number
-  lockedUntil?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
-  lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   orders?: Prisma.OrderListRelationFilter
   enrollments?: Prisma.EnrollmentListRelationFilter
-  refreshTokens?: Prisma.RefreshTokenListRelationFilter
-  verificationTokens?: Prisma.VerificationTokenListRelationFilter
   authAuditLogs?: Prisma.AuthAuditLogListRelationFilter
-}, "id" | "email">
+}, "id" | "clerkUserId" | "email">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  email?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
+  clerkUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  fullName?: Prisma.SortOrderInput | Prisma.SortOrder
+  collegeName?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
-  failedLoginCount?: Prisma.SortOrder
-  lockedUntil?: Prisma.SortOrderInput | Prisma.SortOrder
-  lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
-  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
-  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -325,178 +283,157 @@ export type UserScalarWhereWithAggregatesInput = {
   OR?: Prisma.UserScalarWhereWithAggregatesInput[]
   NOT?: Prisma.UserScalarWhereWithAggregatesInput | Prisma.UserScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"User"> | string
-  email?: Prisma.StringWithAggregatesFilter<"User"> | string
-  passwordHash?: Prisma.StringWithAggregatesFilter<"User"> | string
+  clerkUserId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  email?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   emailVerifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  fullName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  collegeName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   role?: Prisma.StringWithAggregatesFilter<"User"> | string
-  failedLoginCount?: Prisma.IntWithAggregatesFilter<"User"> | number
-  lockedUntil?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
-  lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
 
 export type UserCreateInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenCreateNestedManyWithoutUserInput
   authAuditLogs?: Prisma.AuthAuditLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedCreateNestedManyWithoutUserInput
   authAuditLogs?: Prisma.AuthAuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUpdateManyWithoutUserNestedInput
   authAuditLogs?: Prisma.AuthAuditLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedUpdateManyWithoutUserNestedInput
   authAuditLogs?: Prisma.AuthAuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type UserUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  clerkUserId?: Prisma.SortOrder
   email?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrder
+  fullName?: Prisma.SortOrder
+  collegeName?: Prisma.SortOrder
   role?: Prisma.SortOrder
-  failedLoginCount?: Prisma.SortOrder
-  lockedUntil?: Prisma.SortOrder
-  lastLoginAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
-export type UserAvgOrderByAggregateInput = {
-  failedLoginCount?: Prisma.SortOrder
-}
-
 export type UserMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  clerkUserId?: Prisma.SortOrder
   email?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrder
+  fullName?: Prisma.SortOrder
+  collegeName?: Prisma.SortOrder
   role?: Prisma.SortOrder
-  failedLoginCount?: Prisma.SortOrder
-  lockedUntil?: Prisma.SortOrder
-  lastLoginAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  clerkUserId?: Prisma.SortOrder
   email?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrder
+  fullName?: Prisma.SortOrder
+  collegeName?: Prisma.SortOrder
   role?: Prisma.SortOrder
-  failedLoginCount?: Prisma.SortOrder
-  lockedUntil?: Prisma.SortOrder
-  lastLoginAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-}
-
-export type UserSumOrderByAggregateInput = {
-  failedLoginCount?: Prisma.SortOrder
-}
-
-export type UserScalarRelationFilter = {
-  is?: Prisma.UserWhereInput
-  isNot?: Prisma.UserWhereInput
 }
 
 export type UserNullableScalarRelationFilter = {
@@ -504,52 +441,25 @@ export type UserNullableScalarRelationFilter = {
   isNot?: Prisma.UserWhereInput | null
 }
 
+export type UserScalarRelationFilter = {
+  is?: Prisma.UserWhereInput
+  isNot?: Prisma.UserWhereInput
+}
+
 export type StringFieldUpdateOperationsInput = {
   set?: string
+}
+
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
 }
 
 export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
-}
-
-export type UserCreateNestedOneWithoutRefreshTokensInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokensInput, Prisma.UserUncheckedCreateWithoutRefreshTokensInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRefreshTokensInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneRequiredWithoutRefreshTokensNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokensInput, Prisma.UserUncheckedCreateWithoutRefreshTokensInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRefreshTokensInput
-  upsert?: Prisma.UserUpsertWithoutRefreshTokensInput
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRefreshTokensInput, Prisma.UserUpdateWithoutRefreshTokensInput>, Prisma.UserUncheckedUpdateWithoutRefreshTokensInput>
-}
-
-export type UserCreateNestedOneWithoutVerificationTokensInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutVerificationTokensInput, Prisma.UserUncheckedCreateWithoutVerificationTokensInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutVerificationTokensInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneRequiredWithoutVerificationTokensNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutVerificationTokensInput, Prisma.UserUncheckedCreateWithoutVerificationTokensInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutVerificationTokensInput
-  upsert?: Prisma.UserUpsertWithoutVerificationTokensInput
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutVerificationTokensInput, Prisma.UserUpdateWithoutVerificationTokensInput>, Prisma.UserUncheckedUpdateWithoutVerificationTokensInput>
 }
 
 export type UserCreateNestedOneWithoutAuthAuditLogsInput = {
@@ -598,206 +508,34 @@ export type UserUpdateOneRequiredWithoutEnrollmentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutEnrollmentsInput, Prisma.UserUpdateWithoutEnrollmentsInput>, Prisma.UserUncheckedUpdateWithoutEnrollmentsInput>
 }
 
-export type UserCreateWithoutRefreshTokensInput = {
-  id?: string
-  email: string
-  passwordHash: string
-  emailVerifiedAt?: Date | string | null
-  role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
-  enrollments?: Prisma.EnrollmentCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenCreateNestedManyWithoutUserInput
-  authAuditLogs?: Prisma.AuthAuditLogCreateNestedManyWithoutUserInput
-}
-
-export type UserUncheckedCreateWithoutRefreshTokensInput = {
-  id?: string
-  email: string
-  passwordHash: string
-  emailVerifiedAt?: Date | string | null
-  role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
-  enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedCreateNestedManyWithoutUserInput
-  authAuditLogs?: Prisma.AuthAuditLogUncheckedCreateNestedManyWithoutUserInput
-}
-
-export type UserCreateOrConnectWithoutRefreshTokensInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokensInput, Prisma.UserUncheckedCreateWithoutRefreshTokensInput>
-}
-
-export type UserUpsertWithoutRefreshTokensInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutRefreshTokensInput, Prisma.UserUncheckedUpdateWithoutRefreshTokensInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokensInput, Prisma.UserUncheckedCreateWithoutRefreshTokensInput>
-  where?: Prisma.UserWhereInput
-}
-
-export type UserUpdateToOneWithWhereWithoutRefreshTokensInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutRefreshTokensInput, Prisma.UserUncheckedUpdateWithoutRefreshTokensInput>
-}
-
-export type UserUpdateWithoutRefreshTokensInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
-  enrollments?: Prisma.EnrollmentUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUpdateManyWithoutUserNestedInput
-  authAuditLogs?: Prisma.AuthAuditLogUpdateManyWithoutUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutRefreshTokensInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
-  enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedUpdateManyWithoutUserNestedInput
-  authAuditLogs?: Prisma.AuthAuditLogUncheckedUpdateManyWithoutUserNestedInput
-}
-
-export type UserCreateWithoutVerificationTokensInput = {
-  id?: string
-  email: string
-  passwordHash: string
-  emailVerifiedAt?: Date | string | null
-  role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
-  enrollments?: Prisma.EnrollmentCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
-  authAuditLogs?: Prisma.AuthAuditLogCreateNestedManyWithoutUserInput
-}
-
-export type UserUncheckedCreateWithoutVerificationTokensInput = {
-  id?: string
-  email: string
-  passwordHash: string
-  emailVerifiedAt?: Date | string | null
-  role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
-  enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
-  authAuditLogs?: Prisma.AuthAuditLogUncheckedCreateNestedManyWithoutUserInput
-}
-
-export type UserCreateOrConnectWithoutVerificationTokensInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutVerificationTokensInput, Prisma.UserUncheckedCreateWithoutVerificationTokensInput>
-}
-
-export type UserUpsertWithoutVerificationTokensInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutVerificationTokensInput, Prisma.UserUncheckedUpdateWithoutVerificationTokensInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutVerificationTokensInput, Prisma.UserUncheckedCreateWithoutVerificationTokensInput>
-  where?: Prisma.UserWhereInput
-}
-
-export type UserUpdateToOneWithWhereWithoutVerificationTokensInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutVerificationTokensInput, Prisma.UserUncheckedUpdateWithoutVerificationTokensInput>
-}
-
-export type UserUpdateWithoutVerificationTokensInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
-  enrollments?: Prisma.EnrollmentUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
-  authAuditLogs?: Prisma.AuthAuditLogUpdateManyWithoutUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutVerificationTokensInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
-  enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
-  authAuditLogs?: Prisma.AuthAuditLogUncheckedUpdateManyWithoutUserNestedInput
-}
-
 export type UserCreateWithoutAuthAuditLogsInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuthAuditLogsInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuthAuditLogsInput = {
@@ -818,69 +556,61 @@ export type UserUpdateToOneWithWhereWithoutAuthAuditLogsInput = {
 
 export type UserUpdateWithoutAuthAuditLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuthAuditLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutOrdersInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenCreateNestedManyWithoutUserInput
   authAuditLogs?: Prisma.AuthAuditLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutOrdersInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedCreateNestedManyWithoutUserInput
   authAuditLogs?: Prisma.AuthAuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -902,69 +632,61 @@ export type UserUpdateToOneWithWhereWithoutOrdersInput = {
 
 export type UserUpdateWithoutOrdersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrollments?: Prisma.EnrollmentUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUpdateManyWithoutUserNestedInput
   authAuditLogs?: Prisma.AuthAuditLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOrdersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedUpdateManyWithoutUserNestedInput
   authAuditLogs?: Prisma.AuthAuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEnrollmentsInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenCreateNestedManyWithoutUserInput
   authAuditLogs?: Prisma.AuthAuditLogCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEnrollmentsInput = {
   id?: string
-  email: string
-  passwordHash: string
+  clerkUserId?: string | null
+  email?: string | null
   emailVerifiedAt?: Date | string | null
+  fullName?: string | null
+  collegeName?: string | null
   role?: string
-  failedLoginCount?: number
-  lockedUntil?: Date | string | null
-  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedCreateNestedManyWithoutUserInput
   authAuditLogs?: Prisma.AuthAuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -986,35 +708,31 @@ export type UserUpdateToOneWithWhereWithoutEnrollmentsInput = {
 
 export type UserUpdateWithoutEnrollmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUpdateManyWithoutUserNestedInput
   authAuditLogs?: Prisma.AuthAuditLogUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEnrollmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  clerkUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
-  failedLoginCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
-  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
-  verificationTokens?: Prisma.VerificationTokenUncheckedUpdateManyWithoutUserNestedInput
   authAuditLogs?: Prisma.AuthAuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1026,16 +744,12 @@ export type UserUncheckedUpdateWithoutEnrollmentsInput = {
 export type UserCountOutputType = {
   orders: number
   enrollments: number
-  refreshTokens: number
-  verificationTokens: number
   authAuditLogs: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   orders?: boolean | UserCountOutputTypeCountOrdersArgs
   enrollments?: boolean | UserCountOutputTypeCountEnrollmentsArgs
-  refreshTokens?: boolean | UserCountOutputTypeCountRefreshTokensArgs
-  verificationTokens?: boolean | UserCountOutputTypeCountVerificationTokensArgs
   authAuditLogs?: boolean | UserCountOutputTypeCountAuthAuditLogsArgs
 }
 
@@ -1066,20 +780,6 @@ export type UserCountOutputTypeCountEnrollmentsArgs<ExtArgs extends runtime.Type
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountRefreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.RefreshTokenWhereInput
-}
-
-/**
- * UserCountOutputType without action
- */
-export type UserCountOutputTypeCountVerificationTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.VerificationTokenWhereInput
-}
-
-/**
- * UserCountOutputType without action
- */
 export type UserCountOutputTypeCountAuthAuditLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AuthAuditLogWhereInput
 }
@@ -1087,68 +787,64 @@ export type UserCountOutputTypeCountAuthAuditLogsArgs<ExtArgs extends runtime.Ty
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  clerkUserId?: boolean
   email?: boolean
-  passwordHash?: boolean
   emailVerifiedAt?: boolean
+  fullName?: boolean
+  collegeName?: boolean
   role?: boolean
-  failedLoginCount?: boolean
-  lockedUntil?: boolean
-  lastLoginAt?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   orders?: boolean | Prisma.User$ordersArgs<ExtArgs>
   enrollments?: boolean | Prisma.User$enrollmentsArgs<ExtArgs>
-  refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
-  verificationTokens?: boolean | Prisma.User$verificationTokensArgs<ExtArgs>
   authAuditLogs?: boolean | Prisma.User$authAuditLogsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  clerkUserId?: boolean
   email?: boolean
-  passwordHash?: boolean
   emailVerifiedAt?: boolean
+  fullName?: boolean
+  collegeName?: boolean
   role?: boolean
-  failedLoginCount?: boolean
-  lockedUntil?: boolean
-  lastLoginAt?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  clerkUserId?: boolean
   email?: boolean
-  passwordHash?: boolean
   emailVerifiedAt?: boolean
+  fullName?: boolean
+  collegeName?: boolean
   role?: boolean
-  failedLoginCount?: boolean
-  lockedUntil?: boolean
-  lastLoginAt?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
   id?: boolean
+  clerkUserId?: boolean
   email?: boolean
-  passwordHash?: boolean
   emailVerifiedAt?: boolean
+  fullName?: boolean
+  collegeName?: boolean
   role?: boolean
-  failedLoginCount?: boolean
-  lockedUntil?: boolean
-  lastLoginAt?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "emailVerifiedAt" | "role" | "failedLoginCount" | "lockedUntil" | "lastLoginAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clerkUserId" | "email" | "emailVerifiedAt" | "fullName" | "collegeName" | "role" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   orders?: boolean | Prisma.User$ordersArgs<ExtArgs>
   enrollments?: boolean | Prisma.User$enrollmentsArgs<ExtArgs>
-  refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
-  verificationTokens?: boolean | Prisma.User$verificationTokensArgs<ExtArgs>
   authAuditLogs?: boolean | Prisma.User$authAuditLogsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1160,19 +856,17 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   objects: {
     orders: Prisma.$OrderPayload<ExtArgs>[]
     enrollments: Prisma.$EnrollmentPayload<ExtArgs>[]
-    refreshTokens: Prisma.$RefreshTokenPayload<ExtArgs>[]
-    verificationTokens: Prisma.$VerificationTokenPayload<ExtArgs>[]
     authAuditLogs: Prisma.$AuthAuditLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    email: string
-    passwordHash: string
+    clerkUserId: string | null
+    email: string | null
     emailVerifiedAt: Date | null
+    fullName: string | null
+    collegeName: string | null
     role: string
-    failedLoginCount: number
-    lockedUntil: Date | null
-    lastLoginAt: Date | null
+    deletedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -1571,8 +1265,6 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   readonly [Symbol.toStringTag]: "PrismaPromise"
   orders<T extends Prisma.User$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   enrollments<T extends Prisma.User$enrollmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$enrollmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EnrollmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  refreshTokens<T extends Prisma.User$refreshTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$refreshTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RefreshTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  verificationTokens<T extends Prisma.User$verificationTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$verificationTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VerificationTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   authAuditLogs<T extends Prisma.User$authAuditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$authAuditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthAuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1604,13 +1296,13 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
  */
 export interface UserFieldRefs {
   readonly id: Prisma.FieldRef<"User", 'String'>
+  readonly clerkUserId: Prisma.FieldRef<"User", 'String'>
   readonly email: Prisma.FieldRef<"User", 'String'>
-  readonly passwordHash: Prisma.FieldRef<"User", 'String'>
   readonly emailVerifiedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly fullName: Prisma.FieldRef<"User", 'String'>
+  readonly collegeName: Prisma.FieldRef<"User", 'String'>
   readonly role: Prisma.FieldRef<"User", 'String'>
-  readonly failedLoginCount: Prisma.FieldRef<"User", 'Int'>
-  readonly lockedUntil: Prisma.FieldRef<"User", 'DateTime'>
-  readonly lastLoginAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly deletedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
@@ -2051,54 +1743,6 @@ export type User$enrollmentsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.EnrollmentScalarFieldEnum | Prisma.EnrollmentScalarFieldEnum[]
-}
-
-/**
- * User.refreshTokens
- */
-export type User$refreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the RefreshToken
-   */
-  select?: Prisma.RefreshTokenSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the RefreshToken
-   */
-  omit?: Prisma.RefreshTokenOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.RefreshTokenInclude<ExtArgs> | null
-  where?: Prisma.RefreshTokenWhereInput
-  orderBy?: Prisma.RefreshTokenOrderByWithRelationInput | Prisma.RefreshTokenOrderByWithRelationInput[]
-  cursor?: Prisma.RefreshTokenWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.RefreshTokenScalarFieldEnum | Prisma.RefreshTokenScalarFieldEnum[]
-}
-
-/**
- * User.verificationTokens
- */
-export type User$verificationTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the VerificationToken
-   */
-  select?: Prisma.VerificationTokenSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the VerificationToken
-   */
-  omit?: Prisma.VerificationTokenOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.VerificationTokenInclude<ExtArgs> | null
-  where?: Prisma.VerificationTokenWhereInput
-  orderBy?: Prisma.VerificationTokenOrderByWithRelationInput | Prisma.VerificationTokenOrderByWithRelationInput[]
-  cursor?: Prisma.VerificationTokenWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.VerificationTokenScalarFieldEnum | Prisma.VerificationTokenScalarFieldEnum[]
 }
 
 /**

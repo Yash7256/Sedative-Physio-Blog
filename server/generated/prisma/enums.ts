@@ -35,11 +35,3 @@ export const OrderStatus = {
 } as const
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
-
-
-export const VerificationTokenPurpose = {
-  EMAIL_VERIFY: 'EMAIL_VERIFY',
-  PASSWORD_RESET: 'PASSWORD_RESET'
-} as const
-
-export type VerificationTokenPurpose = (typeof VerificationTokenPurpose)[keyof typeof VerificationTokenPurpose]

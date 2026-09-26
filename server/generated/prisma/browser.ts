@@ -23,16 +23,6 @@ export * from './enums.js';
  */
 export type User = Prisma.UserModel
 /**
- * Model RefreshToken
- * 
- */
-export type RefreshToken = Prisma.RefreshTokenModel
-/**
- * Model VerificationToken
- * 
- */
-export type VerificationToken = Prisma.VerificationTokenModel
-/**
  * Model AuthAuditLog
  * 
  */

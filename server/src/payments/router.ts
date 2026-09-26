@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { authenticate } from "../auth/middleware.js"
+import { readAuthUserId } from "../lib/clerk.js"
 import { BadRequestError, handleError, UnauthorizedError } from "../lib/errors.js"
 import {
   createRazorpayOrder,
@@ -12,9 +12,10 @@ import {
 
 export const paymentsRouter = Router()
 
-// Populates req.auth when a valid Bearer token is present; never rejects.
-// Individual routes decide whether auth is required.
-paymentsRouter.use(authenticate)
+// No `authenticate` here: `clerkMiddleware()` in app.ts already populates
+// `req.auth` for every request, and it never rejects anonymous callers. These
+// routes are optional-auth — they read `readAuthUserId(req)` and degrade to
+// "not signed in" rather than 401.
 
 // GET /api/payments/config — returns Razorpay keyId
 paymentsRouter.get("/config", (_req, res) => {
@@ -29,7 +30,7 @@ paymentsRouter.get("/config", (_req, res) => {
 // GET /api/payments/my-enrollments — returns list of courseIds user is enrolled in
 paymentsRouter.get("/my-enrollments", async (req, res) => {
   try {
-    const userId = req.auth?.userId
+    const userId = readAuthUserId(req)
     if (!userId) {
       res.status(200).json([])
       return
@@ -45,7 +46,7 @@ paymentsRouter.get("/my-enrollments", async (req, res) => {
 paymentsRouter.post("/create-order", async (req, res) => {
   try {
     const { courseIds, userEmail, userName } = req.body
-    const userId = req.auth?.userId ?? null
+    const userId = readAuthUserId(req)
 
     const order = await createRazorpayOrder({
       courseIds,
@@ -63,7 +64,7 @@ paymentsRouter.post("/create-order", async (req, res) => {
 // POST /api/payments/verify — verifies payment signature and registers enrollment atomically
 paymentsRouter.post("/verify", async (req, res) => {
   try {
-    const userId = req.auth?.userId ?? null
+    const userId = readAuthUserId(req)
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
 
     const result = await verifyRazorpayPayment({
@@ -82,7 +83,7 @@ paymentsRouter.post("/verify", async (req, res) => {
 // POST /api/payments/free-enroll — enrolls logged-in user in free course(s)
 paymentsRouter.post("/free-enroll", async (req, res) => {
   try {
-    const userId = req.auth?.userId ?? null
+    const userId = readAuthUserId(req)
     if (!userId) {
       throw new UnauthorizedError("Please sign in to enroll in this course")
     }

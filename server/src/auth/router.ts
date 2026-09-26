@@ -1,38 +1,21 @@
 import { Router } from "express"
 
-import { prisma } from "../lib/prisma.js"
-import { handleError } from "../lib/errors.js"
-import { requireAuth } from "./middleware.js"
-import { registerRouter } from "./routes/register.js"
-import { loginRouter } from "./routes/login.js"
-import { forgotPasswordRouter } from "./routes/forgot-password.js"
-import { resetPasswordRouter } from "./routes/reset-password.js"
-import { verifyEmailRouter } from "./routes/verify-email.js"
-import { refreshRouter } from "./routes/refresh.js"
-import { logoutRouter } from "./routes/logout.js"
+import { meRouter } from "./routes/me.js"
+import { clerkWebhookRouter } from "./webhook.js"
 
+/**
+ * Mounts the profile surface under `/api/auth`.
+ *
+ * There is deliberately no `/register`, `/login`, `/logout`, `/refresh`,
+ * `/forgot-password`, `/reset-password` or `/verify-email` here any more. Those
+ * flows belong to Clerk and are exercised through the Clerk SDK, not through
+ * this API — reimplementing them would mean two authorities disagreeing about
+ * who is signed in.
+ *
+ * What remains is the part this app owns: the local profile behind a Clerk
+ * session (`/me`), and the inbound sync that keeps it current.
+ */
 export const authRouter = Router()
 
-authRouter.use("/register", registerRouter)
-authRouter.use("/login", loginRouter)
-authRouter.use("/forgot-password", forgotPasswordRouter)
-authRouter.use("/reset-password", resetPasswordRouter)
-authRouter.use("/verify-email", verifyEmailRouter)
-authRouter.use("/refresh", refreshRouter)
-authRouter.use("/logout", logoutRouter)
-
-authRouter.get("/me", requireAuth, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.auth!.userId },
-      select: { email: true },
-    })
-    if (!user) {
-      res.status(401).json({ error: "Account not found." })
-      return
-    }
-    res.json({ userId: req.auth!.userId, role: req.auth!.role, email: user.email })
-  } catch (err) {
-    handleError(err, res)
-  }
-})
+authRouter.use("/me", meRouter)
+authRouter.use("/webhooks/clerk", clerkWebhookRouter)

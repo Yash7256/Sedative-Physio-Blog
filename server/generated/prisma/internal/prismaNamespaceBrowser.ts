@@ -52,8 +52,6 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  RefreshToken: 'RefreshToken',
-  VerificationToken: 'VerificationToken',
   AuthAuditLog: 'AuthAuditLog',
   Note: 'Note',
   Model3D: 'Model3D',
@@ -83,47 +81,18 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const UserScalarFieldEnum = {
   id: 'id',
+  clerkUserId: 'clerkUserId',
   email: 'email',
-  passwordHash: 'passwordHash',
   emailVerifiedAt: 'emailVerifiedAt',
+  fullName: 'fullName',
+  collegeName: 'collegeName',
   role: 'role',
-  failedLoginCount: 'failedLoginCount',
-  lockedUntil: 'lockedUntil',
-  lastLoginAt: 'lastLoginAt',
+  deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
-
-
-export const RefreshTokenScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  tokenHash: 'tokenHash',
-  deviceLabel: 'deviceLabel',
-  ipAddress: 'ipAddress',
-  issuedAt: 'issuedAt',
-  expiresAt: 'expiresAt',
-  revokedAt: 'revokedAt',
-  replacedByTokenId: 'replacedByTokenId'
-} as const
-
-export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
-
-
-export const VerificationTokenScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  purpose: 'purpose',
-  tokenHash: 'tokenHash',
-  expiresAt: 'expiresAt',
-  usedAt: 'usedAt',
-  requestedFromIp: 'requestedFromIp',
-  createdAt: 'createdAt'
-} as const
-
-export type VerificationTokenScalarFieldEnum = (typeof VerificationTokenScalarFieldEnum)[keyof typeof VerificationTokenScalarFieldEnum]
 
 
 export const AuthAuditLogScalarFieldEnum = {

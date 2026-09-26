@@ -28,64 +28,34 @@ enum OrderStatus {
   FAILED
 }
 
-enum VerificationTokenPurpose {
-  EMAIL_VERIFY
-  PASSWORD_RESET
-}
-
 // ============ AUTH & USERS ============
+//
+// Clerk owns identity: credentials, sessions, email/phone verification and
+// social login. This table owns domain data only — the student's profile and
+// everything that hangs off it (orders, enrollments, audit trail). The two are
+// joined by `clerkUserId`, mirrored from Clerk's `user.created`/`user.updated`
+// webhooks. See server/src/auth/webhook.ts.
 
 model User {
-  id               String   @id @default(cuid())
-  email            String   @unique // store lowercased
-  passwordHash     String
-  emailVerifiedAt  DateTime?
-  role             String   @default("user")
-  failedLoginCount Int      @default(0)
-  lockedUntil      DateTime?
-  lastLoginAt      DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String    @id @default(cuid())
+  clerkUserId     String?   @unique // null until the Clerk webhook creates the row
+  email           String?   @unique // mirrored from Clerk, lowercased; for display + order records
+  emailVerifiedAt DateTime? // mirrored from Clerk's email verification status
+  fullName        String? // promoted to NOT NULL once existing rows are backfilled
+  collegeName     String?
+  role            String    @default("user")
+  deletedAt       DateTime? // set when the Clerk user is deleted; the row is kept for order history
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  orders             Order[]
-  enrollments        Enrollment[]
-  refreshTokens      RefreshToken[]
-  verificationTokens VerificationToken[]
-  authAuditLogs      AuthAuditLog[]
+  orders        Order[]
+  enrollments   Enrollment[]
+  authAuditLogs AuthAuditLog[]
 }
 
-model RefreshToken {
-  id                String          @id @default(cuid())
-  userId            String
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash         String          @unique
-  deviceLabel       String?
-  ipAddress         String?
-  issuedAt          DateTime        @default(now())
-  expiresAt         DateTime
-  revokedAt         DateTime?
-  replacedByTokenId String?
-  replacedByToken   RefreshToken?   @relation("TokenReplacement", fields: [replacedByTokenId], references: [id])
-  replacedToken     RefreshToken[]  @relation("TokenReplacement")
-
-  @@index([userId])
-  @@index([expiresAt])
-}
-
-model VerificationToken {
-  id              String                 @id @default(cuid())
-  userId          String
-  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purpose         VerificationTokenPurpose
-  tokenHash       String                 @unique
-  expiresAt       DateTime
-  usedAt          DateTime?
-  requestedFromIp String?
-  createdAt       DateTime               @default(now())
-
-  @@index([userId])
-  @@index([expiresAt])
-}
+// Credentials, sessions and one-time tokens are Clerk's responsibility, so the
+// custom-auth models (RefreshToken, VerificationToken) were removed rather than
+// left to drift out of sync with Clerk's own state.
 
 model AuthAuditLog {
   id        String   @id @default(cuid())
