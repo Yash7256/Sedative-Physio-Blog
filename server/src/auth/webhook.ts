@@ -27,14 +27,48 @@ const WINDOW_MS = 60 * 1000
  * more deliveries. At this ceiling normal traffic never reaches it; a flood is
  * still cut off quickly. 429 is retryable and Clerk backs off, so the limit
  * clears itself.
+ *
+ * Two limiters, not one, and the second is not redundancy. This one is keyed by
+ * IP, and `app.set("trust proxy", 1)` is what makes `req.ip` mean "the client".
+ * That is only true while the edge appends to `X-Forwarded-For` rather than
+ * passing a client-supplied value through: an edge that forwards the header
+ * verbatim lets a caller mint an unlimited number of distinct `req.ip` values
+ * and walk straight through a per-IP limit. The deployment topology is not
+ * something this file can verify, so the per-IP limiter is treated as the
+ * fine-grained control and `globalCeiling` as the unspoofable backstop that
+ * bounds the damage regardless. Keying the backstop on a constant is the point:
+ * no request header can influence it.
+ *
+ * The ceiling is roughly 10x the per-IP limit and intentionally loose, since its
+ * only job is to make the flood finite. It is still 50x above any plausible real
+ * delivery rate, so it is not a product limit in disguise.
+ *
+ * `validate` turns on the library's own misconfiguration warnings, so a future
+ * change that breaks the trust-proxy assumption is reported at startup instead
+ * of silently weakening this control.
  */
-const deliveryLimiter = rateLimit({
-  windowMs: WINDOW_MS,
-  limit: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many webhook deliveries. Please retry." },
-})
+export function createDeliveryLimiters(limits: { perIp: number; global: number }) {
+  const shared = {
+    windowMs: WINDOW_MS,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { trustProxy: true, xForwardedForHeader: true },
+  } as const
+
+  return {
+    perIp: rateLimit({ ...shared, limit: limits.perIp }),
+    globalCeiling: rateLimit({
+      ...shared,
+      limit: limits.global,
+      keyGenerator: () => GLOBAL_KEY,
+      message: { error: "Webhook endpoint is saturated. Please retry." },
+    }),
+  }
+}
+
+const GLOBAL_KEY = "clerk-webhook-global"
+
+const { perIp, globalCeiling } = createDeliveryLimiters({ perIp: 300, global: 3000 })
 
 /**
  * POST /api/auth/webhooks/clerk — mirrors Clerk user state into the local
@@ -46,7 +80,7 @@ const deliveryLimiter = rateLimit({
  * event is a no-op, not an error, and retrying it can never succeed. The
  * response body names the reason so the drop is visible in Clerk's logs.
  */
-clerkWebhookRouter.post("/", deliveryLimiter, async (req: Request, res: Response) => {
+clerkWebhookRouter.post("/", perIp, globalCeiling, async (req: Request, res: Response) => {
   try {
     const rawBody = readRawBody(req)
     const event = classifyClerkEvent(verifyClerkEvent(rawBody, req.headers))

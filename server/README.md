@@ -193,8 +193,8 @@ storm — the same reasoning that already applies to unknown event types.
 
 ### Webhook rate limiting
 
-`deliveryLimiter` allows 300 requests/minute/IP and is mounted **ahead of**
-signature verification, so an unauthenticated caller cannot make the server
+`createDeliveryLimiters` allows 300 requests/minute/IP, mounted **ahead of**
+signature verification so an unauthenticated caller cannot make the server
 perform an HMAC check and a JSON parse per request. It is a flood guard, not an
 auth control — the signature is still the only thing that grants access.
 
@@ -204,3 +204,26 @@ enough to matter against an attacker would also 429 a legitimate burst, and each
 429 provokes more deliveries. 429 is retryable and Clerk backs off, so the limit
 clears itself. `trust proxy` is set to 1, so `req.ip` reflects the client rather
 than the load balancer.
+
+#### Why there are two limiters
+
+The per-IP limiter is only as trustworthy as `req.ip`, and `req.ip` comes from
+`X-Forwarded-For` via `app.set("trust proxy", 1)`. That is correct only while
+the edge **appends** to that header. An edge that forwards a client-supplied
+`X-Forwarded-For` verbatim lets a caller send a different value on every request,
+appear as a different IP each time, and never trip a per-IP limit at all.
+
+The deployment topology is not something the app can verify, so the per-IP
+limiter is treated as the fine-grained control and `globalCeiling` — keyed on a
+constant, which no request header can influence — is the backstop that bounds the
+damage either way. It sits at 3000/minute, deliberately loose: its only job is
+to make a flood finite, and that is still ~50x any plausible real delivery rate,
+so it is not a product limit in disguise.
+
+`validate: { trustProxy, xForwardedForHeader }` enables the library's own
+misconfiguration warnings, so a change that breaks the trust-proxy assumption is
+reported rather than silently weakening the control.
+
+Measured against the running app: a flood rotating `X-Forwarded-For` on every
+request is cut off at request #3001 by the ceiling, where the per-IP limiter
+alone would have let all of it through.
