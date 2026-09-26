@@ -93,10 +93,10 @@ export function Resources() {
   const visibleSections = active === "all" ? librarySections : librarySections.filter((section) => section.key === active)
 
   return <div className="resources-page min-h-screen overflow-hidden bg-[#f4f4f2] text-[#111214]">
-    <main className="mx-auto max-w-[1280px] px-4 pb-20 sm:px-5 lg:px-[52px]">
-      <section data-scroll-fade className="mx-auto grid max-w-[1200px] items-center gap-10 py-8 pl-8 sm:py-10 sm:pl-50 lg:grid-cols-2">
-        <div className="relative aspect-square w-full max-w-[480px] overflow-hidden rounded-[18px] bg-[#e9e9e7]"><SmartImage data-parallax src="/bento4.png" alt="Sedative Physio AI assistant" loading="eager" fetchPriority="high" className="h-full w-full object-cover" /></div>
-        <div className="flex max-w-[520px] flex-col items-start" data-reveal><p className="flex items-center gap-1.5 text-sm text-[#737477]"><Sparkles className="size-4 text-[#1683f6]" /> AI Assistant</p><h1 className="mt-2 text-[clamp(2.5rem,4vw,4rem)] font-bold leading-[.92] tracking-[-.055em]">Your Physiotherapy Companion</h1><p className="mt-4 max-w-[460px] text-base leading-[1.45] text-[#65676a]">Ask clinical questions, simplify complex concepts &amp; get personalized learning support.</p>{isProd ? <span className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#101113] px-6 py-3 text-sm font-medium text-white"><Sparkles className="size-4" /> Coming Soon</span> : <button type="button" className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#101113] px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"><Sparkles className="size-4" /> Unlock AI Assistant</button>}</div>
+    <main className="mx-auto max-w-[1280px] px-5 pb-12 sm:px-10 sm:pb-16 lg:px-[52px]">
+      <section data-scroll-fade className="mx-auto grid max-w-[1280px] items-center gap-8 py-12 sm:grid-cols-[.9fr_1.1fr] sm:gap-10 sm:py-16">
+        <div className="relative aspect-square w-full overflow-hidden rounded-[12px] bg-[#e9e9e7] sm:rounded-[18px]"><SmartImage data-parallax src="/mockup/bento4.webp" alt="Sedative Physio AI assistant" loading="eager" fetchPriority="high" className="h-full w-full object-cover" /></div>
+        <div className="flex max-w-[520px] flex-col items-start" data-reveal><p className="flex items-center gap-1.5 text-sm text-[#737477]"><Sparkles className="size-4 text-[#1683f6]" /> AI Assistant</p><h1 className="mt-3 text-[clamp(2rem,7vw,4.35rem)] font-bold leading-[1.01] tracking-[-0.04em]">Your Physiotherapy Companion</h1><p className="mt-4 max-w-[460px] text-[15px] leading-[1.45] text-[#686a6b] sm:text-base md:text-[18px]">Ask clinical questions, simplify complex concepts &amp; get personalized learning support.</p>{isProd ? <span className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#101113] px-6 py-3 text-sm font-medium text-white"><Sparkles className="size-4" /> Coming Soon</span> : <button type="button" className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#101113] px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"><Sparkles className="size-4" /> Unlock AI Assistant</button>}</div>
       </section>
       <section aria-label="Resource filters" className="border-y border-black/10 py-5">
         <div className="flex flex-wrap gap-2">
@@ -123,12 +123,12 @@ export function Resources() {
         const dynamic = section.key === "podcast" ? [] : cards.filter((card) => card.category === section.key)
         const limited = active === "all" ? dynamic.slice(0, 3) : dynamic
         if (comingSoon) {
-          return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,2vw,2.1rem)] font-bold tracking-[-.045em]">{section.title}</h2></div><div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-center text-white" data-reveal><div><p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80"><Box className="size-3.5" /> Coming Soon</p><p className="font-display mx-auto mt-5 max-w-[560px] text-[clamp(1.25rem,2.5vw,2rem)] font-semibold leading-tight tracking-[-.03em]">Interactive 3D anatomy models are on their way.</p><p className="mx-auto mt-3 max-w-[480px] text-sm leading-relaxed text-white/70">Explore bones, muscles, and joints in fully explorable 3D — coming soon to Sedative Physio.</p></div></div></section>
+          return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2></div><div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-center text-white" data-reveal><div><p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80"><Box className="size-3.5" /> Coming Soon</p><p className="font-display mx-auto mt-5 max-w-[560px] text-[clamp(1.25rem,2.5vw,2rem)] font-semibold leading-tight tracking-[-.03em]">Interactive 3D anatomy models are on their way.</p><p className="mx-auto mt-3 max-w-[480px] text-sm leading-relaxed text-white/70">Explore bones, muscles, and joints in fully explorable 3D — coming soon to Sedative Physio.</p></div></div></section>
         }
         if (limited.length === 0) return null
-        return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,2vw,2.1rem)] font-bold tracking-[-.045em]">{section.title}</h2>{active === "all" && <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="text-xs text-[#696b6d] underline-offset-4 hover:underline">View all</button>}</div><div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 lg:grid-cols-3">{limited.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div><button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="mt-8 flex w-full items-center justify-center border-t border-black/10 pt-5 text-sm text-[#707275] transition-colors hover:text-black">{section.explore}</button></section>
+        return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2>{active === "all" && <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="text-xs text-[#696b6d] underline-offset-4 hover:underline">View all</button>}</div><div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{limited.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div><button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="mt-8 flex w-full items-center justify-center border-t border-black/10 pt-5 text-sm text-[#707275] transition-colors hover:text-black">{section.explore}</button></section>
       })}</div>
-      <section data-scroll-fade className="mt-16 overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-white sm:mt-24 sm:px-12 sm:py-14"><h2 data-reveal className="text-[clamp(2rem,4vw,4rem)] font-bold tracking-[-.055em]">Coming Soon</h2><p className="mt-4 max-w-[690px] text-sm leading-relaxed text-white/75">We’re continuously expanding our resource library. More tools and materials will be added soon to support your learning journey.</p><div className="mt-7 flex flex-wrap gap-2">{["Study Guides", "Clinical Protocols", "Video Tutorials", "Research Papers"].map((item) => <span key={item} className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/80">{item}</span>)}</div></section>
+      <section data-scroll-fade className="mt-16 overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-white sm:mt-24 sm:px-12 sm:py-14"><h2 data-reveal className="text-[clamp(2rem,4vw,4rem)] font-bold leading-none tracking-[-.04em]">Coming Soon</h2><p className="mt-4 max-w-[690px] text-sm leading-relaxed text-white/75">We’re continuously expanding our resource library. More tools and materials will be added soon to support your learning journey.</p><div className="mt-7 flex flex-wrap gap-2">{["Study Guides", "Clinical Protocols", "Video Tutorials", "Research Papers"].map((item) => <span key={item} className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/80">{item}</span>)}</div></section>
     </main>
     <NotePreviewModal open={preview?.kind === "note"} onClose={() => setPreview(null)} noteId={preview?.kind === "note" ? preview.id : null} noteTitle={preview?.kind === "note" ? preview.title : ""} />
     <Suspense fallback={null}><ModelViewerModal open={preview?.kind === "model"} onClose={() => setPreview(null)} modelUrl={preview?.kind === "model" ? preview.url : null} modelName={preview?.kind === "model" ? preview.title : ""} /></Suspense>
@@ -187,7 +187,7 @@ function LiveCard({
 
   return (
     <article className="group min-w-0">
-      <button type="button" onClick={() => onOpen(card)} className="relative block aspect-[1.18] w-full overflow-hidden rounded-[12px] bg-[#dedfdd] text-left">
+      <button type="button" onClick={() => onOpen(card)} className="relative block aspect-square w-full overflow-hidden rounded-[12px] bg-[#dedfdd] text-left sm:rounded-[18px]">
         {card.image || card.imageDark
           ? <div className="absolute inset-0">
               {card.image && <SmartImage src={card.image} alt={card.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035] dark:hidden" />}
@@ -202,17 +202,17 @@ function LiveCard({
         }
         <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[8px] font-bold tracking-wide ${topBadgeClass}`}>{topBadge}</span>
       </button>
-      <div className="mt-2 flex items-start justify-between gap-3">
+      <div className="mt-2 flex items-start justify-between gap-2 sm:mt-4 sm:gap-3">
         <div className="min-w-0">
           {isCourse ? (
             <>
-              <p className="text-lg font-bold tracking-[-.03em] text-[#0b0b0c]">{priceBanner}</p>
-              <h3 className="mt-0.5 truncate text-xs font-medium text-[#77797b]">{card.title}</h3>
+              <p className="text-base font-bold tracking-[-.03em] text-[#0b0b0c] sm:text-lg">{priceBanner}</p>
+              <h3 className="mt-0.5 truncate text-sm font-medium text-[#77797b] sm:text-base">{card.title}</h3>
             </>
           ) : (
             <>
-              <h3 className="truncate text-sm font-semibold tracking-[-.025em]">{card.title}</h3>
-              <p className="mt-0.5 truncate text-xs text-[#77797b]">{card.tag || card.fileName}</p>
+              <h3 className="truncate text-sm font-semibold tracking-[-.03em] sm:text-base">{card.title}</h3>
+              <p className="mt-0.5 truncate text-xs text-[#77797b] sm:mt-1 sm:text-sm">{card.tag || card.fileName}</p>
             </>
           )}
         </div>
@@ -222,15 +222,15 @@ function LiveCard({
           </button>
         )}
       </div>
-      <div className={`mt-3 grid ${isCourse ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
-        <button type="button" onClick={() => onOpen(card)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/15 bg-transparent px-3 py-2 text-xs font-medium text-[#111214] transition-colors hover:bg-black hover:text-white">
+      <div className={`mt-3 grid gap-2 ${isCourse ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+        <button type="button" onClick={() => onOpen(card)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/15 bg-transparent px-2 py-2 text-[11px] font-medium text-[#111214] transition-colors hover:bg-black hover:text-white sm:px-3 sm:text-xs">
           <Eye className="size-3.5" /> View Details
         </button>
         {isCourse && (
           <button
             type="button"
             onClick={handleCartAction}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${inCart ? "bg-[#22c55e] text-white hover:bg-[#16a34a]" : "bg-[#111214] text-white hover:bg-black/80"}`}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-medium transition-all sm:px-3 sm:text-xs ${inCart ? "bg-[#22c55e] text-white hover:bg-[#16a34a]" : "bg-[#111214] text-white hover:bg-black/80"}`}
           >
             {inCart
               ? <><Check className="size-3.5" /> Go to Cart</>
