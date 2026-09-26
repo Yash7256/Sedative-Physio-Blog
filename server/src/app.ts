@@ -12,6 +12,7 @@ import { contactRouter } from "./contact/router.js"
 import { paymentsRouter } from "./payments/router.js"
 import { imagesRouter } from "./images/router.js"
 import { healthRouter } from "./routes/health.js"
+import { noStore } from "./lib/cache.js"
 
 /**
  * Allowed browser origins for CORS. Comma-separated env var, e.g.
@@ -50,6 +51,12 @@ export function createApp() {
     ;(req as unknown as { rawBody: string }).rawBody = buf.toString("utf8")
   } }))
   app.use(cookieParser())
+
+  // Caching is denied by default and granted per route. Mounted before every
+  // router so a response is uncacheable unless something explicitly opts in —
+  // see lib/cache.ts. The routes that opt in (courses, notes, models, images,
+  // note files) set their own Cache-Control, which replaces this value.
+  app.use(noStore())
 
   // Health is mounted before Clerk on purpose: if the Clerk keys are missing or
   // wrong, every authenticated route breaks, and a health check that fails for

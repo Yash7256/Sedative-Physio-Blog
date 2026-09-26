@@ -73,6 +73,10 @@ imagesRouter.get("/", async (req, res) => {
     }
 
     const etag = `W/"${createHash("sha256").update(output).digest("base64url")}"`
+    // Declared before the 304 return so a revalidation carries the same policy
+    // as the 200 it refreshes, instead of inheriting the global `no-store`.
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable")
+    res.setHeader("ETag", etag)
     if (req.headers["if-none-match"] === etag) {
       res.status(304)
       res.end()
@@ -80,8 +84,6 @@ imagesRouter.get("/", async (req, res) => {
     }
 
     res.setHeader("Content-Type", "image/webp")
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable")
-    res.setHeader("ETag", etag)
     res.status(200)
     res.send(output)
   } catch (err) {

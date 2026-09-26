@@ -39,6 +39,13 @@ notesRouter.get("/:id/file", async (req, res) => {
     const note = await getNoteFile(id)
 
     const etag = fileEtag(note.fileKey, note.fileSize)
+    // Declared before the 304 return, which deliberately short-circuits before
+    // contacting R2. It does not depend on the upstream fetch, so hoisting it
+    // costs nothing and keeps a revalidation from inheriting `no-store` — a 304
+    // that says "don't store" tells the client to discard the entry it just
+    // revalidated, defeating the point of the check.
+    res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
+    res.setHeader("ETag", etag)
     if (req.headers["if-none-match"] === etag) {
       res.status(304)
       res.end()
@@ -56,8 +63,6 @@ notesRouter.get("/:id/file", async (req, res) => {
     const safeName = note.fileName.replace(/["\\\r\n]/g, "")
     res.setHeader("Content-Type", "application/pdf")
     res.setHeader("Content-Disposition", `${disposition}; filename="${safeName}"`)
-    res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
-    res.setHeader("ETag", etag)
     if (note.fileSize) {
       res.setHeader("Content-Length", String(note.fileSize))
     }

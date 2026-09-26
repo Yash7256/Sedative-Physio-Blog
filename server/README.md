@@ -95,6 +95,52 @@ is `ON DELETE RESTRICT`, and where there are no orders it would succeed and
 silently drop enrollments, since `Enrollment.userId` is `ON DELETE CASCADE`.
 Neither is acceptable for a record of what someone paid for.
 
+## Caching
+
+Caching is **denied by default and granted per route**. `noStore()` is mounted
+globally in `app.ts`, so every response carries `Cache-Control: no-store, private`
+unless a route explicitly opts in.
+
+The inversion is the point. The responses that must never be cached are the ones
+nobody thinks about while adding a route, and two of them are easy to overlook:
+
+- `GET /api/auth/me` returns one user's identity.
+- `GET /api/payments/my-enrollments` returns one user's enrollments — and is
+  *optional*-auth, so the same URL answers `[]` for a stranger and a populated
+  list for the owner. A shared cache keyed on URL alone would cross those.
+
+`no-store` alone is the directive that matters (RFC 9111 §5.2.2.5). `private` is
+redundant against a compliant cache but is kept as a second barrier, because
+some CDNs mishandle `no-store` while still honouring `private`.
+
+`app.set("etag", false)` is required for this to hold. Express otherwise
+generates its own body-length ETag, and an uncacheable response carrying a
+validator is a contradiction — intermediaries key on the ETag.
+
+### Opting in
+
+| Route | Policy |
+|---|---|
+| `GET /api/courses` | `public, s-maxage=300, max-age=60, stale-while-revalidate=86400` |
+| `GET /api/notes` | same |
+| `GET /api/models` | same |
+| `GET /api/images/*` | `public, max-age=31536000, immutable` (content-addressed by the re-encoded bytes) |
+| `GET /api/notes/:id/file` | `public, max-age=86400, stale-while-revalidate=604800` (immutable once uploaded) |
+
+Use `cacheControl({ browser, cdn, swr })` for JSON routes; it sets the policy
+only on 2xx, so an error from a cached route still inherits `no-store` and never
+becomes cacheable.
+
+### The 304 ordering rule
+
+Any route that hand-rolls its headers must set `Cache-Control` **before** an
+early `res.end()`. A 304 refreshes the headers of an already-stored entry, so
+one carrying `no-store` tells the client to discard the entry it just
+revalidated — the endpoint keeps returning correct data while silently losing
+its cache. `images/router.ts` and `notes/router.ts` both had this ordering bug;
+`notes` still short-circuits before contacting R2, since the header does not
+depend on the upstream fetch.
+
 ## Configuration
 
 Environment variables are loaded from `.env` (see `.env.example`):
