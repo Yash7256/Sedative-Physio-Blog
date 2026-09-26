@@ -1,21 +1,29 @@
 import { Router } from "express"
-import { readAuthUserId } from "../lib/clerk.js"
+import { resolveLocalUserId } from "../auth/services/me.js"
+import { readAuthUserId as readClerkUserId } from "../lib/clerk.js"
 import { BadRequestError, handleError, UnauthorizedError } from "../lib/errors.js"
 import {
   createRazorpayOrder,
   enrollFreeCourses,
   getPaymentConfig,
   getUserEnrollments,
+  getUserOrders,
   processRazorpayWebhook,
   verifyRazorpayPayment,
 } from "./service.js"
 
 export const paymentsRouter = Router()
 
-// No `authenticate` here: `clerkMiddleware()` in app.ts already populates
+// No `requireAuth` here: `clerkMiddleware()` in app.ts already populates
 // `req.auth` for every request, and it never rejects anonymous callers. These
-// routes are optional-auth — they read `readAuthUserId(req)` and degrade to
-// "not signed in" rather than 401.
+// routes are optional-auth — they resolve the caller and degrade to "not signed
+// in" rather than 401.
+//
+// `resolveLocalUserId` is the boundary translation. `req.auth().userId` is
+// Clerk's `user_…`, but Order/Enrollment carry a foreign key to the local
+// `User.id` cuid. Passing Clerk's id straight through reads as "no enrollments"
+// (the query matches nothing) and writes as a foreign key violation, so every
+// caller below receives a local row id or null.
 
 // GET /api/payments/config — returns Razorpay keyId
 paymentsRouter.get("/config", (_req, res) => {
@@ -30,13 +38,27 @@ paymentsRouter.get("/config", (_req, res) => {
 // GET /api/payments/my-enrollments — returns list of courseIds user is enrolled in
 paymentsRouter.get("/my-enrollments", async (req, res) => {
   try {
-    const userId = readAuthUserId(req)
-    if (!userId) {
+    const localUserId = await resolveLocalUserId(readClerkUserId(req))
+    if (!localUserId) {
       res.status(200).json([])
       return
     }
-    const courseIds = await getUserEnrollments(userId)
+    const courseIds = await getUserEnrollments(localUserId)
     res.status(200).json(courseIds)
+  } catch (err) {
+    handleError(err, res)
+  }
+})
+
+// GET /api/payments/my-orders — the caller's own order history
+paymentsRouter.get("/my-orders", async (req, res) => {
+  try {
+    const localUserId = await resolveLocalUserId(readClerkUserId(req))
+    if (!localUserId) {
+      res.status(200).json([])
+      return
+    }
+    res.status(200).json(await getUserOrders(localUserId))
   } catch (err) {
     handleError(err, res)
   }
@@ -46,11 +68,11 @@ paymentsRouter.get("/my-enrollments", async (req, res) => {
 paymentsRouter.post("/create-order", async (req, res) => {
   try {
     const { courseIds, userEmail, userName } = req.body
-    const userId = readAuthUserId(req)
+    const localUserId = await resolveLocalUserId(readClerkUserId(req))
 
     const order = await createRazorpayOrder({
       courseIds,
-      userId,
+      localUserId,
       userEmail: userEmail ?? null,
       userName: userName ?? null,
     })
@@ -64,14 +86,14 @@ paymentsRouter.post("/create-order", async (req, res) => {
 // POST /api/payments/verify — verifies payment signature and registers enrollment atomically
 paymentsRouter.post("/verify", async (req, res) => {
   try {
-    const userId = readAuthUserId(req)
+    const localUserId = await resolveLocalUserId(readClerkUserId(req))
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
 
     const result = await verifyRazorpayPayment({
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      userId: userId ?? null,
+      localUserId,
     })
 
     res.status(200).json(result)
@@ -83,15 +105,17 @@ paymentsRouter.post("/verify", async (req, res) => {
 // POST /api/payments/free-enroll — enrolls logged-in user in free course(s)
 paymentsRouter.post("/free-enroll", async (req, res) => {
   try {
-    const userId = readAuthUserId(req)
-    if (!userId) {
+    // Unlike the read paths above this one must reject: a free enrollment with
+    // no owner would be a row nobody can ever see or revoke.
+    const localUserId = await resolveLocalUserId(readClerkUserId(req))
+    if (!localUserId) {
       throw new UnauthorizedError("Please sign in to enroll in this course")
     }
 
     const { courseIds } = req.body
     const result = await enrollFreeCourses({
       courseIds,
-      userId,
+      localUserId,
     })
 
     res.status(200).json(result)

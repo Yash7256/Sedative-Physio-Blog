@@ -30,7 +30,11 @@ export function getPaymentConfig(): { keyId: string } {
 
 export interface CreateOrderParams {
   courseIds: string[]
-  userId?: string | null
+  /**
+   * This app's `User.id` cuid — *not* Clerk's `user_…` id. Resolved by the route
+   * via `resolveLocalUserId`, because `Order.userId` is a foreign key to it.
+   */
+  localUserId?: string | null
   userEmail?: string | null
   userName?: string | null
 }
@@ -44,23 +48,69 @@ export interface CreateOrderResult {
 }
 
 /**
- * Fetch course IDs that the user is currently enrolled in.
+ * Fetch course IDs the given local user is currently enrolled in.
+ *
+ * Takes `User.id`, not Clerk's id — see `CreateOrderParams`.
  */
-export async function getUserEnrollments(userId: string): Promise<string[]> {
-  if (!userId) return []
+export async function getUserEnrollments(localUserId: string): Promise<string[]> {
+  if (!localUserId) return []
   const enrollments = await prisma.enrollment.findMany({
-    where: { userId },
+    where: { userId: localUserId },
     select: { courseId: true },
   })
   return enrollments.map((e) => e.courseId)
 }
 
+export interface UserOrder {
+  id: string
+  amount: number
+  currency: string
+  status: "PENDING" | "PAID" | "FAILED"
+  courseIds: string[]
+  createdAt: string
+}
+
+/**
+ * The given local user's own orders, newest first.
+ *
+ * Scoped by primary key rather than by email: `userEmail` is a denormalised
+ * mirror kept for order records, and matching on it would let anyone who knows
+ * an address read another person's purchase history. Orders placed before the
+ * Clerk migration have a null `userId` and belong to nobody, so they are simply
+ * absent here.
+ */
+export async function getUserOrders(localUserId: string): Promise<UserOrder[]> {
+  if (!localUserId) return []
+
+  const orders = await prisma.order.findMany({
+    where: { userId: localUserId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      amount: true,
+      currency: true,
+      status: true,
+      courseIds: true,
+      createdAt: true,
+    },
+  })
+
+  return orders.map((o) => ({
+    id: o.id,
+    amount: o.amount,
+    currency: o.currency,
+    status: o.status,
+    courseIds: o.courseIds,
+    // JSON has no Date; the client formats this for display.
+    createdAt: o.createdAt.toISOString(),
+  }))
+}
+
 /**
  * Create a new Razorpay order or reuse a recently created pending order (within 15 mins).
- */
-export async function createRazorpayOrder({
+ */export async function createRazorpayOrder({
   courseIds,
-  userId,
+  localUserId,
   userEmail,
   userName,
 }: CreateOrderParams): Promise<CreateOrderResult> {
@@ -69,10 +119,10 @@ export async function createRazorpayOrder({
   }
 
   // 1. Guard against duplicate purchase if user is already enrolled
-  if (userId) {
+  if (localUserId) {
     const existingEnrollments = await prisma.enrollment.findMany({
       where: {
-        userId,
+        userId: localUserId,
         courseId: { in: courseIds },
       },
       include: { course: { select: { title: true } } },
@@ -106,11 +156,11 @@ export async function createRazorpayOrder({
   }
 
   // 4. Pending order deduplication: check if an identical order was created within the last 15 mins
-  if (userId) {
+  if (localUserId) {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
     const existingPendingOrder = await prisma.order.findFirst({
       where: {
-        userId,
+        userId: localUserId,
         status: "PENDING",
         amount: totalPaise,
         createdAt: { gte: fifteenMinutesAgo },
@@ -142,14 +192,14 @@ export async function createRazorpayOrder({
     receipt,
     notes: {
       courseIds: courseIds.join(","),
-      userId: userId ?? "",
+      userId: localUserId ?? "",
       userEmail: userEmail ?? "",
     },
   })
 
   await prisma.order.create({
     data: {
-      userId: userId ?? null,
+      userId: localUserId ?? null,
       userEmail: userEmail ?? null,
       userName: userName ?? null,
       amount: totalPaise,
@@ -173,7 +223,8 @@ export interface VerifyPaymentParams {
   razorpay_order_id: string
   razorpay_payment_id: string
   razorpay_signature: string
-  userId?: string | null
+  /** This app's `User.id` cuid, resolved by the route. See `CreateOrderParams`. */
+  localUserId?: string | null
 }
 
 export interface VerifyPaymentResult {
@@ -191,7 +242,7 @@ export async function verifyRazorpayPayment({
   razorpay_order_id,
   razorpay_payment_id,
   razorpay_signature,
-  userId,
+  localUserId,
 }: VerifyPaymentParams): Promise<VerifyPaymentResult> {
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
     throw new BadRequestError("Missing required Razorpay payment verification fields")
@@ -218,12 +269,14 @@ export async function verifyRazorpayPayment({
     throw new NotFoundError("Order not found")
   }
 
-  // Security guard against order hijacking
-  if (order.userId && userId && order.userId !== userId) {
+  // Security guard against order hijacking. Both sides are local cuids now
+  // (the route resolves the caller), so this compares like with like — comparing
+  // a stored cuid against Clerk's id would reject every legitimate buyer.
+  if (order.userId && localUserId && order.userId !== localUserId) {
     throw new ForbiddenError("Order belongs to another user account")
   }
 
-  const effectiveUserId = order.userId ?? userId
+  const effectiveUserId = order.userId ?? localUserId
 
   // Idempotency: if order is already marked PAID, return success
   if (order.status === "PAID") {
@@ -350,14 +403,15 @@ export async function processRazorpayWebhook({
 
 export interface FreeEnrollParams {
   courseIds: string[]
-  userId: string
+  /** This app's `User.id` cuid, resolved by the route. See `CreateOrderParams`. */
+  localUserId: string
 }
 
 export async function enrollFreeCourses({
   courseIds,
-  userId,
+  localUserId,
 }: FreeEnrollParams): Promise<{ success: boolean; enrolledCount: number }> {
-  if (!userId) {
+  if (!localUserId) {
     throw new UnauthorizedError("You must be logged in to enroll")
   }
 
@@ -385,8 +439,8 @@ export async function enrollFreeCourses({
   await prisma.$transaction(async (tx) => {
     for (const course of courses) {
       await tx.enrollment.upsert({
-        where: { userId_courseId: { userId, courseId: course.id } },
-        create: { userId, courseId: course.id },
+        where: { userId_courseId: { userId: localUserId, courseId: course.id } },
+        create: { userId: localUserId, courseId: course.id },
         update: {},
       })
     }
