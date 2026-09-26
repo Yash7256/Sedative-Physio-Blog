@@ -162,7 +162,7 @@ export function Home() {
             <div className="min-h-[220px] overflow-hidden sm:min-h-[340px]">
               <SmartImage
                 data-parallax
-                src="/team/akshay.png"
+                src="/team/akshay.jpg"
                 alt="Dr. Akshay Kumar"
                 className="h-full w-full object-cover object-center"
               />

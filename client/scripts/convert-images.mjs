@@ -17,13 +17,15 @@ import sharp from "sharp"
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 const PUBLIC_DIR = join(REPO_ROOT, "public")
 const RASTER_EXT = new Set([".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".tif"])
+const SKIP_NAMES = new Set(["favicon-192.png", "favicon-512.png", "apple-touch-icon.png"])
 
 function walk(dir) {
   const found = []
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name)
     if (entry.isDirectory()) found.push(...walk(full))
-    else if (entry.isFile() && RASTER_EXT.has(extname(entry.name).toLowerCase())) found.push(full)
+    else if (entry.isFile() && RASTER_EXT.has(extname(entry.name).toLowerCase()) && !SKIP_NAMES.has(entry.name))
+      found.push(full)
   }
   return found
 }

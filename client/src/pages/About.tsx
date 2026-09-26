@@ -67,7 +67,7 @@ export function About() {
         <div data-hero-fade className="mx-auto mt-8 max-w-[1280px] overflow-hidden rounded-[18px]">
           <SmartImage
             data-parallax
-            src="/mockup/about-head.svg"
+            src="/mockup/about-head.jpg"
             alt="Sedative Physio platform preview"
             loading="eager"
             fetchPriority="high"
@@ -171,7 +171,7 @@ export function About() {
                 </div>
               </div>
               <div className="relative min-h-[180px] overflow-hidden bg-[#1a1a1a] sm:min-h-[340px]">
-                <SmartImage src="/team/akshay.svg" alt="Dr. Akshay Kumar" className="h-full w-full object-cover object-top" />
+                <SmartImage src="/team/akshay.jpg" alt="Dr. Akshay Kumar" className="h-full w-full object-cover object-top" />
               </div>
             </div>
           </div>
@@ -183,7 +183,7 @@ export function About() {
           >
             <div className="grid grid-cols-2 lg:grid-cols-[.42fr_.58fr]">
               <div className="relative min-h-[180px] overflow-hidden bg-[#1a1a1a] sm:min-h-[340px]">
-                <SmartImage src="/team/anushka.svg" alt="Anushka Kumari" className="h-full w-full object-cover object-top" />
+                <SmartImage src="/team/anushka.jpg" alt="Anushka Kumari" className="h-full w-full object-cover object-top" />
               </div>
               <div className="relative bg-[#0b0b0c] p-3 text-[#ececec] sm:p-11">
                 <h3 className="text-[clamp(.75rem,3.5vw,2.8rem)] font-black leading-[1.1] tracking-[-.03em]">
