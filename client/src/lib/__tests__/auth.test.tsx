@@ -189,6 +189,54 @@ describe("signed in", () => {
   })
 })
 
+describe("updateProfile", () => {
+  it("sends a PATCH to /api/auth/me and adopts the stored result", async () => {
+    signedIn("user_2abc")
+    fetchMock.mockResolvedValueOnce(jsonResponse(PROFILE))
+
+    const { result } = renderHook(() => useAuthProfile(), { wrapper })
+    await waitFor(() => expect(result.current.profile).not.toBeNull())
+
+    const updated: AuthProfile = { ...PROFILE, fullName: "Ada King", collegeName: "King's College" }
+    fetchMock.mockResolvedValueOnce(jsonResponse(updated))
+
+    let saved: AuthProfile | undefined
+    await act(async () => {
+      saved = await result.current.updateProfile({
+        fullName: "Ada King",
+        collegeName: "King's College",
+      })
+    })
+
+    const [, init] = fetchMock.mock.calls[1]
+    expect(init.method).toBe("PATCH")
+    expect(JSON.parse(init.body)).toEqual({ fullName: "Ada King", collegeName: "King's College" })
+    // What the server kept, not what was submitted: a rejected edit must not
+    // leave the UI showing a value the database never accepted.
+    expect(saved).toEqual(updated)
+    expect(result.current.profile).toEqual(updated)
+  })
+
+  it("keeps the old profile when the write fails, and surfaces the error", async () => {
+    signedIn("user_2abc")
+    fetchMock.mockResolvedValueOnce(jsonResponse(PROFILE))
+
+    const { result } = renderHook(() => useAuthProfile(), { wrapper })
+    await waitFor(() => expect(result.current.profile).not.toBeNull())
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: "Name must be 120 characters or fewer" }, 400))
+
+    await act(async () => {
+      await expect(
+        result.current.updateProfile({ fullName: "x".repeat(200) }),
+      ).rejects.toThrow(/120 characters/)
+    })
+
+    // Losing the edit on failure would silently revert what the user just typed.
+    expect(result.current.profile).toEqual(PROFILE)
+  })
+})
+
 describe("provider contract", () => {
   it("refuses to be used outside the provider", () => {
     expect(() => renderHook(() => useAuthProfile())).toThrow(/inside <AuthProvider>/)

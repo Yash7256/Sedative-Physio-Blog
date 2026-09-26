@@ -36,6 +36,20 @@ interface AuthContextValue {
   /** Set only when the session is valid but the profile could not be read. */
   error: string | null
   refresh: () => void
+  /**
+   * Saves an edit to the caller's own profile and returns the stored result.
+   *
+   * The response body replaces local state outright rather than merging, so the
+   * UI reflects what the server actually kept — including a field the server
+   * declined to change, which a merge would quietly hide.
+   */
+  updateProfile: (patch: ProfileUpdate) => Promise<AuthProfile>
+}
+
+/** The fields this app owns and lets the user edit. Clerk owns the rest. */
+export interface ProfileUpdate {
+  fullName?: string
+  collegeName?: string
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -67,6 +81,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [reloadNonce, setReloadNonce] = useState(0)
 
   const refresh = useCallback(() => setReloadNonce((n) => n + 1), [])
+
+  const updateProfile = useCallback(async (patch: ProfileUpdate) => {
+    const updated = await apiJson<AuthProfile>("/api/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    })
+    setProfile(updated)
+    setError(null)
+    return updated
+  }, [])
 
   // Keyed on the Clerk user id rather than `isSignedIn`, so a token refresh or
   // a re-render on the same account does not re-fetch the profile.
@@ -135,8 +159,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isProfilePending,
       error,
       refresh,
+      updateProfile,
     }),
-    [isSignedIn, isLoaded, profile, isProfilePending, error, refresh],
+    [isSignedIn, isLoaded, profile, isProfilePending, error, refresh, updateProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

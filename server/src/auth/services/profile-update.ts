@@ -56,7 +56,10 @@ export async function updateAuthProfile(
     }
   }
 
-  if (fullName) {
+  // `!== undefined` rather than truthy: clearing a name must also reach Clerk,
+  // or the local row goes blank only until the next `user.updated` webhook
+  // mirrors the old name straight back.
+  if (fullName !== undefined) {
     await writeNameToClerk(clerkUserId, fullName)
   }
 
@@ -94,18 +97,37 @@ function normalise(value: string | undefined): string | null | undefined {
  * string has to be split. The last word becomes the surname, which is wrong for
  * mononyms and for names that put the family name first — but it is a display
  * string either way, and the app never parses it back apart.
+ *
+ * `null` clears both fields, which is what an emptied input means.
  */
-function writeNameToClerk(clerkUserId: string, fullName: string): Promise<unknown> {
+function writeNameToClerk(clerkUserId: string, fullName: string | null): Promise<unknown> {
   const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY ?? "" })
-  const parts = fullName.split(/\s+/)
-  const lastName = parts.length > 1 ? parts.pop()! : null
-  const firstName = parts.length > 0 ? parts.join(" ") : null
 
-  // `null` clears a field in Clerk's API, but `UpdateUserParams` types both as
-  // `string | undefined`, where `undefined` means "leave unchanged" — the two
-  // are not interchangeable and only `null` can drop a surname when a name
-  // shortens. The cast is confined to this one call.
-  const nameFields = { firstName, lastName } as { firstName?: string; lastName?: string }
+  let firstName: string | null
+  let lastName: string | null
+
+  if (fullName === null) {
+    firstName = null
+    lastName = null
+  } else {
+    const parts = fullName.split(/\s+/)
+    lastName = parts.length > 1 ? parts.pop()! : null
+    firstName = parts.length > 0 ? parts.join(" ") : null
+  }
+
+  // `null` clears a field in Clerk's API even though `UpdateUserParams` types
+  // both as `string | undefined`, where `undefined` means "leave unchanged" — the
+  // two are not interchangeable, and only `null` can drop a surname when a name
+  // shortens or blank a name outright.
+  //
+  // Verified against the API rather than assumed: `updateUser(id, { firstName:
+  // null, lastName: null })` comes back with both fields null on a subsequent
+  // read, and omitting the keys leaves the name alone. The type is narrower than
+  // the behaviour, so the cast is confined to this one call.
+  const nameFields = { firstName, lastName } as unknown as {
+    firstName?: string
+    lastName?: string
+  }
 
   return clerk.users
     .updateUser(clerkUserId, nameFields)

@@ -20,6 +20,20 @@ Node.js + Express API server for Sedative Physio.
   Returns `{ "clerkUserId", "userId", "role", "email", "fullName",
   "collegeName", "emailVerified" }`. Responds `401` if the session is valid but
   the local profile row is missing or has been tombstoned.
+- `PATCH /api/auth/me` — edits the caller's own profile. Accepts `fullName`
+  and/or `collegeName` as strings; an empty or whitespace-only value clears that
+  field. Email, phone, password and every other credential field are rejected —
+  they are Clerk's, and a write this API kept but Clerk did not would be undone
+  by the next webhook. `fullName` is written to Clerk *before* the local row, so
+  the failure mode is a name Clerk has that our row has not caught up with (the
+  webhook repairs it) rather than a local name the next `user.updated` silently
+  reverts. Returns the same shape as `GET`.
+- `GET /api/payments/my-orders` — the caller's own orders, newest first, as
+  `{ id, amount, currency, status, courseIds, createdAt }`. `amount` is in paise.
+  *Optional*-auth like `my-enrollments`: an anonymous caller gets `200 []` rather
+  than a `401`, so the same URL is safe to render in a shell that may not be
+  signed in. Order rows are scoped by the resolved local user id, never by a
+  client-supplied identifier.
 - `POST /api/auth/webhooks/clerk` — mirrors Clerk user state into the local
   profile. Authenticates via the Svix signature, not a Clerk session.
   Handles `user.created`, `user.updated` and `user.deleted`; unknown event

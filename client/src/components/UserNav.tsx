@@ -1,21 +1,20 @@
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react"
+import { SignedIn, SignedOut, SignInButton, useUser, useClerk } from "@clerk/clerk-react"
+import { Link, useNavigate } from "react-router-dom"
+import { LogOut, UserRound } from "lucide-react"
 
 import { useAuthProfile, type AuthProfile } from "@/lib/auth"
 
 /**
  * Session controls for the navbar.
  *
- * Clerk's own components drive the session UI — `UserButton` handles the avatar,
- * the account menu and sign-out — while everything the app needs beyond
- * "is there a session" comes from `useAuthProfile`, which reads this app's own
- * profile row over `/api/auth/me`.
- *
- * Sign-in opens as a modal rather than a route. The app has no `/sign-in` page,
- * and adding one just to host Clerk's component would mean another place for a
- * redirect to go wrong.
+ * When signed out: shows a "Sign in" text button that opens Clerk's modal.
+ * When signed in: shows the user's avatar (links to /account) + a sign-out button.
  */
 export function UserNav() {
   const { profile, isProfilePending, error } = useAuthProfile()
+  const { user } = useUser()
+  const { signOut } = useClerk()
+  const navigate = useNavigate()
 
   return (
     <div className="flex items-center gap-3 sm:gap-4">
@@ -28,22 +27,52 @@ export function UserNav() {
       </SignedOut>
 
       <SignedIn>
+        {/* Name label — hidden on small screens */}
         <ProfileLabel profile={profile} isPending={isProfilePending} error={error} />
-        <UserButton afterSignOutUrl="/" />
+
+        {/* Avatar — clicking navigates to the profile page */}
+        <Link
+          to="/account"
+          aria-label="View your profile"
+          className="shrink-0 overflow-hidden rounded-full ring-2 ring-transparent transition-all hover:ring-[#1683f6] focus-visible:ring-[#1683f6]"
+        >
+          <div className="size-8 sm:size-9 overflow-hidden rounded-full bg-[#13266b]">
+            {user?.imageUrl ? (
+              <img
+                src={user.imageUrl}
+                alt={user.fullName ?? "Your avatar"}
+                className="size-full object-cover"
+              />
+            ) : (
+              <div className="flex size-full items-center justify-center text-white">
+                <UserRound size={16} />
+              </div>
+            )}
+          </div>
+        </Link>
+
+        {/* Sign-out button */}
+        <button
+          type="button"
+          aria-label="Sign out"
+          title="Sign out"
+          onClick={() => {
+            // Navigate away either way. Signing out failing must not strand
+            // somebody on a page that is about to start 401ing, and swallowing
+            // the rejection keeps it out of the console as an unhandled error.
+            signOut()
+              .catch(() => {})
+              .finally(() => navigate("/"))
+          }}
+          className="site-nav-link hidden transition-opacity hover:opacity-55 sm:block"
+        >
+          <LogOut size={16} />
+        </button>
       </SignedIn>
     </div>
   )
 }
 
-/**
- * Shows who is signed in, from this app's profile rather than Clerk's user
- * object — so the label only appears once the whole chain has worked: Clerk
- * session, HttpOnly cookie, `/api/auth/me`, and the database row the webhook
- * created. That round trip is the thing worth surfacing, because a name
- * rendered here is proof the backend accepted the session.
- *
- * Hidden on small screens, where the navbar has no room for it.
- */
 function ProfileLabel({
   profile,
   isPending,
@@ -58,8 +87,6 @@ function ProfileLabel({
   return (
     <span
       className="hidden max-w-[16ch] truncate text-sm lg:block"
-      // Announced politely because it resolves on its own: a brand-new signup
-      // renders "Setting up…" until the Clerk webhook creates the profile row.
       aria-live="polite"
     >
       {error ? (

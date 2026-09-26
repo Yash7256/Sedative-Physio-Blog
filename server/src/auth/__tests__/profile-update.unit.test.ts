@@ -115,6 +115,21 @@ describe("updateAuthProfile", () => {
     expect(updateData()).toEqual({ collegeName: null })
   })
 
+  it("clears the name in Clerk too, not just locally", async () => {
+    await updateAuthProfile(CLERK_ID, { fullName: "   " })
+
+    // The local row alone would be undone by the next `user.updated` webhook,
+    // which mirrors Clerk's name back over it.
+    expect(clerkUpdateUser).toHaveBeenCalledWith(CLERK_ID, { firstName: null, lastName: null })
+    expect(updateData()).toEqual({ fullName: null })
+  })
+
+  it("drops a surname when the name gets shorter, without blanking the first name", async () => {
+    await updateAuthProfile(CLERK_ID, { fullName: "Ada" })
+
+    expect(clerkUpdateUser).toHaveBeenCalledWith(CLERK_ID, { firstName: "Ada", lastName: null })
+  })
+
   it("trims surrounding whitespace", async () => {
     await updateAuthProfile(CLERK_ID, { fullName: "  Ada Lovelace  " })
 
