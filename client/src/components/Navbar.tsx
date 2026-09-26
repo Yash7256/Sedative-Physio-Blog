@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Bell, Moon, Search, ShoppingCart, Sun } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useCart } from "../lib/cartContext"
+import { UserNav } from "./UserNav"
 
 const navItems = [
   { label: "Resources", to: "/resources" },
@@ -101,6 +102,8 @@ export function Navbar() {
               </span>
             )}
           </button>
+
+          <UserNav />
 
           <button type="button" aria-label="Notifications" title="Notifications" className="site-nav-link">
             <Bell className="size-[18px]" />

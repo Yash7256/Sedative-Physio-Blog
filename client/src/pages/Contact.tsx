@@ -1,6 +1,8 @@
 import { useState, useSyncExternalStore } from "react"
 import { ChevronDown, Loader2, Send } from "lucide-react"
 
+import { apiJson } from "../lib/api"
+
 /** Questions shown before the visitor opts into the rest, per breakpoint. */
 const VISIBLE_FAQ_COUNT = 4
 const VISIBLE_FAQ_COUNT_COMPACT = 2
@@ -56,8 +58,6 @@ const faqs = [
   },
 ]
 
-const API_BASE = import.meta.env.VITE_API_URL ?? ""
-
 export function Contact() {
   const [form, setForm] = useState({
     name: "",
@@ -104,15 +104,11 @@ export function Contact() {
     setSubmitting(true)
     setError(null)
     try {
-      const res = await fetch(`${API_BASE}/api/contact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? "Failed to send message")
-      }
+      // Through the shared client rather than a bare fetch, so this form picks up
+      // the same base URL and error handling as everything else. It is a public
+      // endpoint, so it does not need a session — but it should not be the one
+      // call that breaks when the API moves to its own origin.
+      await apiJson("/api/contact", { method: "POST", body: JSON.stringify(form) })
       setSubmitted(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.")

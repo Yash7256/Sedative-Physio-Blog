@@ -1,3 +1,5 @@
+import { ApiError, apiFetch, apiJson } from "./api"
+
 export type ResourceCategory = "notes" | "3d-models" | "courses" | "journals"
 
 export interface Resource {
@@ -93,27 +95,20 @@ export const categories: { key: ResourceCategory | "all"; label: string }[] = [
   { key: "journals", label: "Journals" },
 ]
 
-const API_BASE = import.meta.env.VITE_API_URL ?? ""
-
 /** Fetch the list of published notes from the backend. */
 export async function fetchNotes(): Promise<NoteSummary[]> {
-  const res = await fetch(`${API_BASE}/api/notes`)
-  if (!res.ok) throw new Error(`Failed to fetch notes: ${res.status}`)
-  return (await res.json()) as NoteSummary[]
+  return apiJson<NoteSummary[]>("/api/notes")
 }
 
 /** Request a presigned download URL for a note's R2 file. */
 export async function fetchNoteDownload(id: string): Promise<{ fileName: string; url: string }> {
-  const res = await fetch(`${API_BASE}/api/notes/${id}/download`)
-  if (!res.ok) throw new Error(`Failed to fetch download URL: ${res.status}`)
-  return (await res.json()) as { fileName: string; url: string }
+  return apiJson<{ fileName: string; url: string }>(`/api/notes/${id}/download`)
 }
 
 /** Trigger a browser download of the note PDF as a same-origin attachment. */
 export async function downloadNoteFile(id: string, fallbackName: string): Promise<void> {
   const safeName = fallbackName.trim().endsWith(".pdf") ? fallbackName.trim() : `${fallbackName.trim()}.pdf`
-  const res = await fetch(`${API_BASE}/api/notes/${id}/file?download=1`)
-  if (!res.ok) throw new Error(`Failed to fetch note file: ${res.status}`)
+  const res = await apiFetch(`/api/notes/${id}/file?download=1`)
   const blob = await res.blob()
   const objectUrl = URL.createObjectURL(blob)
   const a = document.createElement("a")
@@ -127,26 +122,22 @@ export async function downloadNoteFile(id: string, fallbackName: string): Promis
 
 /** Fetch the list of uploaded 3D models from the backend. */
 export async function fetchModels(): Promise<ModelSummary[]> {
-  const res = await fetch(`${API_BASE}/api/models`)
-  if (!res.ok) throw new Error(`Failed to fetch models: ${res.status}`)
-  return (await res.json()) as ModelSummary[]
+  return apiJson<ModelSummary[]>("/api/models")
 }
 
 /** Fetch the list of published courses from the backend. */
 export async function fetchCourses(): Promise<CourseSummary[]> {
-  const res = await fetch(`${API_BASE}/api/courses`)
-  if (!res.ok) throw new Error(`Failed to fetch courses: ${res.status}`)
-  return (await res.json()) as CourseSummary[]
+  return apiJson<CourseSummary[]>("/api/courses")
 }
 
 /** Fetch a single course's details (syllabus + tutor) by slug. */
 export async function fetchCourseDetail(slug: string): Promise<CourseDetail> {
-  const res = await fetch(`${API_BASE}/api/courses/${encodeURIComponent(slug)}`)
-  if (!res.ok) {
-    if (res.status === 404) throw new Error("Course not found")
-    throw new Error(`Failed to fetch course: ${res.status}`)
+  try {
+    return await apiJson<CourseDetail>(`/api/courses/${encodeURIComponent(slug)}`)
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) throw new Error("Course not found")
+    throw err
   }
-  return (await res.json()) as CourseDetail
 }
 
 /** Map a NoteSummary to the Resource shape used by the UI, or null if category is not a resource category. */
