@@ -158,3 +158,49 @@ Environment variables are loaded from `.env` (see `.env.example`):
 
 Point the Clerk webhook at `<your-api-host>/api/auth/webhooks/clerk`, and
 subscribe it to `user.created`, `user.updated` and `user.deleted`.
+
+### Webhook hardening
+
+The signature makes a delivery *authentic*; it says nothing about whether the
+payload is *well-formed*. Clerk's API still lets a caller put arbitrary strings
+in a name field, so `services/webhook-verify.ts` re-derives the payload field by
+field through `classifyClerkEvent` instead of trusting a cast.
+
+That check is load-bearing, not defensive decoration. The payload used to be
+consumed as `VerifiedClerkEvent` on the strength of `JSON.parse(...) as`, and
+everything downstream assumed that held:
+
+- `data: null` made `event.data.id` throw, turning one malformed delivery into a
+  500 and an unbounded Clerk retry loop.
+- A `data` object **with no `id`** was worse than a crash. Profile sync and
+  anonymisation both look a user up by `clerkUserId`, and Prisma treats
+  `undefined` as "omit this filter" — so the query silently degraded into "the
+  first user in the table". A `user.deleted` event with a missing `id` would
+  have anonymised an arbitrary account. Nothing reaches the database without a
+  non-empty string id now.
+
+Mirrored values are capped on the way in (id 128, email 254, name 120, role 32,
+20 addresses) so a single delivery cannot write unbounded text into a `varchar`.
+`readRole` additionally requires a slug, because a role is compared against a
+literal in a future authorisation check and must not be able to arrive as
+arbitrary text. `FULL_NAME_MAX_LENGTH` already declared this intent; the webhook
+is what enforces it.
+
+Anything signed but unusable returns **200** with `{"ignored": "<reason>"}` and
+a `console.warn`, never a non-2xx. Retrying an authentic payload that cannot
+become valid can never succeed, so failing it would only provoke a redelivery
+storm — the same reasoning that already applies to unknown event types.
+
+### Webhook rate limiting
+
+`deliveryLimiter` allows 300 requests/minute/IP and is mounted **ahead of**
+signature verification, so an unauthenticated caller cannot make the server
+perform an HMAC check and a JSON parse per request. It is a flood guard, not an
+auth control — the signature is still the only thing that grants access.
+
+The ceiling is set far above any real delivery rate on purpose. Clerk retries on
+non-2xx and bursts on bulk changes and dashboard test events, so a limit tight
+enough to matter against an attacker would also 429 a legitimate burst, and each
+429 provokes more deliveries. 429 is retryable and Clerk backs off, so the limit
+clears itself. `trust proxy` is set to 1, so `req.ip` reflects the client rather
+than the load balancer.
