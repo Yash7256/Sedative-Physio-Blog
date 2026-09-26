@@ -21,11 +21,15 @@ export const COLLEGE_NAME_MAX_LENGTH = 160
  * other credential events from the old custom auth. Clerk owns those and does
  * not report them to us, so writing them here would mean logging guesses.
  * What remains are the events this app is actually authoritative for.
+ *
+ * A plain re-sync of an already-linked user is deliberately not an event:
+ * Clerk emits `user.updated` for routine changes like a name or avatar change,
+ * and logging each one would bury the create/relink/anonymise rows that
+ * actually matter.
  */
 export const AUDIT_EVENT = {
   PROFILE_CREATED: "profile_created",
   PROFILE_RELINKED: "profile_relinked",
-  PROFILE_SYNCED: "profile_synced",
   PROFILE_ANONYMISED: "profile_anonymised",
 } as const
 
