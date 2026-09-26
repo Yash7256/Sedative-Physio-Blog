@@ -29,6 +29,12 @@ export function createApp() {
   // disable Express's built-in ETag generation so they can't collide.
   app.set("etag", false)
 
+  // On Vercel every request crosses one proxy hop, so without this req.ip is
+  // the shared proxy address and all visitors collide in one rate-limit bucket.
+  // Trust exactly one hop rather than true: with true a client could send its
+  // own X-Forwarded-For and spoof its way past the limiters.
+  app.set("trust proxy", 1)
+
   app.use(helmet())
   app.use(
     cors({

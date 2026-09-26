@@ -1,5 +1,5 @@
 import { Router } from "express"
-import rateLimit from "express-rate-limit"
+import rateLimit, { ipKeyGenerator } from "express-rate-limit"
 
 import { prisma } from "../../lib/prisma.js"
 import { handleError } from "../../lib/errors.js"
@@ -35,7 +35,7 @@ const emailLimiter = rateLimit({
     const email = (req.body as { email?: unknown } | undefined)?.email
     return typeof email === "string" && email.trim()
       ? `reset:${email.trim().toLowerCase()}`
-      : `reset-unknown:${req.ip ?? ""}`
+      : `reset-unknown:${ipKeyGenerator(req.ip ?? "0.0.0.0")}`
   },
   message: { error: "Too many reset requests for this email. Please try again later." },
 })
