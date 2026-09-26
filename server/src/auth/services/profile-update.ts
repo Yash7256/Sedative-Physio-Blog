@@ -1,6 +1,5 @@
-import { createClerkClient } from "@clerk/backend"
-
 import { BadRequestError, GatewayError, NotFoundError } from "../../lib/errors.js"
+import { getClerkClient } from "../../lib/clerk.js"
 import { prisma } from "../../lib/prisma.js"
 import { COLLEGE_NAME_MAX_LENGTH, FULL_NAME_MAX_LENGTH } from "../constants.js"
 import { getAuthProfile, type AuthProfile } from "./me.js"
@@ -101,7 +100,7 @@ function normalise(value: string | undefined): string | null | undefined {
  * `null` clears both fields, which is what an emptied input means.
  */
 function writeNameToClerk(clerkUserId: string, fullName: string | null): Promise<unknown> {
-  const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY ?? "" })
+  const clerk = getClerkClient()
 
   let firstName: string | null
   let lastName: string | null

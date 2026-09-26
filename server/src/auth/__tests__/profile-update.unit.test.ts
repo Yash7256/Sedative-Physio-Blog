@@ -13,8 +13,10 @@ vi.mock("../../lib/prisma.js", () => ({
   },
 }))
 
-vi.mock("@clerk/backend", () => ({
-  createClerkClient: () => ({ users: { updateUser: (...args: unknown[]) => clerkUpdateUser(...args) } }),
+// Mocked at the shared accessor rather than at the SDK, which is where the app
+// now builds its client.
+vi.mock("../../lib/clerk.js", () => ({
+  getClerkClient: () => ({ users: { updateUser: (...args: unknown[]) => clerkUpdateUser(...args) } }),
 }))
 
 const { updateAuthProfile } = await import("../services/profile-update.js")

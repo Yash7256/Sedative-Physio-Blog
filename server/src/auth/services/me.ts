@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js"
+import { ensureAuthProfile } from "./provision.js"
 
 /** The two ids this app jugles, which are easy to confuse and expensive to get wrong. */
 export interface AuthProfile {
@@ -17,10 +18,11 @@ export interface AuthProfile {
  * Resolves the caller's domain profile for `GET /api/auth/me`.
  *
  * The Clerk session proves *who is calling*; this query is what supplies
- * everything the app actually cares about (role, name, college). A valid
- * session with no profile row is a real state — the person signed up through
- * Clerk but the `user.created` webhook has not landed yet — so the route turns
- * a null return into 401 rather than serving a half-empty identity.
+ * everything the app actually cares about (role, name, college).
+ *
+ * A missing row is provisioned on the spot rather than reported, so a signed-in
+ * person whose `user.created` webhook was never delivered still gets their real
+ * name. That leaves one case for a null: Clerk itself no longer has the user.
  */
 export async function getAuthProfile(clerkUserId: string): Promise<AuthProfile | null> {
   const user = await prisma.user.findFirst({
@@ -51,6 +53,18 @@ export async function getAuthProfile(clerkUserId: string): Promise<AuthProfile |
 }
 
 /**
+ * The caller's profile, created from Clerk if it does not exist yet.
+ *
+ * This is the entry point the routes should use. The webhook remains the fast
+ * path — it fills the row before the user ever asks — but it is not a
+ * precondition, so provisioning here is what makes a missed or undeliverable
+ * webhook a non-event.
+ */
+export async function getOrCreateAuthProfile(clerkUserId: string): Promise<AuthProfile | null> {
+  return ensureAuthProfile(clerkUserId)
+}
+
+/**
  * Maps a Clerk user id to this app's `User.id`.
  *
  * `req.auth().userId` is Clerk's id (`user_…`) but every foreign key in the
@@ -62,9 +76,14 @@ export async function getAuthProfile(clerkUserId: string): Promise<AuthProfile |
  *     concludes the user has no enrollments or orders;
  *   - a *write* trips the foreign key outright, so the request 500s.
  *
- * Callers that only read can treat null as "signed in, but no profile row yet"
- * and degrade. Callers that write must treat null as unauthenticated, or they
- * will create unattributable rows.
+ * A row that does not exist yet is provisioned from Clerk, so an order placed
+ * moments after a first Google sign-in is still attributed to the person who
+ * placed it. Without that, `create-order` runs with a null id and the order only
+ * becomes attributable if some later request happens to have a row to link it —
+ * which is exactly the request that was blocked on the row in the first place.
+ *
+ * Null still means "not attributable": either nobody is signed in, or Clerk no
+ * longer knows this user. Callers that write must treat it as unauthenticated.
  */
 export async function resolveLocalUserId(
   clerkUserId: string | null | undefined,
@@ -76,6 +95,8 @@ export async function resolveLocalUserId(
     where: { clerkUserId, deletedAt: null },
     select: { id: true },
   })
+  if (user) return user.id
 
-  return user?.id ?? null
+  const profile = await ensureAuthProfile(clerkUserId)
+  return profile?.userId ?? null
 }

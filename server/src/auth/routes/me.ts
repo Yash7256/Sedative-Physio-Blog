@@ -3,7 +3,7 @@ import { Router } from "express"
 import { readAuthUserId } from "../../lib/clerk.js"
 import { handleError } from "../../lib/errors.js"
 import { requireAuth } from "../middleware/require-auth.js"
-import { getAuthProfile } from "../services/me.js"
+import { getOrCreateAuthProfile } from "../services/me.js"
 import { updateAuthProfile } from "../services/profile-update.js"
 
 export const meRouter = Router()
@@ -16,11 +16,11 @@ meRouter.get("/", requireAuth, async (req, res) => {
   try {
     // requireAuth already rejected anonymous callers, so this cannot be null
     // here; the re-read is the cost of not threading it through request state.
-    const profile = await getAuthProfile(readAuthUserId(req)!)
+    const profile = await getOrCreateAuthProfile(readAuthUserId(req)!)
 
-    // The Clerk session is valid but there is no local profile — either the
-    // `user.created` webhook has not landed yet, or the row was tombstoned
-    // after a Clerk-side delete.
+    // Null now means Clerk itself no longer has this user — the account was
+    // deleted on Clerk's side. A merely *unsynced* profile no longer reaches
+    // this point, because it is created from Clerk on the spot.
     if (!profile) {
       res.status(401).json({ error: "Account not found." })
       return

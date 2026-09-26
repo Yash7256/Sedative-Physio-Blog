@@ -1,3 +1,4 @@
+import { createClerkClient } from "@clerk/backend"
 import type { ExpressRequestWithAuth } from "@clerk/express"
 import type { Request } from "express"
 
@@ -44,4 +45,28 @@ export function readAuth(req: Request): SessionAuth | null {
  */
 export function readAuthUserId(req: Request): string | null {
   return readAuth(req)?.userId ?? null
+}
+
+/**
+ * The server-side Clerk client, created once.
+ *
+ * `createClerkClient` builds a client with its own fetch plumbing and config
+ * parsing, so calling it per request re-does that work for no benefit. Held in a
+ * module global rather than created at import time so that a missing
+ * `CLERK_SECRET_KEY` surfaces at the call site with a clear message instead of
+ * during module load, where the stack trace points at this file.
+ */
+let clerkClient: ReturnType<typeof createClerkClient> | null = null
+
+export function getClerkClient(): ReturnType<typeof createClerkClient> {
+  if (!clerkClient) {
+    const secretKey = process.env.CLERK_SECRET_KEY
+    if (!secretKey) {
+      // Without this the SDK's own error is about a request to a null key, which
+      // says nothing about the missing environment variable.
+      throw new Error("CLERK_SECRET_KEY is not set")
+    }
+    clerkClient = createClerkClient({ secretKey })
+  }
+  return clerkClient
 }

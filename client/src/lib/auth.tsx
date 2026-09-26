@@ -57,13 +57,13 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 /**
  * Backoff for the "signed in, profile not there yet" case.
  *
- * Clerk returns from the sign-up flow as soon as the session exists, while the
- * `user.created` webhook is still in flight, so the first `/api/auth/me` can
- * legitimately 401 with "Account not found". Retrying for a few seconds turns
- * that from a dead end — a signed-in user with no profile and no way to get one
- * without a manual reload — into a brief spinner. The window is deliberately
- * short: past a few seconds the webhook is not merely slow, it has failed, and
- * pretending otherwise just delays the error.
+ * The server now creates a missing profile from Clerk on the spot, so a 401 no
+ * longer means "the webhook has not landed" — it means Clerk itself no longer
+ * has the user. A small retry window is still kept, for the one case that is
+ * genuinely transient: the very first `/api/auth/me` can be answered by a
+ * request that provisions the row, and a second attempt should not be needed but
+ * costs nothing if it is. The window stays short because past a few seconds the
+ * answer is not going to change, and pretending otherwise just delays the error.
  */
 const PROFILE_RETRY_DELAYS_MS = [400, 800, 1600, 3200]
 

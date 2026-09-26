@@ -17,6 +17,13 @@ vi.mock("../../lib/prisma.js", () => ({
   },
 }))
 
+// Provisioning is mocked so this file stays about id translation; the
+// provisioning itself is covered in `auth/__tests__/provision.unit.test.ts`.
+const ensureAuthProfile = vi.fn()
+vi.mock("../../auth/services/provision.js", () => ({
+  ensureAuthProfile: (...args: unknown[]) => ensureAuthProfile(...args),
+}))
+
 const { resolveLocalUserId } = await import("../../auth/services/me.js")
 const { getUserEnrollments, getUserOrders } = await import("../service.js")
 
@@ -26,6 +33,7 @@ const LOCAL_ID = "cmuiojrf80000xbi102lain8k"
 beforeEach(() => {
   vi.clearAllMocks()
   userFindFirst.mockResolvedValue({ id: LOCAL_ID })
+  ensureAuthProfile.mockResolvedValue(null)
   enrollmentFindMany.mockResolvedValue([{ courseId: "course_a" }])
   orderFindMany.mockResolvedValue([])
 })
@@ -49,8 +57,21 @@ describe("resolveLocalUserId", () => {
     expect(userFindFirst).not.toHaveBeenCalled()
   })
 
-  it("returns null when no row matches, so writes can refuse", async () => {
+  it("provisions from Clerk when the webhook never delivered a row", async () => {
+    // A first purchase moments after a Google sign-in lands here. Refusing would
+    // create an order nobody can be credited to, and the row it was waiting for
+    // is the very thing that is missing.
     userFindFirst.mockResolvedValue(null)
+    ensureAuthProfile.mockResolvedValue({ userId: LOCAL_ID })
+
+    await expect(resolveLocalUserId(CLERK_ID)).resolves.toBe(LOCAL_ID)
+    expect(ensureAuthProfile).toHaveBeenCalledWith(CLERK_ID)
+  })
+
+  it("returns null when Clerk has no such user, so writes can refuse", async () => {
+    userFindFirst.mockResolvedValue(null)
+    ensureAuthProfile.mockResolvedValue(null)
+
     await expect(resolveLocalUserId("user_2missing")).resolves.toBeNull()
   })
 })

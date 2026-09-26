@@ -18,8 +18,9 @@ Node.js + Express API server for Sedative Physio.
 - `GET /api/auth/me` — the caller's identity and local profile. Requires a valid
   Clerk session (cookie or `Authorization: Bearer <clerk session token>`).
   Returns `{ "clerkUserId", "userId", "role", "email", "fullName",
-  "collegeName", "emailVerified" }`. Responds `401` if the session is valid but
-  the local profile row is missing or has been tombstoned.
+  "collegeName", "emailVerified" }`. Creates the profile row from Clerk if it does
+  not exist yet (see *Just-in-time provisioning*), so `401` now means Clerk itself
+  no longer has the user — a deleted account — rather than "the webhook is late".
 - `PATCH /api/auth/me` — edits the caller's own profile. Accepts `fullName`
   and/or `collegeName` as strings; an empty or whitespace-only value clears that
   field. Email, phone, password and every other credential field are rejected —
@@ -45,6 +46,59 @@ refresh, password reset, email/phone verification, social login — is Clerk's
 and is exercised through the Clerk SDK. Those routes intentionally do not exist
 here; reimplementing them would mean two authorities disagreeing about who is
 signed in.
+
+### Just-in-time provisioning
+
+The webhook is the fast path, not a precondition. A Clerk webhook can only be
+delivered to a publicly reachable HTTPS URL, so a sign-in on a laptop has nowhere
+to send it — and until the row exists there is no name, role or college to show,
+which presents as a signed-in user with a blank account rather than as an error.
+
+So a verified session with no row creates one on the spot, by reading the user
+from Clerk's Backend API and running it through the same `syncProfileFromClerk`
+the webhook uses. Clerk is the source of truth, so this copies rather than
+invents, and it inherits the sync's rules: a pre-Clerk row with the same email is
+adopted rather than duplicated, an existing `fullName` is not overwritten, and a
+tombstoned row is never revived. It applies to `resolveLocalUserId` as well, so
+an order placed right after a first sign-in is still attributable.
+
+A Clerk outage propagates as a `5xx` rather than being flattened into the missing-
+user case, because a permanent `401` the user cannot act on is worse than a
+retryable error.
+
+What this cannot conjure is data Clerk never received. A Google sign-in yields an
+email, a name and an avatar, and that is the whole set — see *What OAuth
+actually gives us*.
+
+### What OAuth actually gives us
+
+For a Google sign-in, Clerk holds three things: **email** (verified), **name**
+(`firstName` + `lastName`) and **avatar** (`imageUrl`). The app mirrors the first
+two into `User`; the avatar is read live from Clerk and never stored, so a Google
+avatar change shows up without a sync.
+
+That is the whole set, and it is worth being blunt about why, because "fetch
+everything from Google automatically" is not on offer:
+
+- **Date of birth is not available.** Google exposes it only through
+  `userinfo.birthday`, which is a restricted scope limited to verified apps, and
+  Clerk neither requests nor surfaces it. There is no `birthday` on Clerk's user
+  resource to mirror from, and no column here to put it in. If the product needs
+  a date of birth it has to be a field the person fills in — which is also the
+  better privacy position, since a DOB is personal data that a sign-in button
+  should not quietly acquire.
+- **Only the primary email is mirrored.** Secondary addresses and phone numbers
+  stay in Clerk.
+- **Names are split on the last space** when written back to Clerk, which is
+  wrong for mononyms and for names that put the family name first. It is a
+  display string and is never parsed back apart.
+- **No gender, location or contacts.** Google does not return them, and Clerk does
+  not model them.
+
+`User.fullName` is also only ever *filled in*, never overwritten, by the sync —
+it is collected in this app, so letting a Clerk-side rename blank it out would
+destroy something the person typed deliberately. An explicit edit through
+`PATCH /api/auth/me` does overwrite it, because that is the user asking.
 
 ### Who owns what
 
