@@ -24,7 +24,6 @@ vi.mock("@clerk/clerk-react", () => ({
   SignedIn: ({ children }: { children: React.ReactNode }) => (clerk.isSignedIn ? <>{children}</> : null),
   SignedOut: ({ children }: { children: React.ReactNode }) => (clerk.isSignedIn ? null : <>{children}</>),
   SignInButton: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  SignUpButton: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   UserButton: () => <button type="button">Account menu</button>,
 }))
 
@@ -66,6 +65,13 @@ describe("navbar session-aware actions", () => {
 
     expect(cartButton()).not.toBeInTheDocument()
     expect(notificationButton()).not.toBeInTheDocument()
+  })
+
+  it("offers no sign-up control", () => {
+    clerk.isSignedIn = false
+    renderNavbar()
+
+    expect(screen.queryByRole("button", { name: /sign ?up/i })).not.toBeInTheDocument()
   })
 
   it("swaps in the cart and notification icons once signed in", () => {

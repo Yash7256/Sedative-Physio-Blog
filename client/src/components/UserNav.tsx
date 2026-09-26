@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/clerk-react"
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react"
 
 import { useAuthProfile, type AuthProfile } from "@/lib/auth"
 
@@ -10,9 +10,9 @@ import { useAuthProfile, type AuthProfile } from "@/lib/auth"
  * "is there a session" comes from `useAuthProfile`, which reads this app's own
  * profile row over `/api/auth/me`.
  *
- * Both sign-in and sign-up open as modals rather than routes. The app has no
- * `/sign-in` or `/sign-up` page, and adding two just to host Clerk's components
- * would mean two more places for a redirect to go wrong.
+ * Sign-in opens as a modal rather than a route. The app has no `/sign-in` page,
+ * and adding one just to host Clerk's component would mean another place for a
+ * redirect to go wrong.
  */
 export function UserNav() {
   const { profile, isProfilePending, error } = useAuthProfile()
@@ -25,14 +25,6 @@ export function UserNav() {
             Sign in
           </button>
         </SignInButton>
-        <SignUpButton mode="modal">
-          <button
-            type="button"
-            className="hidden rounded-full bg-[#1683f6] px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 sm:inline-flex"
-          >
-            Sign up
-          </button>
-        </SignUpButton>
       </SignedOut>
 
       <SignedIn>
