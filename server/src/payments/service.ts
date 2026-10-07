@@ -9,6 +9,32 @@ import {
   UnauthorizedError,
 } from "../lib/errors.js"
 
+/**
+ * Timing-safe hex string comparison. Returns false if lengths differ.
+ */
+function safeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Compute HMAC-SHA256 signature for Razorpay payment verification.
+ */
+export function computePaymentSignature(secret: string, orderId: string, paymentId: string): string {
+  return crypto.createHmac("sha256", secret).update(`${orderId}|${paymentId}`).digest("hex")
+}
+
+/**
+ * Compute HMAC-SHA256 signature for Razorpay webhook verification.
+ */
+export function computeWebhookSignature(secret: string, rawBody: string): string {
+  return crypto.createHmac("sha256", secret).update(rawBody).digest("hex")
+}
+
 function getRazorpayClient(): Razorpay {
   const key_id = process.env.RAZORPAY_KEY_ID
   const key_secret = process.env.RAZORPAY_KEY_SECRET
@@ -23,9 +49,13 @@ function getRazorpayClient(): Razorpay {
 }
 
 export function getPaymentConfig(): { keyId: string } {
-  return {
-    keyId: process.env.RAZORPAY_KEY_ID ?? "",
+  const keyId = process.env.RAZORPAY_KEY_ID
+  if (!keyId || keyId.startsWith("rzp_test_...")) {
+    throw new GatewayError(
+      "Razorpay credentials not configured. Please set RAZORPAY_KEY_ID in environment variables.",
+    )
   }
+  return { keyId }
 }
 
 export interface CreateOrderParams {
@@ -262,11 +292,9 @@ export async function verifyRazorpayPayment({
     throw new GatewayError("RAZORPAY_KEY_SECRET is not configured")
   }
 
-  const hmac = crypto.createHmac("sha256", secret)
-  hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`)
-  const generatedSignature = hmac.digest("hex")
+  const generatedSignature = computePaymentSignature(secret, razorpay_order_id, razorpay_payment_id)
 
-  if (generatedSignature !== razorpay_signature) {
+  if (!safeEqualHex(generatedSignature, razorpay_signature)) {
     throw new BadRequestError("Invalid payment signature")
   }
 
@@ -357,12 +385,9 @@ export async function processRazorpayWebhook({
     throw new GatewayError("RAZORPAY_WEBHOOK_SECRET is not configured")
   }
 
-  const expectedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody)
-    .digest("hex")
+  const expectedSignature = computeWebhookSignature(secret, rawBody)
 
-  if (expectedSignature !== signature) {
+  if (!safeEqualHex(expectedSignature, signature)) {
     throw new BadRequestError("Invalid webhook signature")
   }
 
