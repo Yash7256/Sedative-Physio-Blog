@@ -337,8 +337,23 @@ export function Cart() {
         }
 
         // ── Enroll free items only AFTER paid flow confirmed ───────────────
+        // If this fails, the payment already succeeded and the paid courses are
+        // enrolled. Rethrowing would show "Checkout failed" with a non-cleared
+        // cart — the user would hit "already enrolled" on retry. Instead: clear
+        // the cart, open the success modal for the paid items, and show a
+        // non-blocking notice so the user knows to add the free courses manually.
         if (freeIds.length > 0) {
-          await enrollFreeCourses(freeIds)
+          try {
+            await enrollFreeCourses(freeIds)
+          } catch {
+            // Payment succeeded — clear cart and show success regardless.
+            clearCart()
+            setSuccessModalData({ open: true, items: purchased, paymentId, orderId })
+            setCheckoutError(
+              "Your payment succeeded, but we couldn't add your free courses. Please try adding them again from the Resources page.",
+            )
+            return
+          }
         }
       } else {
         // ── Free-only cart: enroll immediately ─────────────────────────────
