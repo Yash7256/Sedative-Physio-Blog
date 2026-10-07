@@ -1,4 +1,5 @@
 import { Router } from "express"
+import rateLimit, { ipKeyGenerator } from "express-rate-limit"
 import { getAuthProfile, resolveLocalUserId } from "../auth/services/me.js"
 import { readAuthUserId as readClerkUserId } from "../lib/clerk.js"
 import { BadRequestError, handleError, UnauthorizedError } from "../lib/errors.js"
@@ -24,6 +25,42 @@ export const paymentsRouter = Router()
 // `User.id` cuid. Passing Clerk's id straight through reads as "no enrollments"
 // (the query matches nothing) and writes as a foreign key violation, so every
 // caller below receives a local row id or null.
+
+const FIFTEEN_MIN_MS = 15 * 60 * 1000
+
+/** Key by userId when present, else by IP — so rate limits are per-account not per-IP */
+function userOrIpKey(req: import("express").Request): string {
+  const clerkUserId = readClerkUserId(req)
+  if (clerkUserId) return `payment:user:${clerkUserId}`
+  return `payment:ip:${ipKeyGenerator(req.ip ?? "0.0.0.0")}`
+}
+
+const createOrderLimiter = rateLimit({
+  windowMs: FIFTEEN_MIN_MS,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: userOrIpKey,
+  message: { error: "Too many requests, please try again later." },
+})
+
+const verifyLimiter = rateLimit({
+  windowMs: FIFTEEN_MIN_MS,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: userOrIpKey,
+  message: { error: "Too many requests, please try again later." },
+})
+
+const freeEnrollLimiter = rateLimit({
+  windowMs: FIFTEEN_MIN_MS,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: userOrIpKey,
+  message: { error: "Too many requests, please try again later." },
+})
 
 // GET /api/payments/config — returns Razorpay keyId
 paymentsRouter.get("/config", (_req, res) => {
@@ -65,7 +102,7 @@ paymentsRouter.get("/my-orders", async (req, res) => {
 })
 
 // POST /api/payments/create-order — creates or reuses a Razorpay order
-paymentsRouter.post("/create-order", async (req, res) => {
+paymentsRouter.post("/create-order", createOrderLimiter, async (req, res) => {
   try {
     const { courseIds } = req.body
     const clerkUserId = readClerkUserId(req)
@@ -96,7 +133,7 @@ paymentsRouter.post("/create-order", async (req, res) => {
 })
 
 // POST /api/payments/verify — verifies payment signature and registers enrollment atomically
-paymentsRouter.post("/verify", async (req, res) => {
+paymentsRouter.post("/verify", verifyLimiter, async (req, res) => {
   try {
     const localUserId = await resolveLocalUserId(readClerkUserId(req))
 
@@ -120,7 +157,7 @@ paymentsRouter.post("/verify", async (req, res) => {
 })
 
 // POST /api/payments/free-enroll — enrolls logged-in user in free course(s)
-paymentsRouter.post("/free-enroll", async (req, res) => {
+paymentsRouter.post("/free-enroll", freeEnrollLimiter, async (req, res) => {
   try {
     // Unlike the read paths above this one must reject: a free enrollment with
     // no owner would be a row nobody can ever see or revoke.
