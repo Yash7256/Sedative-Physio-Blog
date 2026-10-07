@@ -198,6 +198,49 @@ describe("editing", () => {
     expect(screen.getByRole("button", { name: /save changes/i })).toBeDisabled()
   })
 
+  it("saves the college for an account that has no name yet", async () => {
+    // A Google account with a blank name mirrors as fullName: null. Save used to
+    // be gated on the name field, so the college — the only field such an account
+    // can fill in — could never be saved.
+    route({ ...PROFILE, fullName: null, collegeName: null })
+    renderAccount()
+    await waitFor(() => expect(screen.getByRole("button", { name: /edit profile/i })).toBeInTheDocument())
+
+    await userEvent.click(screen.getByRole("button", { name: /edit profile/i }))
+
+    expect(screen.getByLabelText(/full name/i)).toHaveValue("")
+    await userEvent.type(screen.getByLabelText(/college/i), "Trinity College")
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeEnabled()
+
+    await userEvent.click(screen.getByRole("button", { name: /save changes/i }))
+
+    await waitFor(() => {
+      const patch = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === "PATCH")
+      expect(patch).toBeDefined()
+      // Only the college is sent. An empty fullName would be read server-side as
+      // "clear this field", and there is nothing to clear.
+      expect(JSON.parse((patch![1] as RequestInit).body as string)).toEqual({
+        collegeName: "Trinity College",
+      })
+    })
+  })
+
+  it("leaves an untouched field out of the patch", async () => {
+    renderAccount()
+    await waitFor(() => expect(screen.getByRole("button", { name: /edit profile/i })).toBeInTheDocument())
+    await userEvent.click(screen.getByRole("button", { name: /edit profile/i }))
+
+    await userEvent.clear(screen.getByLabelText(/full name/i))
+    await userEvent.type(screen.getByLabelText(/full name/i), "Ada King")
+
+    await userEvent.click(screen.getByRole("button", { name: /save changes/i }))
+
+    await waitFor(() => {
+      const patch = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === "PATCH")
+      expect(JSON.parse((patch![1] as RequestInit).body as string)).toEqual({ fullName: "Ada King" })
+    })
+  })
+
   it("keeps the form open and shows the error when the save fails", async () => {
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (url.includes("/api/auth/me") && init?.method === "PATCH") {

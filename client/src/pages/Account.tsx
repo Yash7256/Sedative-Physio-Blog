@@ -356,20 +356,48 @@ function EditProfileForm({
   onSave: ReturnType<typeof useAuthProfile>["updateProfile"]
 }) {
   const { profile } = useAuthProfile()
-  const [fullName, setFullName] = useState(profile?.fullName ?? "")
-  const [collegeName, setCollegeName] = useState(profile?.collegeName ?? "")
+
+  /**
+   * The values the form opened with, so a save sends only what was edited.
+   *
+   * Sending both fields on every save is what made this form a dead end for a
+   * name-less account: the server reads an empty string as "clear this field",
+   * so always sending `fullName` risked wiping a name, and the guard against
+   * that — a Save button disabled while the name was blank — locked the *college*
+   * behind it too. Somebody whose Clerk account carries no name (a Google account
+   * with a blank name mirrors as `fullName: null`) could therefore never set a
+   * college at all.
+   */
+  const initialName = profile?.fullName ?? ""
+  const initialCollege = profile?.collegeName ?? ""
+  const [fullName, setFullName] = useState(initialName)
+  const [collegeName, setCollegeName] = useState(initialCollege)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  /**
+   * A name only counts as edited while it still has content. Blanking the field
+   * is a no-op rather than a request to delete the identity, which is what keeps
+   * the original protection against saving a nameless profile — it just no
+   * longer stops an unrelated field from being saved.
+   */
+  const nameDirty = fullName.trim().length > 0 && fullName.trim() !== initialName.trim()
+  const collegeDirty = collegeName.trim() !== initialCollege.trim()
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!nameDirty && !collegeDirty) return
+
     setIsSaving(true)
     setSaveError(null)
     try {
       // Closing on success is the confirmation: the header above re-renders with
       // the saved name, and a separate "Saved!" flash would only be seen on the
       // form that just disappeared.
-      await onSave({ fullName, collegeName })
+      await onSave({
+        ...(nameDirty ? { fullName: fullName.trim() } : {}),
+        ...(collegeDirty ? { collegeName: collegeName.trim() } : {}),
+      })
       onCancel()
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Could not save your profile.")
@@ -387,7 +415,7 @@ function EditProfileForm({
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             maxLength={120}
-            required
+            placeholder="Optional"
             className="rounded-xl border border-black/10 bg-white px-4 py-2.5 text-[#1e2233] outline-none focus:border-[#1683f6] dark:border-white/10 dark:bg-white/[0.06] dark:text-white"
           />
         </label>
@@ -412,7 +440,7 @@ function EditProfileForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={isSaving || fullName.trim().length === 0}
+          disabled={isSaving || (!nameDirty && !collegeDirty)}
           className="flex items-center gap-2 rounded-xl bg-[#1683f6] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isSaving && <Loader2 size={16} className="animate-spin" />}
