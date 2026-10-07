@@ -256,6 +256,19 @@ function CourseDetails({ slug, expanded }: { slug: string; expanded: boolean }) 
   )
 }
 
+/* ─── CheckoutNotice — shared alert element used in both branches ── */
+
+function CheckoutNotice({ message }: { message: string }) {
+  return (
+    <p
+      role="alert"
+      className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300"
+    >
+      {message}
+    </p>
+  )
+}
+
 /* ─── main Cart page ──────────────────────────────────────────── */
 
 export function Cart() {
@@ -398,6 +411,11 @@ export function Cart() {
             <p className="mt-3 max-w-[400px] text-sm leading-relaxed text-[#65676a]">
               Browse our courses and add ones you're interested in. Your selections will appear here.
             </p>
+            {checkoutError && (
+              <div className="mt-6 w-full max-w-[400px]">
+                <CheckoutNotice message={checkoutError} />
+              </div>
+            )}
             <Link
               to="/resources"
               className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#111214] px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"
@@ -581,14 +599,7 @@ export function Cart() {
                   checkout stopped is next to the control that starts it, and
                   kept in the DOM (rather than only on failure) so the layout
                   does not jump. */}
-              {checkoutError && (
-                <p
-                  role="alert"
-                  className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300"
-                >
-                  {checkoutError}
-                </p>
-              )}
+              {checkoutError && <CheckoutNotice message={checkoutError} />}
 
               {/* Checkout. An enrollment needs an owner, so the server rejects
                   this anonymously — better to ask for the session first and keep

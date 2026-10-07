@@ -124,7 +124,11 @@ const checkoutButton = () =>
 
 beforeEach(() => {
   vi.clearAllMocks()
-  cartState.clearCart = vi.fn()
+  // Make clearCart empty the items array so the component re-renders to the
+  // empty-cart branch — matching what the real CartContext does. Without this,
+  // the component stays in the non-empty branch after checkout and the
+  // empty-state alert is never exercised.
+  cartState.clearCart = vi.fn(() => { cartState.items = [] })
   cartState.removeItem = vi.fn()
 })
 
