@@ -108,7 +108,8 @@ export async function getUserOrders(localUserId: string): Promise<UserOrder[]> {
 
 /**
  * Create a new Razorpay order or reuse a recently created pending order (within 15 mins).
- */export async function createRazorpayOrder({
+ */
+export async function createRazorpayOrder({
   courseIds,
   localUserId,
   userEmail,
@@ -118,12 +119,35 @@ export async function getUserOrders(localUserId: string): Promise<UserOrder[]> {
     throw new BadRequestError("At least one courseId is required")
   }
 
-  // 1. Guard against duplicate purchase if user is already enrolled
+  // Deduplicate incoming IDs
+  const dedupedIds = Array.from(new Set(courseIds))
+
+  // Fetch published course records
+  const courses = await prisma.course.findMany({
+    where: {
+      id: { in: dedupedIds },
+      isPublished: true,
+    },
+  })
+
+  if (courses.length === 0) {
+    throw new NotFoundError("Selected courses were not found or are not published")
+  }
+
+  // If count differs, some IDs were unavailable/unpublished
+  if (courses.length !== dedupedIds.length) {
+    throw new BadRequestError("Some selected courses are unavailable or not published")
+  }
+
+  // Use DB-verified IDs from here on
+  const verifiedIds = courses.map((c) => c.id)
+
+  // Guard against duplicate purchase if user is already enrolled
   if (localUserId) {
     const existingEnrollments = await prisma.enrollment.findMany({
       where: {
         userId: localUserId,
-        courseId: { in: courseIds },
+        courseId: { in: verifiedIds },
       },
       include: { course: { select: { title: true } } },
     })
@@ -136,26 +160,14 @@ export async function getUserOrders(localUserId: string): Promise<UserOrder[]> {
     }
   }
 
-  // 2. Fetch published course records
-  const courses = await prisma.course.findMany({
-    where: {
-      id: { in: courseIds },
-      isPublished: true,
-    },
-  })
-
-  if (courses.length === 0) {
-    throw new NotFoundError("Selected courses were not found or are not published")
-  }
-
-  // 3. Server-side price calculation
+  // Server-side price calculation
   const totalPaise = courses.reduce((sum, c) => sum + (c.isFree ? 0 : c.price), 0)
 
   if (totalPaise <= 0) {
     throw new BadRequestError("All selected courses are free. Please use free enrollment.")
   }
 
-  // 4. Pending order deduplication: check if an identical order was created within the last 15 mins
+  // Pending order deduplication: check if an identical order was created within the last 15 mins
   if (localUserId) {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
     const existingPendingOrder = await prisma.order.findFirst({
@@ -169,8 +181,8 @@ export async function getUserOrders(localUserId: string): Promise<UserOrder[]> {
 
     if (
       existingPendingOrder &&
-      existingPendingOrder.courseIds.length === courseIds.length &&
-      existingPendingOrder.courseIds.every((id) => courseIds.includes(id))
+      existingPendingOrder.courseIds.length === verifiedIds.length &&
+      existingPendingOrder.courseIds.every((id) => verifiedIds.includes(id))
     ) {
       return {
         orderId: existingPendingOrder.razorpayOrderId,
@@ -191,7 +203,7 @@ export async function getUserOrders(localUserId: string): Promise<UserOrder[]> {
     currency: "INR",
     receipt,
     notes: {
-      courseIds: courseIds.join(","),
+      courseIds: verifiedIds.join(","),
       userId: localUserId ?? "",
       userEmail: userEmail ?? "",
     },
@@ -206,7 +218,7 @@ export async function getUserOrders(localUserId: string): Promise<UserOrder[]> {
       currency: "INR",
       status: "PENDING",
       razorpayOrderId: razorpayOrder.id,
-      courseIds,
+      courseIds: verifiedIds,
     },
   })
 
@@ -215,7 +227,7 @@ export async function getUserOrders(localUserId: string): Promise<UserOrder[]> {
     amount: Number(razorpayOrder.amount),
     currency: razorpayOrder.currency,
     keyId,
-    courseIds,
+    courseIds: verifiedIds,
   }
 }
 
