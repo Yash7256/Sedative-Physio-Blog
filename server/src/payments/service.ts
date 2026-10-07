@@ -510,9 +510,19 @@ export async function processRazorpayWebhook({
       return { received: true, processed: false, event }
     }
 
+    // Only act when the order is PAID — do not process refunds for PENDING,
+    // FAILED, or already-REFUNDED orders.
+    if (order.status !== "PAID") {
+      console.log(
+        `[webhook] refund.processed ignored for order ${order.id} with status ${order.status}`,
+      )
+      return { received: true, processed: false, event }
+    }
+
     const isFullRefund = refundAmount !== undefined && refundAmount >= order.amount
 
     if (isFullRefund) {
+      // Full refund: mark REFUNDED and delete enrollments atomically.
       await prisma.$transaction(async (tx) => {
         await tx.order.update({
           where: { id: order.id },
@@ -520,7 +530,6 @@ export async function processRazorpayWebhook({
         })
 
         if (order.userId) {
-          // Delete enrollments for this user for the refunded courses
           for (const courseId of order.courseIds) {
             await tx.enrollment.deleteMany({
               where: { userId: order.userId, courseId },
@@ -529,13 +538,9 @@ export async function processRazorpayWebhook({
         }
       })
     } else {
-      // Partial refund: set REFUNDED status but keep enrollments, just log
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { status: "REFUNDED" },
-      })
+      // Partial refund: do NOT change order status; just log.
       console.log(
-        `[webhook] Partial refund for order ${order.id}: refunded ${refundAmount ?? "unknown"} of ${order.amount}`,
+        `[webhook] Partial refund for order ${order.id}: refunded ${refundAmount ?? "unknown"} of ${order.amount}. Status unchanged.`,
       )
     }
 

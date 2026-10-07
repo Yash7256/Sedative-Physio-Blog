@@ -173,7 +173,7 @@ describe("payWithRazorpay", () => {
     await expect(promise).resolves.toEqual(PAYMENT)
   })
 
-  it("reports a closed window as a cancellation, not a failure", async () => {
+  it("plain dismiss (no failure) rejects with PaymentCancelled", async () => {
     const { promise } = await openCheckout()
 
     dismiss()
@@ -181,22 +181,49 @@ describe("payWithRazorpay", () => {
     await expect(promise).rejects.toBeInstanceOf(PaymentCancelled)
   })
 
-  it("surfaces Razorpay's decline reason when the payment itself fails", async () => {
+  it("failed then retry-success resolves — popup stays open so user can retry", async () => {
+    // Razorpay keeps the modal open after payment.failed. The user retries and
+    // succeeds. The promise must resolve with the successful payment, not reject
+    // from the earlier failure.
     const { promise } = await openCheckout()
 
-    fail()
+    fail("First attempt declined.")
+    // Promise is NOT settled yet — popup is still open.
+    succeed(PAYMENT)
 
-    await expect(promise).rejects.toBeInstanceOf(PaymentFailed)
-    await expect(promise).rejects.toThrow(/declined/)
+    await expect(promise).resolves.toEqual(PAYMENT)
   })
 
-  it("ignores a late dismissal after a failed payment", async () => {
+  it("failed then dismiss rejects with PaymentFailed carrying the failure reason", async () => {
     const { promise } = await openCheckout()
 
-    fail("Card expired.")
+    fail("Your card was declined.")
     dismiss()
 
-    await expect(promise).rejects.toThrow(/expired/)
+    const err = await promise.catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(PaymentFailed)
+    expect((err as PaymentFailed).message).toMatch(/declined/)
+  })
+
+  it("success then dismiss resolves once — late dismiss is ignored", async () => {
+    const { promise } = await openCheckout()
+
+    succeed()
+    dismiss()
+
+    await expect(promise).resolves.toEqual(PAYMENT)
+  })
+
+  it("multiple payment.failed events: last reason wins when dismissed", async () => {
+    const { promise } = await openCheckout()
+
+    fail("First failure.")
+    fail("Second failure — card limit exceeded.")
+    dismiss()
+
+    const err = await promise.catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(PaymentFailed)
+    expect((err as PaymentFailed).message).toMatch(/limit exceeded/)
   })
 
   it("refuses to open when the server has no Razorpay key", async () => {

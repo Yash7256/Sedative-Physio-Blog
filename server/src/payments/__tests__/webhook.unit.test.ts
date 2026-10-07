@@ -383,6 +383,73 @@ describe("processRazorpayWebhook", () => {
     expect(mockTx.order.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "REFUNDED" }) }),
     )
+    // Enrollments must be deleted for a full refund
+    expect(mockTx.enrollment.deleteMany).toHaveBeenCalledTimes(2)
+  })
+
+  it("refund.processed partial refund does NOT change order status", async () => {
+    const body = JSON.stringify({
+      event: "refund.processed",
+      payload: {
+        refund: {
+          entity: {
+            id: "rfnd_partial",
+            payment_id: PAY_ID,
+            amount: 10000, // less than order.amount 50000
+          },
+        },
+        payment: { entity: { id: PAY_ID, order_id: ORDER_ID, amount: 50000 } },
+      },
+    })
+    const sig = signPayload(WEBHOOK_SECRET, body)
+    const order = {
+      id: "int_id",
+      userId: "user_1",
+      status: "PAID",
+      courseIds: ["c1"],
+      razorpayPaymentId: PAY_ID,
+      amount: 50000,
+    }
+    mockPrisma.order.findUnique.mockResolvedValue(order)
+
+    const result = await processRazorpayWebhook({ rawBody: body, signature: sig })
+    expect(result.processed).toBe(true)
+    // Status must NOT be changed for a partial refund
+    expect(mockTx.order.update).not.toHaveBeenCalled()
+    expect(mockPrisma.order.update).not.toHaveBeenCalled()
+    // Enrollments must NOT be deleted
+    expect(mockTx.enrollment.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it("refund.processed is ignored when order is not PAID", async () => {
+    const body = JSON.stringify({
+      event: "refund.processed",
+      payload: {
+        refund: {
+          entity: {
+            id: "rfnd_2",
+            payment_id: PAY_ID,
+            amount: 50000,
+          },
+        },
+        payment: { entity: { id: PAY_ID, order_id: ORDER_ID, amount: 50000 } },
+      },
+    })
+    const sig = signPayload(WEBHOOK_SECRET, body)
+    const order = {
+      id: "int_id",
+      userId: "user_1",
+      status: "PENDING", // not PAID
+      courseIds: ["c1"],
+      razorpayPaymentId: null,
+      amount: 50000,
+    }
+    mockPrisma.order.findUnique.mockResolvedValue(order)
+
+    const result = await processRazorpayWebhook({ rawBody: body, signature: sig })
+    expect(result.processed).toBe(false)
+    expect(mockTx.order.update).not.toHaveBeenCalled()
+    expect(mockPrisma.order.update).not.toHaveBeenCalled()
   })
 
   it("amount mismatch on order.paid does not mark PAID", async () => {

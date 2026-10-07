@@ -295,21 +295,14 @@ export function Cart() {
   /**
    * Runs the real checkout.
    *
-   * The cart used to fake this: an 800ms sleep, a success modal and an emptied
-   * cart, with nothing written to `Order` or `Enrollment`. The confirmation the
-   * user saw described a purchase that did not exist.
+   * Ordering: paid flow runs first (create order → Razorpay popup → verify).
+   * Only after the server confirms the payment do we enroll the free items.
+   * This means cancelling or failing the payment leaves nothing enrolled —
+   * the user can retry the whole cart without partial side-effects.
    *
-   * Free and paid items go down separate paths because the server enforces them
-   * separately — `create-order` refuses a zero total and `free-enroll` refuses a
-   * paid one — so a mixed cart has to be split before either will accept it.
+   * For a free-only cart, free enrollment runs immediately (no payment needed).
    *
-   * Free items are enrolled *before* the card is opened, deliberately. A bundle
-   * where the free half silently fails while the user is paying is worse than one
-   * that stops at the free half with an error, and `free-enroll` upserts, so
-   * retrying after whatever failed is safe.
-   *
-   * The cart is emptied only once the server has confirmed the payment, so a
-   * cancelled or failed checkout leaves everything in place to try again.
+   * The cart is cleared only once both paths have succeeded.
    */
   const handleCheckout = async () => {
     if (!isSignedIn) return
@@ -322,14 +315,11 @@ export function Cart() {
     const purchased = [...items]
 
     try {
-      if (freeIds.length > 0) {
-        await enrollFreeCourses(freeIds)
-      }
-
       let paymentId: string | undefined
       let orderId: string | undefined
 
       if (paidIds.length > 0) {
+        // ── Paid path ─────────────────────────────────────────────────────
         const order = await createOrder(paidIds)
         const payment = await payWithRazorpay(order, {
           name: profile?.fullName ?? undefined,
@@ -344,6 +334,16 @@ export function Cart() {
             `Payment may have gone through but could not be confirmed. Please contact support with payment ID: ${payment.razorpay_payment_id}`,
           )
           return
+        }
+
+        // ── Enroll free items only AFTER paid flow confirmed ───────────────
+        if (freeIds.length > 0) {
+          await enrollFreeCourses(freeIds)
+        }
+      } else {
+        // ── Free-only cart: enroll immediately ─────────────────────────────
+        if (freeIds.length > 0) {
+          await enrollFreeCourses(freeIds)
         }
       }
 

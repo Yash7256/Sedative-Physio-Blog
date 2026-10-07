@@ -98,9 +98,19 @@ export async function payWithRazorpay(
   }
 
   return new Promise<RazorpayPaymentResponse>((resolve, reject) => {
-    // Razorpay can fire `handler` and `ondismiss` for the same attempt — a
-    // payment that succeeds as the window is closing, for instance — so the
-    // promise is settled exactly once.
+    // Razorpay keeps the checkout popup open after a payment.failed event so
+    // the user can retry with a different card. We must NOT settle the promise
+    // on failure — if we did, a later successful retry would be ignored (promise
+    // already settled) and the user would be charged with no enrollment created.
+    //
+    // Instead: store the most recent failure reason. ondismiss is the single
+    // settlement point for non-success exits. If a failure happened before the
+    // user dismissed, reject with PaymentFailed; a plain close rejects with
+    // PaymentCancelled. handler (success) always resolves, even after failures.
+    let lastFailureReason: string | null = null
+
+    // handler and ondismiss can both fire for the same attempt (e.g. payment
+    // succeeds just as the modal closes). Settle exactly once.
     let settled = false
     const settle = (finish: () => void) => {
       if (settled) return
@@ -121,11 +131,17 @@ export async function payWithRazorpay(
       order_id: order.orderId,
       prefill: { name: prefill.name, email: prefill.email },
       theme: { color: "#111214" },
+      // Success: always resolve, regardless of any prior failures.
       handler: (response) => settle(() => resolve(response)),
       modal: {
-        // Dismissing is how a user backs out, so it rejects with a message the
-        // caller can recognise and stay quiet about.
-        ondismiss: () => settle(() => reject(new PaymentCancelled())),
+        // ondismiss is the only rejection point. If the user saw a failure
+        // before dismissing, surface that reason; otherwise it's a plain cancel.
+        ondismiss: () =>
+          settle(() =>
+            lastFailureReason !== null
+              ? reject(new PaymentFailed(lastFailureReason))
+              : reject(new PaymentCancelled()),
+          ),
         escape: true,
         // Closing by clicking the backdrop is too easy to do by accident, right
         // next to the pay button.
@@ -135,11 +151,11 @@ export async function payWithRazorpay(
 
     checkout.open()
 
+    // Store the failure reason but do NOT settle — the popup stays open for retry.
     checkout.on("payment.failed", (response: unknown) => {
-      const reason =
+      lastFailureReason =
         (response as { error?: { description?: string } })?.error?.description ??
         "Payment failed. Please try again."
-      settle(() => reject(new PaymentFailed(reason)))
     })
   })
 }
