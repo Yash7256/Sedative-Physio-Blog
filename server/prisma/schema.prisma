@@ -26,6 +26,7 @@ enum OrderStatus {
   PENDING
   PAID
   FAILED
+  REFUNDED
 }
 
 // ============ AUTH & USERS ============

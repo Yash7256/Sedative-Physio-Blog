@@ -92,7 +92,7 @@ export interface UserOrder {
   id: string
   amount: number
   currency: string
-  status: "PENDING" | "PAID" | "FAILED"
+  status: "PENDING" | "PAID" | "FAILED" | "REFUNDED"
   courseIds: string[]
   createdAt: string
 }
@@ -394,16 +394,21 @@ export async function processRazorpayWebhook({
   const payload = JSON.parse(rawBody) as {
     event: string
     payload?: {
-      order?: { entity?: { id: string } }
-      payment?: { entity?: { id: string; order_id?: string } }
+      order?: { entity?: { id: string; amount?: number; currency?: string } }
+      payment?: { entity?: { id: string; order_id?: string; amount?: number; currency?: string } }
+      refund?: { entity?: { id: string; payment_id?: string; amount?: number } }
     }
   }
 
   const event = payload.event
+
+  // ── order.paid / payment.captured ───────────────────────────────────────
   if (event === "order.paid" || event === "payment.captured") {
     const razorpayOrderId =
       payload.payload?.order?.entity?.id ?? payload.payload?.payment?.entity?.order_id
     const razorpayPaymentId = payload.payload?.payment?.entity?.id
+    const paymentAmount = payload.payload?.payment?.entity?.amount ?? payload.payload?.order?.entity?.amount
+    const currency = payload.payload?.payment?.entity?.currency ?? payload.payload?.order?.entity?.currency
 
     if (!razorpayOrderId) {
       return { received: true, processed: false, event }
@@ -414,6 +419,19 @@ export async function processRazorpayWebhook({
     })
 
     if (!order) {
+      return { received: true, processed: false, event }
+    }
+
+    // Amount and currency validation
+    if (paymentAmount !== undefined && paymentAmount !== order.amount) {
+      console.error(
+        `[webhook] Amount mismatch for order ${razorpayOrderId}: expected ${order.amount}, got ${paymentAmount}`,
+      )
+      return { received: true, processed: false, event }
+    }
+
+    if (currency !== undefined && currency !== "INR") {
+      console.error(`[webhook] Non-INR currency for order ${razorpayOrderId}: ${currency}`)
       return { received: true, processed: false, event }
     }
 
@@ -440,6 +458,86 @@ export async function processRazorpayWebhook({
         }
       }
     })
+
+    return { received: true, processed: true, event }
+  }
+
+  // ── payment.failed ───────────────────────────────────────────────────────
+  if (event === "payment.failed") {
+    const razorpayOrderId = payload.payload?.payment?.entity?.order_id
+
+    if (!razorpayOrderId) {
+      return { received: true, processed: false, event }
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { razorpayOrderId },
+    })
+
+    if (!order) {
+      return { received: true, processed: false, event }
+    }
+
+    // Never overwrite a PAID order
+    if (order.status !== "PENDING") {
+      return { received: true, processed: false, event }
+    }
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: "FAILED" },
+    })
+
+    return { received: true, processed: true, event }
+  }
+
+  // ── refund.processed ─────────────────────────────────────────────────────
+  if (event === "refund.processed") {
+    const razorpayPaymentId = payload.payload?.refund?.entity?.payment_id
+    const refundAmount = payload.payload?.refund?.entity?.amount
+    const orderEntityId = payload.payload?.payment?.entity?.order_id
+
+    if (!razorpayPaymentId && !orderEntityId) {
+      return { received: true, processed: false, event }
+    }
+
+    // Find order by payment ID or order ID
+    const order = await (orderEntityId
+      ? prisma.order.findUnique({ where: { razorpayOrderId: orderEntityId } })
+      : prisma.order.findFirst({ where: { razorpayPaymentId } }))
+
+    if (!order) {
+      return { received: true, processed: false, event }
+    }
+
+    const isFullRefund = refundAmount !== undefined && refundAmount >= order.amount
+
+    if (isFullRefund) {
+      await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: "REFUNDED" },
+        })
+
+        if (order.userId) {
+          // Delete enrollments for this user for the refunded courses
+          for (const courseId of order.courseIds) {
+            await tx.enrollment.deleteMany({
+              where: { userId: order.userId, courseId },
+            })
+          }
+        }
+      })
+    } else {
+      // Partial refund: set REFUNDED status but keep enrollments, just log
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: "REFUNDED" },
+      })
+      console.log(
+        `[webhook] Partial refund for order ${order.id}: refunded ${refundAmount ?? "unknown"} of ${order.amount}`,
+      )
+    }
 
     return { received: true, processed: true, event }
   }
