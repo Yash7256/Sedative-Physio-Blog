@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { SignInButton, useAuth } from "@clerk/clerk-react"
 import {
   ArrowLeft,
   BarChart3,
@@ -20,6 +21,15 @@ import {
   Trash2,
 } from "lucide-react"
 import { useCart } from "../lib/cartContext"
+import { useAuthProfile } from "../lib/auth"
+import {
+  createOrder,
+  enrollFreeCourses,
+  payWithRazorpay,
+  PaymentCancelled,
+  PaymentFailed,
+  verifyPayment,
+} from "../lib/payments"
 import { PaymentSuccessModal } from "../components/PaymentSuccessModal"
 import { SmartImage } from "../components/SmartImage"
 import {
@@ -253,8 +263,12 @@ export function Cart() {
   const paidItems = items.filter((i) => !i.isFree)
   const freeItems = items.filter((i) => i.isFree)
 
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth()
+  const { profile } = useAuthProfile()
+
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({})
   const [checkingOut, setCheckingOut] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [successModalData, setSuccessModalData] = useState<{
     open: boolean
     items: ReturnType<typeof useCart>["items"]
@@ -278,14 +292,82 @@ export function Cart() {
     })
   }, [items])
 
+  /**
+   * Runs the real checkout.
+   *
+   * The cart used to fake this: an 800ms sleep, a success modal and an emptied
+   * cart, with nothing written to `Order` or `Enrollment`. The confirmation the
+   * user saw described a purchase that did not exist.
+   *
+   * Free and paid items go down separate paths because the server enforces them
+   * separately — `create-order` refuses a zero total and `free-enroll` refuses a
+   * paid one — so a mixed cart has to be split before either will accept it.
+   *
+   * Free items are enrolled *before* the card is opened, deliberately. A bundle
+   * where the free half silently fails while the user is paying is worse than one
+   * that stops at the free half with an error, and `free-enroll` upserts, so
+   * retrying after whatever failed is safe.
+   *
+   * The cart is emptied only once the server has confirmed the payment, so a
+   * cancelled or failed checkout leaves everything in place to try again.
+   */
   const handleCheckout = async () => {
+    if (!isSignedIn) return
+
     setCheckingOut(true)
-    // Simulate a brief processing delay, then show success modal
-    await new Promise((r) => setTimeout(r, 800))
-    const enrolledItems = [...items]
-    clearCart()
-    setSuccessModalData({ open: true, items: enrolledItems, isFree: total === 0 })
-    setCheckingOut(false)
+    setCheckoutError(null)
+
+    const freeIds = freeItems.map((i) => i.id)
+    const paidIds = paidItems.map((i) => i.id)
+    const purchased = [...items]
+
+    try {
+      if (freeIds.length > 0) {
+        await enrollFreeCourses(freeIds)
+      }
+
+      let paymentId: string | undefined
+      let orderId: string | undefined
+
+      if (paidIds.length > 0) {
+        const order = await createOrder(paidIds)
+        const payment = await payWithRazorpay(order, {
+          name: profile?.fullName ?? undefined,
+          email: profile?.email ?? undefined,
+        })
+        try {
+          const verified = await verifyPayment(payment)
+          paymentId = verified.razorpayPaymentId
+          orderId = verified.orderId
+        } catch {
+          setCheckoutError(
+            `Payment may have gone through but could not be confirmed. Please contact support with payment ID: ${payment.razorpay_payment_id}`,
+          )
+          return
+        }
+      }
+
+      clearCart()
+      setSuccessModalData({
+        open: true,
+        items: purchased,
+        isFree: paidIds.length === 0,
+        paymentId,
+        orderId,
+      })
+    } catch (err) {
+      // Closing the window is the user's own decision, not a failure to report.
+      if (err instanceof PaymentCancelled) return
+
+      if (err instanceof PaymentFailed) {
+        setCheckoutError(err.message)
+        return
+      }
+
+      setCheckoutError(err instanceof Error ? err.message : "Checkout failed. Please try again.")
+    } finally {
+      setCheckingOut(false)
+    }
   }
 
   /* ── Empty state ── */
@@ -480,19 +562,46 @@ export function Cart() {
                 </div>
               )}
 
-              {/* Checkout button */}
-              <button
-                type="button"
-                onClick={handleCheckout}
-                disabled={checkingOut}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#111214] px-5 py-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-black/80 active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0"
-              >
-                {checkingOut ? (
-                  <><Loader2 className="size-4 animate-spin" /> Processing…</>
-                ) : (
-                  <><CreditCard className="size-4" /> {total === 0 ? "Enroll for Free" : "Proceed to Checkout"}</>
-                )}
-              </button>
+              {/* Checkout errors. Rendered above the button so the reason a
+                  checkout stopped is next to the control that starts it, and
+                  kept in the DOM (rather than only on failure) so the layout
+                  does not jump. */}
+              {checkoutError && (
+                <p
+                  role="alert"
+                  className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300"
+                >
+                  {checkoutError}
+                </p>
+              )}
+
+              {/* Checkout. An enrollment needs an owner, so the server rejects
+                  this anonymously — better to ask for the session first and keep
+                  the cart intact than to let someone pay into an order nobody
+                  can claim. */}
+              {isAuthLoaded && !isSignedIn ? (
+                <SignInButton mode="modal">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#111214] px-5 py-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-black/80 active:translate-y-0"
+                  >
+                    <CreditCard className="size-4" /> Sign in to Checkout
+                  </button>
+                </SignInButton>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCheckout}
+                  disabled={checkingOut}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#111214] px-5 py-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-black/80 active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0"
+                >
+                  {checkingOut ? (
+                    <><Loader2 className="size-4 animate-spin" /> Processing…</>
+                  ) : (
+                    <><CreditCard className="size-4" /> {total === 0 ? "Enroll for Free" : "Proceed to Checkout"}</>
+                  )}
+                </button>
+              )}
 
               {/* Continue browsing */}
               <Link
