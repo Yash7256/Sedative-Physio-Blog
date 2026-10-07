@@ -30,11 +30,8 @@ export function getPaymentConfig(): { keyId: string } {
 
 export interface CreateOrderParams {
   courseIds: string[]
-  /**
-   * This app's `User.id` cuid — *not* Clerk's `user_…` id. Resolved by the route
-   * via `resolveLocalUserId`, because `Order.userId` is a foreign key to it.
-   */
-  localUserId?: string | null
+  /** This app's `User.id` cuid — required for order creation */
+  localUserId: string
   userEmail?: string | null
   userName?: string | null
 }
@@ -281,17 +278,29 @@ export async function verifyRazorpayPayment({
     throw new NotFoundError("Order not found")
   }
 
-  // Security guard against order hijacking. Both sides are local cuids now
-  // (the route resolves the caller), so this compares like with like — comparing
-  // a stored cuid against Clerk's id would reject every legitimate buyer.
-  if (order.userId && localUserId && order.userId !== localUserId) {
+  // Strict ownership check
+  if (!localUserId) {
+    throw new UnauthorizedError("Please sign in to verify payment")
+  }
+  if (order.userId && order.userId !== localUserId) {
     throw new ForbiddenError("Order belongs to another user account")
   }
 
   const effectiveUserId = order.userId ?? localUserId
 
-  // Idempotency: if order is already marked PAID, return success
+  // Idempotency: if order is already marked PAID, still run enrollment upserts
   if (order.status === "PAID") {
+    if (effectiveUserId) {
+      await prisma.$transaction(async (tx) => {
+        for (const courseId of order.courseIds) {
+          await tx.enrollment.upsert({
+            where: { userId_courseId: { userId: effectiveUserId, courseId } },
+            create: { userId: effectiveUserId, courseId },
+            update: {},
+          })
+        }
+      })
+    }
     return {
       success: true,
       orderId: order.id,

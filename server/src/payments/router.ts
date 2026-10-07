@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { resolveLocalUserId } from "../auth/services/me.js"
+import { getAuthProfile, resolveLocalUserId } from "../auth/services/me.js"
 import { readAuthUserId as readClerkUserId } from "../lib/clerk.js"
 import { BadRequestError, handleError, UnauthorizedError } from "../lib/errors.js"
 import {
@@ -67,14 +67,26 @@ paymentsRouter.get("/my-orders", async (req, res) => {
 // POST /api/payments/create-order — creates or reuses a Razorpay order
 paymentsRouter.post("/create-order", async (req, res) => {
   try {
-    const { courseIds, userEmail, userName } = req.body
-    const localUserId = await resolveLocalUserId(readClerkUserId(req))
+    const { courseIds } = req.body
+    const clerkUserId = readClerkUserId(req)
+    const localUserId = await resolveLocalUserId(clerkUserId)
+
+    if (!localUserId) {
+      throw new UnauthorizedError("Please sign in to purchase")
+    }
+
+    // The order's `userEmail`/`userName` mirror the signed-in account rather than
+    // the request body. Taken from the body they were whatever the client chose
+    // to send — an anonymous caller could put any name on any order, and the
+    // record is what a support query or a refund would be read from. The profile
+    // is already resolved for the foreign key, so this costs no extra lookup.
+    const profile = clerkUserId ? await getAuthProfile(clerkUserId) : null
 
     const order = await createRazorpayOrder({
       courseIds,
       localUserId,
-      userEmail: userEmail ?? null,
-      userName: userName ?? null,
+      userEmail: profile?.email ?? null,
+      userName: profile?.fullName ?? null,
     })
 
     res.status(200).json(order)
@@ -87,6 +99,11 @@ paymentsRouter.post("/create-order", async (req, res) => {
 paymentsRouter.post("/verify", async (req, res) => {
   try {
     const localUserId = await resolveLocalUserId(readClerkUserId(req))
+
+    if (!localUserId) {
+      throw new UnauthorizedError("Please sign in to verify payment")
+    }
+
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
 
     const result = await verifyRazorpayPayment({
