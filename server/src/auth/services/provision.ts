@@ -1,5 +1,4 @@
 import { getClerkClient } from "../../lib/clerk.js"
-import { prisma } from "../../lib/prisma.js"
 import { getAuthProfile } from "./me.js"
 import { syncProfileFromClerk } from "./profile-sync.js"
 import type { ClerkUserData } from "./webhook-verify.js"
@@ -14,12 +13,6 @@ import type { ClerkUserData } from "./webhook-verify.js"
  * `GET /api/auth/me` 401s and the UI shows nothing at all — not the name, not an
  * error the user can act on.
  *
- * That is not hypothetical. A webhook can only be delivered to a publicly
- * reachable HTTPS URL, so on a laptop (`localhost:5173` proxying to
- * `localhost:3000`) Clerk has nowhere to send it. Every local OAuth sign-in
- * lands in exactly this state, permanently, and the fix is to make the webhook a
- * fast path rather than a precondition.
- *
  * So when a verified session has no row, the row is created *from Clerk* on the
  * spot. Clerk is the source of truth, so this copies rather than invents: it runs
  * the same `syncProfileFromClerk` the webhook runs, including the rules about
@@ -29,20 +22,10 @@ export async function ensureAuthProfile(clerkUserId: string) {
   const existing = await getAuthProfile(clerkUserId)
   if (existing) return existing
 
-  // If a tombstoned row still points at this id, that is a Clerk-side delete we
-  // have already handled. `anonymiseProfile` nulls the column, so this only
-  // matches a row mid-flight — and reviving a deleted account is worse than
-  // making the person sign up again.
-  const tombstoned = await prisma.user.findFirst({
-    where: { clerkUserId, deletedAt: { not: null } },
-    select: { id: true },
-  })
-  if (tombstoned) return null
-
   const clerkUser = await readClerkUser(clerkUserId)
   if (!clerkUser) return null
 
-  await syncProfileFromClerk(clerkUser)
+  await syncProfileFromClerk(clerkUser, { allowCreate: true })
   return getAuthProfile(clerkUserId)
 }
 
@@ -56,7 +39,7 @@ export async function ensureAuthProfile(clerkUserId: string) {
  * answer and is allowed to propagate, so a Clerk outage surfaces as a 5xx the
  * client can retry instead of a permanent "Account not found".
  */
-async function readClerkUser(clerkUserId: string): Promise<ClerkUserData | null> {
+export async function readClerkUser(clerkUserId: string): Promise<ClerkUserData | null> {
   try {
     const user = await getClerkClient().users.getUser(clerkUserId)
     return toSyncData(user)

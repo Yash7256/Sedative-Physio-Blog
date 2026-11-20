@@ -42,14 +42,14 @@ describe("readPrimaryEmail", () => {
     expect(result.email).toBe("primary@example.com")
   })
 
-  it("marks emailVerifiedAt only when Clerk reports verified", () => {
+  it("reports verified only when Clerk reports verified", () => {
     const verified = readPrimaryEmail(
       withEmails(
         [{ id: "idm_a", email_address: "a@b.com", verification: { status: "verified" } }],
         "idm_a",
       ),
     )
-    expect(verified.emailVerifiedAt).toBeInstanceOf(Date)
+    expect(verified.verified).toBe(true)
 
     const statuses: Array<string | null | undefined> = [
       "unverified",
@@ -64,29 +64,28 @@ describe("readPrimaryEmail", () => {
           "idm_a",
         ),
       )
-      expect(unverified.emailVerifiedAt).toBeNull()
+      expect(unverified.verified).toBe(false)
     }
   })
 
-  it("demotes a previously verified address if Clerk stops reporting it verified", () => {
-    // Guards against a stale verified badge surviving a domain revocation.
+  it("reports unverified if Clerk stops reporting it verified", () => {
     const result = readPrimaryEmail(
       withEmails(
         [{ id: "idm_a", email_address: "a@b.com", verification: { status: "unverified" } }],
         "idm_a",
       ),
     )
-    expect(result.emailVerifiedAt).toBeNull()
+    expect(result.verified).toBe(false)
   })
 
-  it("returns nulls for a phone-only account with no attached address", () => {
+  it("returns null email and unverified for a phone-only account with no attached address", () => {
     expect(readPrimaryEmail(withEmails([], null))).toEqual({
       email: null,
-      emailVerifiedAt: null,
+      verified: false,
     })
     expect(readPrimaryEmail(withEmails(undefined, undefined))).toEqual({
       email: null,
-      emailVerifiedAt: null,
+      verified: false,
     })
   })
 
@@ -239,7 +238,15 @@ describe("classifyClerkEvent: identity", () => {
     classifyClerkEvent({ type: "user.created", data })
 
   it("accepts a well-formed user.created", () => {
-    expect(upsert({ id: "user_2abc" }).kind).toBe("upsert")
+    const event = upsert({ id: "user_2abc" })
+    expect(event.kind).toBe("upsert")
+    if (event.kind === "upsert") expect(event.eventType).toBe("user.created")
+  })
+
+  it("accepts a well-formed user.updated", () => {
+    const event = classifyClerkEvent({ type: "user.updated", data: { id: "user_2abc" } })
+    expect(event.kind).toBe("upsert")
+    if (event.kind === "upsert") expect(event.eventType).toBe("user.updated")
   })
 
   it("ignores a payload that is not an object", () => {
