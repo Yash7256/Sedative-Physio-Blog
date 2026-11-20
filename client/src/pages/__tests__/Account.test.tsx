@@ -9,7 +9,7 @@ import { AuthProvider, type AuthProfile } from "@/lib/auth"
 /**
  * What this file is really protecting is the promise that the account page never
  * shows something the database did not say. The old page invented a member since
- * date, a role and a row of recent activity, and every one of those values was
+ * date and a row of recent activity, and every one of those values was
  * plausible enough to pass a glance — which is why the assertions here are about
  * absent and present data, not about layout.
  */
@@ -29,7 +29,6 @@ const fetchMock = vi.fn()
 const PROFILE: AuthProfile = {
   clerkUserId: "user_2abc",
   userId: "clyabc123",
-  role: "user",
   email: "ada@example.com",
   fullName: "Ada Lovelace",
   collegeName: "King's College",
@@ -136,14 +135,6 @@ describe("profile", () => {
     await waitFor(() => expect(screen.getByText(/Member since 15 Jan 2025/)).toBeInTheDocument())
   })
 
-  it("derives the role from the profile instead of assuming Student", async () => {
-    route({ ...PROFILE, role: "admin" })
-    renderAccount()
-
-    await waitFor(() => expect(screen.getAllByText("Admin").length).toBeGreaterThan(0))
-    // The old page hardcoded this badge, so a real admin looked like a student.
-    expect(screen.queryByText("Student")).not.toBeInTheDocument()
-  })
 
   it("says so when there is no college, rather than showing a blank", async () => {
     route({ ...PROFILE, collegeName: null })

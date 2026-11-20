@@ -9,8 +9,8 @@
  * 🟢 You can import this file directly.
  */
 import type * as runtime from "@prisma/client/runtime/client"
-import type * as $Enums from "../enums.js"
-import type * as Prisma from "../internal/prismaNamespace.js"
+import type * as $Enums from "../enums"
+import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model User
@@ -31,7 +31,6 @@ export type UserMinAggregateOutputType = {
   emailVerifiedAt: Date | null
   fullName: string | null
   collegeName: string | null
-  role: string | null
   deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -44,7 +43,6 @@ export type UserMaxAggregateOutputType = {
   emailVerifiedAt: Date | null
   fullName: string | null
   collegeName: string | null
-  role: string | null
   deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -57,7 +55,6 @@ export type UserCountAggregateOutputType = {
   emailVerifiedAt: number
   fullName: number
   collegeName: number
-  role: number
   deletedAt: number
   createdAt: number
   updatedAt: number
@@ -72,7 +69,6 @@ export type UserMinAggregateInputType = {
   emailVerifiedAt?: true
   fullName?: true
   collegeName?: true
-  role?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -85,7 +81,6 @@ export type UserMaxAggregateInputType = {
   emailVerifiedAt?: true
   fullName?: true
   collegeName?: true
-  role?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -98,7 +93,6 @@ export type UserCountAggregateInputType = {
   emailVerifiedAt?: true
   fullName?: true
   collegeName?: true
-  role?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -184,7 +178,6 @@ export type UserGroupByOutputType = {
   emailVerifiedAt: Date | null
   fullName: string | null
   collegeName: string | null
-  role: string
   deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
@@ -218,7 +211,6 @@ export type UserWhereInput = {
   emailVerifiedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   fullName?: Prisma.StringNullableFilter<"User"> | string | null
   collegeName?: Prisma.StringNullableFilter<"User"> | string | null
-  role?: Prisma.StringFilter<"User"> | string
   deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
@@ -234,7 +226,6 @@ export type UserOrderByWithRelationInput = {
   emailVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   fullName?: Prisma.SortOrderInput | Prisma.SortOrder
   collegeName?: Prisma.SortOrderInput | Prisma.SortOrder
-  role?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -253,7 +244,6 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   emailVerifiedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   fullName?: Prisma.StringNullableFilter<"User"> | string | null
   collegeName?: Prisma.StringNullableFilter<"User"> | string | null
-  role?: Prisma.StringFilter<"User"> | string
   deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
@@ -269,7 +259,6 @@ export type UserOrderByWithAggregationInput = {
   emailVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   fullName?: Prisma.SortOrderInput | Prisma.SortOrder
   collegeName?: Prisma.SortOrderInput | Prisma.SortOrder
-  role?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -288,7 +277,6 @@ export type UserScalarWhereWithAggregatesInput = {
   emailVerifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   fullName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   collegeName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  role?: Prisma.StringWithAggregatesFilter<"User"> | string
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
@@ -301,7 +289,6 @@ export type UserCreateInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -317,7 +304,6 @@ export type UserUncheckedCreateInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -333,7 +319,6 @@ export type UserUpdateInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -349,7 +334,6 @@ export type UserUncheckedUpdateInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -365,7 +349,6 @@ export type UserCreateManyInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -378,7 +361,6 @@ export type UserUpdateManyMutationInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -391,7 +373,6 @@ export type UserUncheckedUpdateManyInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -404,7 +385,6 @@ export type UserCountOrderByAggregateInput = {
   emailVerifiedAt?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
   collegeName?: Prisma.SortOrder
-  role?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -417,7 +397,6 @@ export type UserMaxOrderByAggregateInput = {
   emailVerifiedAt?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
   collegeName?: Prisma.SortOrder
-  role?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -430,7 +409,6 @@ export type UserMinOrderByAggregateInput = {
   emailVerifiedAt?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
   collegeName?: Prisma.SortOrder
-  role?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -515,7 +493,6 @@ export type UserCreateWithoutAuthAuditLogsInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -530,7 +507,6 @@ export type UserUncheckedCreateWithoutAuthAuditLogsInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -561,7 +537,6 @@ export type UserUpdateWithoutAuthAuditLogsInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -576,7 +551,6 @@ export type UserUncheckedUpdateWithoutAuthAuditLogsInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -591,7 +565,6 @@ export type UserCreateWithoutOrdersInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -606,7 +579,6 @@ export type UserUncheckedCreateWithoutOrdersInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -637,7 +609,6 @@ export type UserUpdateWithoutOrdersInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -652,7 +623,6 @@ export type UserUncheckedUpdateWithoutOrdersInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -667,7 +637,6 @@ export type UserCreateWithoutEnrollmentsInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -682,7 +651,6 @@ export type UserUncheckedCreateWithoutEnrollmentsInput = {
   emailVerifiedAt?: Date | string | null
   fullName?: string | null
   collegeName?: string | null
-  role?: string
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -713,7 +681,6 @@ export type UserUpdateWithoutEnrollmentsInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -728,7 +695,6 @@ export type UserUncheckedUpdateWithoutEnrollmentsInput = {
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collegeName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -792,7 +758,6 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   emailVerifiedAt?: boolean
   fullName?: boolean
   collegeName?: boolean
-  role?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -809,7 +774,6 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   emailVerifiedAt?: boolean
   fullName?: boolean
   collegeName?: boolean
-  role?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -822,7 +786,6 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   emailVerifiedAt?: boolean
   fullName?: boolean
   collegeName?: boolean
-  role?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -835,13 +798,12 @@ export type UserSelectScalar = {
   emailVerifiedAt?: boolean
   fullName?: boolean
   collegeName?: boolean
-  role?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clerkUserId" | "email" | "emailVerifiedAt" | "fullName" | "collegeName" | "role" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clerkUserId" | "email" | "emailVerifiedAt" | "fullName" | "collegeName" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   orders?: boolean | Prisma.User$ordersArgs<ExtArgs>
   enrollments?: boolean | Prisma.User$enrollmentsArgs<ExtArgs>
@@ -865,7 +827,6 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     emailVerifiedAt: Date | null
     fullName: string | null
     collegeName: string | null
-    role: string
     deletedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -1301,7 +1262,6 @@ export interface UserFieldRefs {
   readonly emailVerifiedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly fullName: Prisma.FieldRef<"User", 'String'>
   readonly collegeName: Prisma.FieldRef<"User", 'String'>
-  readonly role: Prisma.FieldRef<"User", 'String'>
   readonly deletedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>

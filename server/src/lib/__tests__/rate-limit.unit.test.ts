@@ -140,25 +140,6 @@ describe("rate-limit (F-08)", () => {
     expect(res.status).not.toHaveBeenCalledWith(503)
   })
 
-  it.fails("admin limiters fail closed with 503 on store error", async () => {
-    // @ts-ignore - module created in P4
-    const { createLimiter } = await import("../rate-limit.js")
-    const broken = { increment: vi.fn(async () => { throw new Error("boom") }), decrement: vi.fn(), resetKey: vi.fn(), init: vi.fn() }
-    const mw = createLimiter({
-      prefix: "adm",
-      windowMs: 1000,
-      limit: 1,
-      failClosed: true,
-      store: broken as any,
-      env: { NODE_ENV: "test" } as any,
-    })
-    const req = { ip: "1.2.3.4", headers: {} } as any
-    const json = vi.fn()
-    const status = vi.fn(() => ({ json }))
-    const res = { status, json, setHeader: vi.fn(), header: vi.fn() } as any
-    await new Promise<void>((resolve) => mw(req, res, () => resolve()))
-    expect(status).toHaveBeenCalledWith(503)
-  })
 
   it.fails("no direct rateLimit( outside lib/rate-limit.ts", async () => {
     const fs = await import("node:fs")

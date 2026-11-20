@@ -68,7 +68,6 @@ describe("syncProfileFromClerk", () => {
           clerkUserId: "user_abc",
           email: "ada@example.com",
           fullName: "Ada Lovelace",
-          role: "user",
         }),
       }),
     )
@@ -146,18 +145,6 @@ describe("syncProfileFromClerk", () => {
     expect(updateData().fullName).toBe("Ada Lovelace")
   })
 
-  it("mirrors an elevated role but ignores a missing one", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "x" })
-    await syncProfileFromClerk(clerkUser({ public_metadata: { role: "admin" } }))
-    expect(updateData().role).toBe("admin")
-
-    vi.clearAllMocks()
-    userUpdate.mockResolvedValue({})
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "x" })
-    await syncProfileFromClerk(clerkUser())
-    // Absent role must not be written, so an existing role is never clobbered.
-    expect(updateData()).not.toHaveProperty("role")
-  })
 
   it("treats a concurrent unique violation as success, not a 500", async () => {
     // Two webhooks racing on the same clerkUserId would otherwise make Clerk
@@ -283,33 +270,6 @@ describe("F-02: verified-email adoption and storage", () => {
 })
 
 describe("F-04/F-05: PII clearing, tombstones and race-safe create", () => {
-  it.fails("anonymise clears email, emailVerifiedAt, fullName, collegeName and resets role in one transaction", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1" })
-    const txUserUpdate = vi.fn().mockResolvedValue({})
-    const txAuditCreate = vi.fn().mockResolvedValue({})
-    // target shape: prisma.$transaction(...)
-    ;(await import("../../lib/prisma.js")).prisma.$transaction = vi.fn(async (fn: any) =>
-      fn({
-        user: { update: txUserUpdate },
-        authAuditLog: { create: txAuditCreate },
-      }),
-    )
-
-    await anonymiseProfile("user_abc")
-
-    expect(txUserUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          clerkUserId: null,
-          email: null,
-          emailVerifiedAt: null,
-          fullName: null,
-          collegeName: null,
-          role: "user",
-        }),
-      }),
-    )
-  })
 
   it.fails("re-registering with a deleted account's email creates a fresh profile", async () => {
     // Simulates UNIQUE(email) conflict that persists until anonymise frees the email (P2002 on create).
@@ -365,38 +325,18 @@ describe("F-04/F-05: PII clearing, tombstones and race-safe create", () => {
   })
 })
 
-describe("F-06: role mirroring", () => {
-  it.fails("role removed in Clerk resets local role to user and audits", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada", role: "admin", emailVerifiedAt: new Date() })
-    await syncProfileFromClerk(clerkUser({ public_metadata: {} }))
-    expect(userUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ role: "user" }) }),
-    )
-    expect(auditCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ event: "profile_role_changed" }) }),
-    )
-  })
-
-  it.fails("role promotion audits PROFILE_ROLE_CHANGED", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada", role: "user", emailVerifiedAt: new Date() })
-    await syncProfileFromClerk(clerkUser({ public_metadata: { role: "admin" } }))
-    expect(auditCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ event: "profile_role_changed" }) }),
-    )
-  })
-})
 
 describe("F-10: emailVerifiedAt semantics", () => {
   it.fails("emailVerifiedAt is preserved across syncs", async () => {
     const first = new Date("2020-01-01T00:00:00Z")
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada", role: "user", emailVerifiedAt: first })
+    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada", emailVerifiedAt: first })
     await syncProfileFromClerk(clerkUser())
     const data = updateData()
     expect(data.emailVerifiedAt).toEqual(first)
   })
 
   it("emailVerifiedAt is cleared when Clerk reports unverified", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada", role: "user", emailVerifiedAt: new Date() })
+    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada", emailVerifiedAt: new Date() })
     await syncProfileFromClerk(
       clerkUser({
         email_addresses: [

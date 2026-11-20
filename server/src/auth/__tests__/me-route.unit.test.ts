@@ -32,7 +32,6 @@ beforeEach(() => {
     email: "test@example.com",
     fullName: "Test User",
     collegeName: null,
-    role: "user",
   })
   updateAuthProfile.mockResolvedValue({ userId: "local_1" })
 })
@@ -69,7 +68,7 @@ describe("/api/auth/me", () => {
       fetch(`${baseUrl}/me`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fullName: "New Name", role: "admin", email: "other@example.com" }),
+        body: JSON.stringify({ fullName: "New Name", email: "other@example.com" }),
       }),
     )
     expect(response.status).toBe(200)

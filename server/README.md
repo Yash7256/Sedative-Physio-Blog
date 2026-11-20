@@ -17,7 +17,7 @@ Node.js + Express API server for Sedative Physio.
 - `GET /api/health` — health check
 - `GET /api/auth/me` — the caller's identity and local profile. Requires a valid
   Clerk session (cookie or `Authorization: Bearer <clerk session token>`).
-  Returns `{ "clerkUserId", "userId", "role", "email", "fullName",
+  Returns `{ "clerkUserId", "userId", "email", "fullName",
   "collegeName", "emailVerified" }`. Creates the profile row from Clerk if it does
   not exist yet (see *Just-in-time provisioning*), so `401` now means Clerk itself
   no longer has the user — a deleted account — rather than "the webhook is late".
@@ -105,16 +105,13 @@ destroy something the person typed deliberately. An explicit edit through
 | Concern | Owner |
 |---|---|
 | Credentials, sessions, OAuth, email/phone verification, rate limiting, lockout | Clerk |
-| `fullName`, `collegeName`, role mirror, orders, enrollments, audit log | this API + Postgres |
+| `fullName`, `collegeName`, orders, enrollments, audit log | this API + Postgres |
 
 The two are joined by `User.clerkUserId`. A Clerk session proves *who is
 calling*; the local row supplies everything the app acts on. Profile data
 deliberately stays in Postgres rather than Clerk `publicMetadata`, so it remains
 queryable in SQL and portable if the auth provider ever changes.
 
-`User.role` mirrors Clerk's `publicMetadata.role` for queries, but
-authorisation reads the **session claims**, not the database — a stale mirror
-should fail closed rather than grant access.
 
 ### Auth layout
 
@@ -124,7 +121,6 @@ should fail closed rather than grant access.
 | `types.ts` | `RequestContext` (provenance passed into services) |
 | `context.ts` | lifts ip/user-agent off the request |
 | `middleware/require-auth.ts` | 401 for anonymous callers |
-| `middleware/require-role.ts` | 401/403, role from session claims |
 | `routes/me.ts` | `GET /me` |
 | `webhook.ts` | Clerk webhook receiver (raw body + signature) |
 | `services/webhook-verify.ts` | svix signature check, Clerk payload → mirror fields |

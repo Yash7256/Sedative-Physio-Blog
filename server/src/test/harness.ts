@@ -14,10 +14,6 @@ export function asUser(id = "user_test"): FakeSession {
   return { userId: id, sessionClaims: { metadata: {} } }
 }
 
-export function asAdmin(id = "user_admin"): FakeSession {
-  return { userId: id, sessionClaims: { metadata: { role: "admin" } } }
-}
-
 export function fakeAuth(app: Express, session: FakeSession): void {
   const middleware: RequestHandler = (req, _res, next) => {
     ;(req as unknown as { auth: () => unknown }).auth = () => session

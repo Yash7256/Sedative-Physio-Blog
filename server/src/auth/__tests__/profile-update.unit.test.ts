@@ -39,7 +39,6 @@ const LOCAL_ID = "cmuiojrf80000xbi102lain8k"
 const PROFILE = {
   clerkUserId: CLERK_ID,
   userId: LOCAL_ID,
-  role: "user",
   email: "student@example.com",
   fullName: "Ada Lovelace",
   collegeName: "King's College",
