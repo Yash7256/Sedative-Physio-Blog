@@ -35,7 +35,7 @@ export interface ClerkUserData {
 
 export interface ClerkEmailMirror {
   email: string | null
-  emailVerifiedAt: Date | null
+  verified: boolean
 }
 
 /**
@@ -61,7 +61,7 @@ const MAX_MIRRORED_ADDRESSES = 20
  * response body so the condition is visible without a retry storm.
  */
 export type ClerkEvent =
-  | { kind: "upsert"; data: ClerkUserData }
+  | { kind: "upsert"; eventType: "user.created" | "user.updated"; data: ClerkUserData }
   | { kind: "delete"; clerkUserId: string }
   | { kind: "ignore"; reason: string }
 
@@ -118,7 +118,7 @@ export function classifyClerkEvent(payload: unknown): ClerkEvent {
 
   return type === "user.deleted"
     ? { kind: "delete", clerkUserId: id }
-    : { kind: "upsert", data: normaliseUserData(id, data) }
+    : { kind: "upsert", eventType: type as "user.created" | "user.updated", data: normaliseUserData(id, data) }
 }
 
 /**
@@ -256,10 +256,8 @@ function header(
 /**
  * Picks the primary email and whether Clerk considers it verified.
  *
- * Verification state is reported rather than inferred: a row is only marked
- * verified when Clerk says `verified`, and is demoted back to unverified if
- * Clerk ever reports otherwise, so a revoked domain cannot leave a stale
- * verified badge in our database.
+ * Verification state is reported rather than inferred: callers only store a
+ * verified address and derive a verification timestamp from it.
  */
 export function readPrimaryEmail(user: ClerkUserData): ClerkEmailMirror {
   const addresses = Array.isArray(user.email_addresses) ? user.email_addresses : []
@@ -270,19 +268,18 @@ export function readPrimaryEmail(user: ClerkUserData): ClerkEmailMirror {
     // still mirrors an email if one happens to be attached.
     addresses[0]
 
-  if (!primary) return { email: null, emailVerifiedAt: null }
+  if (!primary) return { email: null, verified: false }
 
   // Re-checked rather than trusted: `classifyClerkEvent` already filtered these
   // on the way in, and this is the one place an absent address string would
   // otherwise become a TypeError inside a signed-but-malformed delivery.
   if (typeof primary.email_address !== "string" || primary.email_address.length === 0) {
-    return { email: null, emailVerifiedAt: null }
+    return { email: null, verified: false }
   }
 
   return {
     email: primary.email_address.toLowerCase(),
-    emailVerifiedAt:
-      primary.verification?.status === "verified" ? new Date() : null,
+    verified: primary.verification?.status === "verified",
   }
 }
 
@@ -297,4 +294,3 @@ export function readFallbackName(user: ClerkUserData): string | null {
   // `User.fullName`, so the limit belongs here.
   return clip(joined, FULL_NAME_MAX_LENGTH)
 }
-
