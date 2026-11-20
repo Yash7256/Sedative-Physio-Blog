@@ -7,14 +7,13 @@ import { ApiError, apiJson } from "./api"
  * The app's own profile, as returned by `GET /api/auth/me`.
  *
  * Deliberately not Clerk's `User` object. Clerk owns identity; this row is what
- * the app actually reads (role, college, verified state) and it only exists once
+ * the app actually reads (name, college, verified state) and it only exists once
  * the `user.created` webhook has created it. The two can disagree, and when they
  * do the app's copy is the one that counts.
  */
 export interface AuthProfile {
   clerkUserId: string
   userId: string
-  role: string
   email: string | null
   fullName: string | null
   collegeName: string | null

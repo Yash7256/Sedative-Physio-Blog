@@ -22,7 +22,6 @@ const fetchMock = vi.fn()
 const PROFILE: AuthProfile = {
   clerkUserId: "user_2abc",
   userId: "clyabc123",
-  role: "user",
   email: "ada@example.com",
   fullName: "Ada Lovelace",
   collegeName: null,

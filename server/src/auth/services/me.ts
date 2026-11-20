@@ -7,7 +7,6 @@ export interface AuthProfile {
   clerkUserId: string
   /** Internal row id, for use as a foreign key elsewhere. */
   userId: string
-  role: string
   email: string | null
   fullName: string | null
   collegeName: string | null
@@ -18,7 +17,7 @@ export interface AuthProfile {
  * Resolves the caller's domain profile for `GET /api/auth/me`.
  *
  * The Clerk session proves *who is calling*; this query is what supplies
- * everything the app actually cares about (role, name, college).
+ * everything the app actually cares about (name, college).
  *
  * A missing row is provisioned on the spot rather than reported, so a signed-in
  * person whose `user.created` webhook was never delivered still gets their real
@@ -31,7 +30,6 @@ export async function getAuthProfile(clerkUserId: string): Promise<AuthProfile |
     select: {
       id: true,
       clerkUserId: true,
-      role: true,
       email: true,
       fullName: true,
       collegeName: true,
@@ -44,7 +42,6 @@ export async function getAuthProfile(clerkUserId: string): Promise<AuthProfile |
   return {
     clerkUserId: user.clerkUserId,
     userId: user.id,
-    role: user.role,
     email: user.email,
     fullName: user.fullName,
     collegeName: user.collegeName,

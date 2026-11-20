@@ -48,7 +48,7 @@ import {
  *    placeholder — a dashboard that invents data is worse than an empty one,
  *    because it cannot be trusted to be wrong in a visible way.
  * 2. Profile data comes from `/api/auth/me`, not from Clerk's user object. Clerk
- *    is identity; role and college are this app's, and only the profile row has
+ *    is identity; college and name are this app's, and only the profile row has
  *    them. Clerk is used only for what it alone knows: the avatar and the
  *    original sign-up date.
  */
@@ -159,7 +159,6 @@ export function Account() {
 
   const displayName = profile?.fullName?.trim() || profile?.email || "—"
   const email = profile?.email ?? user?.primaryEmailAddress?.emailAddress ?? "—"
-  const roleLabel = profile?.role === "admin" ? "Admin" : "Student"
 
   // Clerk's creation date, not the local row's: the row appears whenever the
   // webhook happened to land, which says nothing about when the person joined.
@@ -210,7 +209,6 @@ export function Account() {
           <ProfileHeader
             displayName={displayName}
             email={email}
-            roleLabel={roleLabel}
             memberSince={memberSince}
             avatarUrl={user?.imageUrl}
             isPending={isProfilePending}
@@ -231,7 +229,6 @@ export function Account() {
             <ProfileSection
               displayName={displayName}
               email={email}
-              roleLabel={roleLabel}
               memberSince={memberSince}
               collegeName={profile?.collegeName ?? null}
               emailVerified={profile?.emailVerified ?? false}
@@ -267,7 +264,6 @@ export function Account() {
 function ProfileHeader({
   displayName,
   email,
-  roleLabel,
   memberSince,
   avatarUrl,
   isPending,
@@ -279,7 +275,6 @@ function ProfileHeader({
 }: {
   displayName: string
   email: string
-  roleLabel: string
   memberSince: string
   avatarUrl?: string
   isPending: boolean
@@ -307,9 +302,6 @@ function ProfileHeader({
               {displayName}
             </h1>
             <p className="text-sm text-[#686a6b] dark:text-[#b4b4af]">{email}</p>
-            <span className="inline-flex w-fit rounded-full bg-[rgba(22,131,255,0.12)] px-4 py-1 text-sm font-semibold text-[#1683ff]">
-              {roleLabel}
-            </span>
             <p className="text-sm text-[#686a6b] dark:text-[#b4b4af]">
               {/* Resolves on its own once the profile row exists, so it is
                   announced rather than silently swapping text. */}
@@ -461,14 +453,12 @@ function EditProfileForm({
 function ProfileSection({
   displayName,
   email,
-  roleLabel,
   memberSince,
   collegeName,
   emailVerified,
 }: {
   displayName: string
   email: string
-  roleLabel: string
   memberSince: string
   collegeName: string | null
   emailVerified: boolean
@@ -485,7 +475,6 @@ function ProfileSection({
           value={collegeName ?? "Not set — use Edit Profile"}
           muted={!collegeName}
         />
-        <InfoField icon={<Shield size={20} />} label="Role" value={roleLabel} />
         <InfoField
           icon={emailVerified ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
           label="Email Status"

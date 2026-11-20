@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma.js"
 import { AUDIT_EVENT } from "../constants.js"
-import { readFallbackName, readPrimaryEmail, readRole } from "./webhook-verify.js"
+import { readFallbackName, readPrimaryEmail } from "./webhook-verify.js"
 import type { ClerkUserData } from "./webhook-verify.js"
 
 /**
@@ -59,7 +59,6 @@ export async function syncProfileFromClerk(user: ClerkUserData): Promise<SyncOut
       email,
       emailVerifiedAt,
       fullName: readFallbackName(user),
-      role: readRole(user) ?? "user",
     },
     select: { id: true },
   })
@@ -131,7 +130,6 @@ async function applyClerkFields(
   options: { adoptClerkId?: boolean } = {},
 ): Promise<void> {
   const { email, emailVerifiedAt } = readPrimaryEmail(user)
-  const role = readRole(user)
   const fallbackName = readFallbackName(user)
 
   try {
@@ -144,7 +142,6 @@ async function applyClerkFields(
         ...(currentFullName === null && fallbackName !== null
           ? { fullName: fallbackName }
           : {}),
-        ...(role ? { role } : {}),
       },
     })
   } catch (err) {

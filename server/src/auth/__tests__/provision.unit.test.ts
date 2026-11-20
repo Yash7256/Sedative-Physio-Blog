@@ -18,7 +18,6 @@ interface Row {
   email: string | null
   fullName: string | null
   collegeName: string | null
-  role: string
   emailVerifiedAt: Date | null
   deletedAt: Date | null
 }
@@ -40,7 +39,6 @@ const userCreate = vi.fn(async (args: { data: Partial<Row> }) => {
     email: null,
     fullName: null,
     collegeName: null,
-    role: "user",
     emailVerifiedAt: null,
     deletedAt: null,
     ...args.data,
@@ -134,8 +132,7 @@ describe("ensureAuthProfile", () => {
       email: "aman@example.com",
       fullName: "Aman Raj",
       collegeName: null,
-      role: "user",
-      emailVerifiedAt: new Date(),
+        emailVerifiedAt: new Date(),
       deletedAt: null,
     })
 
@@ -171,8 +168,7 @@ describe("ensureAuthProfile", () => {
       email: "aman.raj@example.com",
       fullName: "Aman R.",
       collegeName: "King's College",
-      role: "user",
-      emailVerifiedAt: null,
+        emailVerifiedAt: null,
       deletedAt: null,
     })
 
@@ -192,8 +188,7 @@ describe("ensureAuthProfile", () => {
       email: "aman.raj@example.com",
       fullName: "Aman R. Singh",
       collegeName: null,
-      role: "user",
-      emailVerifiedAt: new Date(),
+        emailVerifiedAt: new Date(),
       deletedAt: null,
     })
 
@@ -216,8 +211,7 @@ describe("ensureAuthProfile", () => {
       email: "aman.raj@example.com",
       fullName: "Aman Raj",
       collegeName: null,
-      role: "user",
-      emailVerifiedAt: new Date(),
+        emailVerifiedAt: new Date(),
       deletedAt: new Date(),
     })
 

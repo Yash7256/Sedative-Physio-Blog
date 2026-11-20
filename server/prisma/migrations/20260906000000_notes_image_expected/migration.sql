@@ -1,0 +1,2 @@
+-- Baseline for migration applied to database but missing locally.
+-- No-op placeholder (image fields reconciled in later migrations).

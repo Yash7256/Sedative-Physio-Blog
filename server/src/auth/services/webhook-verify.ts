@@ -49,7 +49,6 @@ export interface ClerkEmailMirror {
 const CLERK_ID_MAX_LENGTH = 128
 const EMAIL_MAX_LENGTH = 254
 const NAME_PART_MAX_LENGTH = FULL_NAME_MAX_LENGTH
-const ROLE_MAX_LENGTH = 32
 const MAX_MIRRORED_ADDRESSES = 20
 
 /**
@@ -299,27 +298,3 @@ export function readFallbackName(user: ClerkUserData): string | null {
   return clip(joined, FULL_NAME_MAX_LENGTH)
 }
 
-/**
- * Role is mirrored from Clerk's `publicMetadata` so it stays queryable in SQL,
- * but only a slug is honoured. An absent or malformed value means "no elevated
- * role", never a fallback to something permissive.
- *
- * A slug shape rather than a fixed list, because nothing gates on a role yet
- * and a hardcoded allowlist would be policy invented ahead of its first
- * consumer. The constraint that matters is the opposite one: this string is
- * compared against a literal in a future authorisation check, so it must not be
- * able to arrive as arbitrary text.
- */
-export function readRole(user: ClerkUserData): string | null {
-  const metadata = user.public_metadata
-  if (!isRecord(metadata)) return null
-
-  const role = metadata["role"]
-  if (typeof role !== "string") return null
-
-  const trimmed = role.trim()
-  if (trimmed.length === 0 || trimmed.length > ROLE_MAX_LENGTH) return null
-  if (!/^[a-z0-9_-]+$/.test(trimmed)) return null
-
-  return trimmed
-}

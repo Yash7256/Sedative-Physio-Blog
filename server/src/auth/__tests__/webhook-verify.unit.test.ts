@@ -5,7 +5,6 @@ import {
   classifyClerkEvent,
   readFallbackName,
   readPrimaryEmail,
-  readRole,
   verifyClerkEvent,
   type ClerkEvent,
 } from "../services/webhook-verify.js"
@@ -117,21 +116,6 @@ describe("readFallbackName", () => {
   })
 })
 
-describe("readRole", () => {
-  it("reads a non-empty string role", () => {
-    expect(readRole({ id: "u", public_metadata: { role: "admin" } })).toBe("admin")
-  })
-
-  it("returns null for anything that is not a usable string", () => {
-    // A malformed role must fail closed, never fall back to something permissive.
-    expect(readRole({ id: "u", public_metadata: {} })).toBeNull()
-    expect(readRole({ id: "u", public_metadata: { role: "" } })).toBeNull()
-    expect(readRole({ id: "u", public_metadata: { role: "   " } })).toBeNull()
-    expect(readRole({ id: "u", public_metadata: { role: 42 } })).toBeNull()
-    expect(readRole({ id: "u", public_metadata: { role: ["admin"] } })).toBeNull()
-    expect(readRole({ id: "u", public_metadata: null })).toBeNull()
-  })
-})
 
 describe("verifyClerkEvent", () => {
   /**
@@ -219,25 +203,6 @@ describe("verifyClerkEvent", () => {
   })
 })
 
-describe("readRole: slug shape", () => {
-  it("keeps values that look like a role identifier", () => {
-    expect(readRole({ id: "u", public_metadata: { role: "super-admin" } })).toBe("super-admin")
-    expect(readRole({ id: "u", public_metadata: { role: "  admin  " } })).toBe("admin")
-  })
-
-  it("refuses text that is not a slug", () => {
-    // A role is compared against a literal in a future authorisation check, so
-    // it must not be able to arrive as arbitrary text.
-    expect(readRole({ id: "u", public_metadata: { role: "admin; DROP TABLE users" } })).toBeNull()
-    expect(readRole({ id: "u", public_metadata: { role: "admin admin" } })).toBeNull()
-    expect(readRole({ id: "u", public_metadata: { role: "Admin" } })).toBeNull()
-    expect(readRole({ id: "u", public_metadata: { role: "a".repeat(33) } })).toBeNull()
-  })
-
-  it("refuses metadata that is not an object", () => {
-    expect(readRole({ id: "u", public_metadata: "admin" } as never)).toBeNull()
-  })
-})
 
 describe("readPrimaryEmail: malformed input", () => {
   it("returns nulls rather than throwing on an unusable address", () => {
@@ -357,17 +322,17 @@ describe("classifyClerkEvent: field normalisation", () => {
   it("keeps only object metadata", () => {
     const asString = classifyClerkEvent({
       type: "user.created",
-      data: { id: "u1", public_metadata: "admin" },
+      data: { id: "u1", public_metadata: "not-an-object" },
     })
     if (asString.kind !== "upsert") throw new Error("expected upsert")
     expect(asString.data.public_metadata).toBeNull()
 
     const asObject = classifyClerkEvent({
       type: "user.created",
-      data: { id: "u1", public_metadata: { role: "admin" } },
+      data: { id: "u1", public_metadata: { plan: "pro" } },
     })
     if (asObject.kind !== "upsert") throw new Error("expected upsert")
-    expect(asObject.data.public_metadata).toEqual({ role: "admin" })
+    expect(asObject.data.public_metadata).toEqual({ plan: "pro" })
   })
 
   it("coerces wrongly typed names to null instead of passing them on", () => {

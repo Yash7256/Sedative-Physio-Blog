@@ -44,7 +44,6 @@ model User {
   emailVerifiedAt DateTime? // mirrored from Clerk's email verification status
   fullName        String? // promoted to NOT NULL once existing rows are backfilled
   collegeName     String?
-  role            String    @default("user")
   deletedAt       DateTime? // set when the Clerk user is deleted; the row is kept for order history
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
