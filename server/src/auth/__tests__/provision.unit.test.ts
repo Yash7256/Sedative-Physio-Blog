@@ -204,21 +204,23 @@ describe("ensureAuthProfile", () => {
     expect(rows).toHaveLength(0)
   })
 
-  it("returns null rather than reviving a deleted account", async () => {
+  it("does not revive a deleted account; creates a clean profile from Clerk", async () => {
+    // A tombstoned row keeps its history but anonymiseProfile nulls clerkUserId and PII.
     rows.push({
       id: "local_dead",
-      clerkUserId: CLERK_ID,
-      email: "aman.raj@example.com",
-      fullName: "Aman Raj",
+      clerkUserId: null,
+      email: null,
+      fullName: null,
       collegeName: null,
-        emailVerifiedAt: new Date(),
+      emailVerifiedAt: null,
       deletedAt: new Date(),
     })
 
-    await expect(ensureAuthProfile(CLERK_ID)).resolves.toBeNull()
-    // A person who deletes their account and signs in again gets a clean
-    // profile, not the previous one's enrollments.
-    expect(clerkGetUser).not.toHaveBeenCalled()
+    const profile = await ensureAuthProfile(CLERK_ID)
+
+    expect(clerkGetUser).toHaveBeenCalledWith(CLERK_ID)
+    expect(profile?.clerkUserId).toBe(CLERK_ID)
+    expect(rows).toHaveLength(2)
   })
 
   it("lets a Clerk outage surface as an error, not as a missing account", async () => {

@@ -31,6 +31,8 @@ export const AUDIT_EVENT = {
   PROFILE_CREATED: "profile_created",
   PROFILE_RELINKED: "profile_relinked",
   PROFILE_ANONYMISED: "profile_anonymised",
+  PROFILE_ROLE_CHANGED: "profile_role_changed",
+  PROFILE_EMAIL_CONFLICT: "profile_email_conflict",
 } as const
 
 export type AuditEvent = (typeof AUDIT_EVENT)[keyof typeof AUDIT_EVENT]
