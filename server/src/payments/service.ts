@@ -3,6 +3,7 @@ import Razorpay from "razorpay"
 import { prisma } from "../lib/prisma.js"
 import {
   BadRequestError,
+  ConflictError,
   ForbiddenError,
   GatewayError,
   NotFoundError,
@@ -40,9 +41,8 @@ function getRazorpayClient(): Razorpay {
   const key_secret = process.env.RAZORPAY_KEY_SECRET
 
   if (!key_id || !key_secret || key_id.startsWith("rzp_test_...")) {
-    throw new GatewayError(
-      "Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in server/.env",
-    )
+    console.error("[payments] Gateway credentials are missing or placeholders")
+    throw new GatewayError("Payments are temporarily unavailable.")
   }
 
   return new Razorpay({ key_id, key_secret })
@@ -51,11 +51,22 @@ function getRazorpayClient(): Razorpay {
 export function getPaymentConfig(): { keyId: string } {
   const keyId = process.env.RAZORPAY_KEY_ID
   if (!keyId || keyId.startsWith("rzp_test_...")) {
-    throw new GatewayError(
-      "Razorpay credentials not configured. Please set RAZORPAY_KEY_ID in environment variables.",
-    )
+    console.error("[payments] Gateway key id is missing or a placeholder")
+    throw new GatewayError("Payments are temporarily unavailable.")
   }
   return { keyId }
+}
+
+/**
+ * A course is either free (explicitly flagged, price zero) or paid (not flagged,
+ * positive price). Anything else is a configuration error, never a silent
+ * freebie or a zero-value payment.
+ */
+function classifyCourse(course: { id: string; isFree: boolean; price: number }): "free" | "paid" {
+  if (course.isFree && course.price === 0) return "free"
+  if (!course.isFree && course.price > 0) return "paid"
+  console.error(`[payments] Misconfigured pricing for course ${course.id}`)
+  throw new ConflictError("Course pricing is misconfigured.")
 }
 
 export interface CreateOrderParams {
@@ -168,6 +179,10 @@ export async function createRazorpayOrder({
 
   // Use DB-verified IDs from here on
   const verifiedIds = courses.map((c) => c.id)
+  const kinds = courses.map(classifyCourse)
+  if (kinds.includes("free")) {
+    throw new BadRequestError("Free courses must be enrolled through free enrollment.")
+  }
 
   // Guard against duplicate purchase if user is already enrolled
   if (localUserId) {
@@ -274,6 +289,70 @@ export interface VerifyPaymentResult {
   enrolledCount: number
 }
 
+/** Minimal transactional surface used by the payment state machine. */
+interface PaymentTx {
+  order: {
+    updateMany(args: {
+      where: { id: string; status: { in: string[] } }
+      data: Record<string, unknown>
+    }): Promise<{ count: number }>
+    findFirst(args: {
+      where: { id: string }
+      select: { status: true }
+    }): Promise<{ status: string } | null>
+  }
+  enrollment: {
+    upsert(args: unknown): Promise<unknown>
+  }
+}
+
+interface PayableOrder {
+  id: string
+  userId: string | null
+  courseIds: string[]
+}
+
+async function upsertEnrollments(tx: PaymentTx, order: PayableOrder, userId: string | null): Promise<void> {
+  if (!userId) return
+  for (const courseId of order.courseIds) {
+    await tx.enrollment.upsert({
+      where: { userId_courseId: { userId, courseId } },
+      create: { userId, courseId },
+      update: {},
+    })
+  }
+}
+
+/**
+ * The only place that writes `status: "PAID"`. The conditional update makes
+ * PENDING/FAILED -> PAID atomic and makes REFUNDED terminal: a replayed verify
+ * or a late webhook can never resurrect a refunded order.
+ */
+async function markOrderPaid(
+  tx: PaymentTx,
+  order: PayableOrder,
+  fields: Record<string, unknown>,
+): Promise<boolean> {
+  const { count } = await tx.order.updateMany({
+    where: { id: order.id, status: { in: ["PENDING", "FAILED"] } },
+    data: { status: "PAID", ...fields },
+  })
+
+  if (count === 1) {
+    await upsertEnrollments(tx, order, order.userId)
+    return true
+  }
+
+  // Lost the race with a concurrent verify: PAID is idempotent (repair missing
+  // enrollments only), REFUNDED refuses.
+  const current = await tx.order.findFirst({ where: { id: order.id }, select: { status: true } })
+  if (current?.status === "PAID") {
+    await upsertEnrollments(tx, order, order.userId)
+    return true
+  }
+  return false
+}
+
 /**
  * Verify Razorpay payment signature and execute atomic enrollment transaction.
  */
@@ -289,7 +368,8 @@ export async function verifyRazorpayPayment({
 
   const secret = process.env.RAZORPAY_KEY_SECRET ?? ""
   if (!secret) {
-    throw new GatewayError("RAZORPAY_KEY_SECRET is not configured")
+    console.error("[payments] Gateway secret is missing")
+    throw new GatewayError("Payments are temporarily unavailable.")
   }
 
   const generatedSignature = computePaymentSignature(secret, razorpay_order_id, razorpay_payment_id)
@@ -313,22 +393,20 @@ export async function verifyRazorpayPayment({
   if (order.userId && order.userId !== localUserId) {
     throw new ForbiddenError("Order belongs to another user account")
   }
+  if (!order.userId) {
+    throw new ForbiddenError("This legacy order has no owner; please contact support")
+  }
 
-  const effectiveUserId = order.userId ?? localUserId
+  if (order.status === "REFUNDED") {
+    throw new ConflictError("This order was refunded.")
+  }
 
-  // Idempotency: if order is already marked PAID, still run enrollment upserts
+  // Idempotency: a PAID order keeps its row untouched; only missing
+  // enrollments are repaired.
   if (order.status === "PAID") {
-    if (effectiveUserId) {
-      await prisma.$transaction(async (tx) => {
-        for (const courseId of order.courseIds) {
-          await tx.enrollment.upsert({
-            where: { userId_courseId: { userId: effectiveUserId, courseId } },
-            create: { userId: effectiveUserId, courseId },
-            update: {},
-          })
-        }
-      })
-    }
+    await prisma.$transaction(async (tx) => {
+      await upsertEnrollments(tx as unknown as PaymentTx, order, order.userId as string)
+    })
     return {
       success: true,
       orderId: order.id,
@@ -338,28 +416,17 @@ export async function verifyRazorpayPayment({
     }
   }
 
-  // Atomic database transaction: update order and upsert all enrollments together
-  await prisma.$transaction(async (tx) => {
-    await tx.order.update({
-      where: { id: order.id },
-      data: {
-        status: "PAID",
-        razorpayPaymentId: razorpay_payment_id,
-        razorpaySignature: razorpay_signature,
-        userId: effectiveUserId,
-      },
+  const paid = await prisma.$transaction(async (tx) => {
+    return markOrderPaid(tx as unknown as PaymentTx, order, {
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
+      userId: order.userId,
     })
-
-    if (effectiveUserId) {
-      for (const courseId of order.courseIds) {
-        await tx.enrollment.upsert({
-          where: { userId_courseId: { userId: effectiveUserId, courseId } },
-          create: { userId: effectiveUserId, courseId },
-          update: {},
-        })
-      }
-    }
   })
+
+  if (!paid) {
+    throw new ConflictError("This order was refunded.")
+  }
 
   return {
     success: true,
@@ -382,7 +449,8 @@ export async function processRazorpayWebhook({
 }): Promise<{ received: boolean; processed: boolean; event: string }> {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET
   if (!secret) {
-    throw new GatewayError("RAZORPAY_WEBHOOK_SECRET is not configured")
+    console.error("[webhook] Gateway webhook secret is missing")
+    throw new GatewayError("Webhook verification is temporarily unavailable.")
   }
 
   const expectedSignature = computeWebhookSignature(secret, rawBody)
@@ -435,31 +503,20 @@ export async function processRazorpayWebhook({
       return { received: true, processed: false, event }
     }
 
+    if (order.status === "REFUNDED") {
+      return { received: true, processed: false, event }
+    }
     if (order.status === "PAID") {
       return { received: true, processed: true, event }
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          status: "PAID",
-          razorpayPaymentId: razorpayPaymentId ?? order.razorpayPaymentId,
-        },
+    const paid = await prisma.$transaction(async (tx) => {
+      return markOrderPaid(tx as unknown as PaymentTx, order, {
+        razorpayPaymentId: razorpayPaymentId ?? order.razorpayPaymentId,
       })
-
-      if (order.userId) {
-        for (const courseId of order.courseIds) {
-          await tx.enrollment.upsert({
-            where: { userId_courseId: { userId: order.userId, courseId } },
-            create: { userId: order.userId, courseId },
-            update: {},
-          })
-        }
-      }
     })
 
-    return { received: true, processed: true, event }
+    return { received: true, processed: paid, event }
   }
 
   // ── payment.failed ───────────────────────────────────────────────────────
@@ -510,18 +567,20 @@ export async function processRazorpayWebhook({
       return { received: true, processed: false, event }
     }
 
-    // Only act when the order is PAID — do not process refunds for PENDING,
-    // FAILED, or already-REFUNDED orders.
-    if (order.status !== "PAID") {
-      console.log(
-        `[webhook] refund.processed ignored for order ${order.id} with status ${order.status}`,
-      )
+    if (order.status === "REFUNDED") {
       return { received: true, processed: false, event }
     }
 
     const isFullRefund = refundAmount !== undefined && refundAmount >= order.amount
+    if (!isFullRefund) {
+      // Partial refund: do NOT change order status; just log.
+      console.log(
+        `[webhook] Partial refund for order ${order.id}: refunded ${refundAmount ?? "unknown"} of ${order.amount}. Status unchanged.`,
+      )
+      return { received: true, processed: true, event }
+    }
 
-    if (isFullRefund) {
+    if (order.status === "PAID") {
       // Full refund: mark REFUNDED and delete enrollments atomically.
       await prisma.$transaction(async (tx) => {
         await tx.order.update({
@@ -537,14 +596,21 @@ export async function processRazorpayWebhook({
           }
         }
       })
-    } else {
-      // Partial refund: do NOT change order status; just log.
-      console.log(
-        `[webhook] Partial refund for order ${order.id}: refunded ${refundAmount ?? "unknown"} of ${order.amount}. Status unchanged.`,
-      )
+      return { received: true, processed: true, event }
     }
 
-    return { received: true, processed: true, event }
+    // A refund implies a prior capture even if its webhook arrived first.
+    // Move PENDING/FAILED straight to the terminal REFUNDED state and create
+    // no enrollments (decision D2).
+    const refunded = await prisma.$transaction(async (tx) => {
+      const { count } = await tx.order.updateMany({
+        where: { id: order.id, status: { in: ["PENDING", "FAILED"] } },
+        data: { status: "REFUNDED" },
+      })
+      return count === 1
+    })
+
+    return { received: true, processed: refunded, event }
   }
 
   return { received: true, processed: false, event }
@@ -579,8 +645,8 @@ export async function enrollFreeCourses({
     throw new NotFoundError("No matching courses found")
   }
 
-  const nonFree = courses.filter((c) => !c.isFree && c.price > 0)
-  if (nonFree.length > 0) {
+  const kinds = courses.map(classifyCourse)
+  if (kinds.includes("paid")) {
     throw new BadRequestError("One or more selected courses are not free")
   }
 
