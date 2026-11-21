@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 
 describe("clerk middleware config (F-07)", () => {
-  it.fails("clerkMiddleware receives authorizedParties", async () => {
+  it("clerkMiddleware receives authorizedParties", async () => {
     const clerkMiddleware = vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next())
     vi.doMock("@clerk/express", () => ({ clerkMiddleware }))
     // @ts-ignore - module created in P4

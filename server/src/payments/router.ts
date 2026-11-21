@@ -1,8 +1,9 @@
 import { Router } from "express"
-import rateLimit, { ipKeyGenerator } from "express-rate-limit"
+import { ipKeyGenerator } from "express-rate-limit"
 import { getAuthProfile, resolveLocalUserId } from "../auth/services/me.js"
 import { readAuthUserId as readClerkUserId } from "../lib/clerk.js"
 import { BadRequestError, handleError, UnauthorizedError } from "../lib/errors.js"
+import { createLimiter } from "../lib/rate-limit.js"
 import {
   createRazorpayOrder,
   enrollFreeCourses,
@@ -35,31 +36,28 @@ function userOrIpKey(req: import("express").Request): string {
   return `payment:ip:${ipKeyGenerator(req.ip ?? "0.0.0.0")}`
 }
 
-const createOrderLimiter = rateLimit({
+const createOrderLimiter = createLimiter({
+  prefix: "payment-create-order",
   windowMs: FIFTEEN_MIN_MS,
   limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
   keyGenerator: userOrIpKey,
-  message: { error: "Too many requests, please try again later." },
+  failClosed: true,
 })
 
-const verifyLimiter = rateLimit({
+const verifyLimiter = createLimiter({
+  prefix: "payment-verify",
   windowMs: FIFTEEN_MIN_MS,
   limit: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
   keyGenerator: userOrIpKey,
-  message: { error: "Too many requests, please try again later." },
+  failClosed: true,
 })
 
-const freeEnrollLimiter = rateLimit({
+const freeEnrollLimiter = createLimiter({
+  prefix: "payment-free-enroll",
   windowMs: FIFTEEN_MIN_MS,
   limit: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
   keyGenerator: userOrIpKey,
-  message: { error: "Too many requests, please try again later." },
+  failClosed: true,
 })
 
 // GET /api/payments/config — returns Razorpay keyId

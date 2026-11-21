@@ -1,4 +1,4 @@
-import type { Response } from "express"
+import type { NextFunction, Request, Response } from "express"
 
 export class BadRequestError extends Error {
   statusCode = 400
@@ -89,6 +89,31 @@ export function handleError(err: unknown, res: Response): void {
     res.status(err.statusCode).json({ error: err.message })
     return
   }
-  console.error("Unhandled error:", err)
+  console.error("Unhandled error:", err instanceof Error ? err.name : "Unknown error")
+  res.status(500).json({ error: "Internal server error" })
+}
+
+function isMalformedJson(err: unknown): boolean {
+  if (!(err instanceof SyntaxError)) return false
+  const parsed = err as SyntaxError & { status?: unknown; type?: unknown }
+  return parsed.status === 400 || parsed.type === "entity.parse.failed"
+}
+
+/**
+ * Express's terminal error middleware. Every response is JSON; stacks and
+ * arbitrary error messages never leave the process.
+ */
+export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction): void {
+  if (res.headersSent) return
+
+  if (isMalformedJson(err)) {
+    res.status(400).json({ error: "Malformed JSON body." })
+    return
+  }
+  if (isHttpError(err)) {
+    res.status(err.statusCode).json({ error: err.message })
+    return
+  }
+  console.error("Unhandled error:", err instanceof Error ? err.name : "Unknown error")
   res.status(500).json({ error: "Internal server error" })
 }

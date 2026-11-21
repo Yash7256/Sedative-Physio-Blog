@@ -2,17 +2,40 @@ import { Router } from "express"
 
 import { readAuthUserId } from "../../lib/clerk.js"
 import { handleError } from "../../lib/errors.js"
+import { createLimiter } from "../../lib/rate-limit.js"
 import { requireAuth } from "../middleware/require-auth.js"
 import { getOrCreateAuthProfile } from "../services/me.js"
 import { updateAuthProfile } from "../services/profile-update.js"
 
 export const meRouter = Router()
 
+const MINUTE_MS = 60 * 1000
+
+function meKey(req: import("express").Request): string {
+  return `me:${readAuthUserId(req) ?? req.ip ?? "unknown"}`
+}
+
+const readLimiter = createLimiter({
+  prefix: "me-read",
+  windowMs: MINUTE_MS,
+  limit: 60,
+  keyGenerator: meKey,
+  failClosed: true,
+})
+
+const updateLimiter = createLimiter({
+  prefix: "me-update",
+  windowMs: MINUTE_MS,
+  limit: 10,
+  keyGenerator: meKey,
+  failClosed: true,
+})
+
 /**
  * GET /api/auth/me — the caller's identity: the Clerk id the client
  * authenticates with, plus the local profile fields this app owns.
  */
-meRouter.get("/", requireAuth, async (req, res) => {
+meRouter.get("/", requireAuth, readLimiter, async (req, res) => {
   try {
     // requireAuth already rejected anonymous callers, so this cannot be null
     // here; the re-read is the cost of not threading it through request state.
@@ -39,7 +62,7 @@ meRouter.get("/", requireAuth, async (req, res) => {
  * Clerk, and accepting an edit here that Clerk does not know about would be
  * reverted by the next `user.updated` webhook.
  */
-meRouter.patch("/", requireAuth, async (req, res) => {
+meRouter.patch("/", requireAuth, updateLimiter, async (req, res) => {
   try {
     const clerkUserId = readAuthUserId(req)!
     const body = (req.body ?? {}) as Record<string, unknown>
