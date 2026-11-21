@@ -3,6 +3,7 @@ import { Router } from "express"
 import { readAuthUserId } from "../../lib/clerk.js"
 import { handleError } from "../../lib/errors.js"
 import { createLimiter } from "../../lib/rate-limit.js"
+import { requestContext, runWithRequestContext } from "../context.js"
 import { requireAuth } from "../middleware/require-auth.js"
 import { getOrCreateAuthProfile } from "../services/me.js"
 import { updateAuthProfile } from "../services/profile-update.js"
@@ -35,25 +36,27 @@ const updateLimiter = createLimiter({
  * GET /api/auth/me — the caller's identity: the Clerk id the client
  * authenticates with, plus the local profile fields this app owns.
  */
-meRouter.get("/", requireAuth, readLimiter, async (req, res) => {
-  try {
-    // requireAuth already rejected anonymous callers, so this cannot be null
-    // here; the re-read is the cost of not threading it through request state.
-    const profile = await getOrCreateAuthProfile(readAuthUserId(req)!)
+meRouter.get("/", requireAuth, readLimiter, (req, res) =>
+  runWithRequestContext(requestContext(req), async () => {
+    try {
+      // requireAuth already rejected anonymous callers, so this cannot be null
+      // here; the re-read is the cost of not threading it through request state.
+      const profile = await getOrCreateAuthProfile(readAuthUserId(req)!)
 
-    // Null now means Clerk itself no longer has this user — the account was
-    // deleted on Clerk's side. A merely *unsynced* profile no longer reaches
-    // this point, because it is created from Clerk on the spot.
-    if (!profile) {
-      res.status(401).json({ error: "Account not found." })
-      return
+      // Null now means Clerk itself no longer has this user — the account was
+      // deleted on Clerk's side. A merely *unsynced* profile no longer reaches
+      // this point, because it is created from Clerk on the spot.
+      if (!profile) {
+        res.status(401).json({ error: "Account not found." })
+        return
+      }
+
+      res.json(profile)
+    } catch (err) {
+      handleError(err, res)
     }
-
-    res.json(profile)
-  } catch (err) {
-    handleError(err, res)
-  }
-})
+  }),
+)
 
 /**
  * PATCH /api/auth/me — lets the caller edit the profile fields this app owns.

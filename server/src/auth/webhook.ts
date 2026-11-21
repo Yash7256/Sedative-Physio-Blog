@@ -3,6 +3,7 @@ import type { Store } from "express-rate-limit"
 
 import { BadRequestError, handleError } from "../lib/errors.js"
 import { createLimiter } from "../lib/rate-limit.js"
+import { requestContext, runWithRequestContext } from "./context.js"
 import { anonymiseProfile, syncProfileFromClerk } from "./services/profile-sync.js"
 import { ensureAuthProfile } from "./services/provision.js"
 import { classifyClerkEvent, verifyClerkEvent } from "./services/webhook-verify.js"
@@ -90,43 +91,45 @@ const { perIp, globalCeiling } = createDeliveryLimiters({ perIp: 300, global: 30
  * event is a no-op, not an error, and retrying it can never succeed. The
  * response body names the reason so the drop is visible in Clerk's logs.
  */
-clerkWebhookRouter.post("/", perIp, globalCeiling, async (req: Request, res: Response) => {
-  try {
-    const rawBody = readRawBody(req)
-    const event = classifyClerkEvent(verifyClerkEvent(rawBody, req.headers))
+clerkWebhookRouter.post("/", perIp, globalCeiling, (req: Request, res: Response) =>
+  runWithRequestContext(requestContext(req), async () => {
+    try {
+      const rawBody = readRawBody(req)
+      const event = classifyClerkEvent(verifyClerkEvent(rawBody, req.headers))
 
-    switch (event.kind) {
-      case "upsert": {
-        const out = await syncProfileFromClerk(event.data, { allowCreate: false })
-        if (out.action === "noop" && event.eventType === "user.created") {
-          const profile = await ensureAuthProfile(event.data.id)
-          if (!profile) {
-            console.warn("Clerk webhook: user.created for a user Clerk no longer has")
+      switch (event.kind) {
+        case "upsert": {
+          const out = await syncProfileFromClerk(event.data, { allowCreate: false })
+          if (out.action === "noop" && event.eventType === "user.created") {
+            const profile = await ensureAuthProfile(event.data.id)
+            if (!profile) {
+              console.warn("Clerk webhook: user.created for a user Clerk no longer has")
+            }
           }
+          break
         }
-        break
+
+        case "delete":
+          await anonymiseProfile(event.clerkUserId)
+          break
+
+        case "ignore":
+          // Authenticated but not actionable. Warned rather than swallowed: the
+          // response is 200, so nothing else would surface this.
+          console.warn("Clerk webhook ignored:", event.reason)
+          break
       }
 
-      case "delete":
-        await anonymiseProfile(event.clerkUserId)
-        break
-
-      case "ignore":
-        // Authenticated but not actionable. Warned rather than swallowed: the
-        // response is 200, so nothing else would surface this.
-        console.warn("Clerk webhook ignored:", event.reason)
-        break
+      res.status(200).json(
+        event.kind === "ignore"
+          ? { received: true, ignored: event.reason }
+          : { received: true },
+      )
+    } catch (err) {
+      handleError(err, res)
     }
-
-    res.status(200).json(
-      event.kind === "ignore"
-        ? { received: true, ignored: event.reason }
-        : { received: true },
-    )
-  } catch (err) {
-    handleError(err, res)
-  }
-})
+  }),
+)
 
 /**
  * The raw, unparsed body is required for signature verification.

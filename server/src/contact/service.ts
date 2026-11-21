@@ -27,20 +27,15 @@ function escapeHtml(value: string): string {
 /**
  * Sends the notification email for a contact form submission.
  *
- * STUB: when SMTP credentials are not configured (SMTP_USER unset), the
- * submission is logged to the console instead of sending real mail, so local
- * development and tests stay mail-free. Same convention as auth/email.ts.
+ * STUB: when SMTP credentials are not configured (SMTP_USER unset), no mail is
+ * sent and a generic warning is logged. The submission itself is PII and is
+ * never written to logs, even in development.
  */
 export async function sendContactEmail(payload: ContactPayload): Promise<void> {
   const to = process.env.CONTACT_EMAIL ?? "sedativephysio@gmail.com"
 
   if (!process.env.SMTP_USER) {
-    console.warn(
-      `[contact] SMTP not configured — submission from ${payload.email}:\n` +
-        `Name: ${payload.name}\n` +
-        `Phone: ${payload.phone || "—"}\n` +
-        `Message:\n${payload.message}`,
-    )
+    console.warn("[contact] SMTP not configured; submission dropped")
     return
   }
 

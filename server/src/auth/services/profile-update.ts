@@ -132,8 +132,12 @@ function writeNameToClerk(clerkUserId: string, fullName: string | null): Promise
     .updateUser(clerkUserId, nameFields)
     .catch((err: unknown) => {
       // Surfaced rather than swallowed: reporting success here would leave the
-      // two systems disagreeing with no indication of which one is stale.
-      console.error("Failed to update name in Clerk:", err)
+      // two systems disagreeing with no indication of which one is stale. Only
+      // the error name is logged; an SDK error can carry a name or a stack.
+      console.error(
+        "Failed to update name in Clerk:",
+        err instanceof Error ? err.name : "Unknown error",
+      )
       throw new GatewayError("Could not save your name. Please try again.")
     })
 }
