@@ -40,7 +40,7 @@ beforeEach(() => {
 })
 
 describe("webhook dispatch order (ORDER)", () => {
-  it.fails("user.updated for an unknown user is a no-op", async () => {
+  it("user.updated for an unknown user is a no-op", async () => {
     classifyClerkEvent.mockReturnValue({
       kind: "upsert",
       eventType: "user.updated",
@@ -61,7 +61,7 @@ describe("webhook dispatch order (ORDER)", () => {
     expect(ensureAuthProfile).not.toHaveBeenCalled()
   })
 
-  it.fails("user.created for an unknown user creates only via a fresh Clerk read", async () => {
+  it("user.created for an unknown user creates only via a fresh Clerk read", async () => {
     classifyClerkEvent.mockReturnValue({
       kind: "upsert",
       eventType: "user.created",
@@ -82,7 +82,7 @@ describe("webhook dispatch order (ORDER)", () => {
     expect(ensureAuthProfile).toHaveBeenCalledWith("user_new")
   })
 
-  it.fails("user.created for a user Clerk 404s returns 200 and creates nothing", async () => {
+  it("user.created for a user Clerk 404s returns 200 and creates nothing", async () => {
     classifyClerkEvent.mockReturnValue({
       kind: "upsert",
       eventType: "user.created",

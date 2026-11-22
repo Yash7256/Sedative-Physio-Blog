@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit"
 
 import { handleError } from "../lib/errors.js"
 import { anonymiseProfile, syncProfileFromClerk } from "./services/profile-sync.js"
+import { ensureAuthProfile } from "./services/provision.js"
 import { classifyClerkEvent, verifyClerkEvent } from "./services/webhook-verify.js"
 
 /**
@@ -86,9 +87,16 @@ clerkWebhookRouter.post("/", perIp, globalCeiling, async (req: Request, res: Res
     const event = classifyClerkEvent(verifyClerkEvent(rawBody, req.headers))
 
     switch (event.kind) {
-      case "upsert":
-        await syncProfileFromClerk(event.data)
+      case "upsert": {
+        const out = await syncProfileFromClerk(event.data, { allowCreate: false })
+        if (out.action === "noop" && event.eventType === "user.created") {
+          const profile = await ensureAuthProfile(event.data.id)
+          if (!profile) {
+            console.warn("Clerk webhook: user.created for a user Clerk no longer has")
+          }
+        }
         break
+      }
 
       case "delete":
         await anonymiseProfile(event.clerkUserId)

@@ -10,6 +10,7 @@ const userFindFirst = vi.fn()
 const userCreate = vi.fn()
 const userUpdate = vi.fn()
 const auditCreate = vi.fn()
+const transaction = vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[]))
 
 vi.mock("../../lib/prisma.js", () => ({
   prisma: {
@@ -19,10 +20,11 @@ vi.mock("../../lib/prisma.js", () => ({
       update: (...args: unknown[]) => userUpdate(...args),
     },
     authAuditLog: { create: (...args: unknown[]) => auditCreate(...args) },
+    $transaction: (ops: unknown[]) => transaction(ops),
   },
 }))
 
-const { anonymiseProfile, syncProfileFromClerk } = await import("../services/profile-sync.js")
+const { anonymiseProfile, syncProfileFromClerk, conflictsOn } = await import("../services/profile-sync.js")
 
 /** The `data` payload of the nth `user.create` call. */
 function createData(call = 0): Record<string, unknown> {
@@ -56,10 +58,11 @@ beforeEach(() => {
 })
 
 describe("syncProfileFromClerk", () => {
-  it("creates a profile when nothing matches", async () => {
+  it("creates a profile when nothing matches (fresh Clerk read, allowCreate)", async () => {
     userFindFirst.mockResolvedValue(null)
 
-    const result = await syncProfileFromClerk(clerkUser())
+    // P3: webhooks never create from payload; creation requires an explicit allowCreate.
+    const result = await syncProfileFromClerk(clerkUser(), { allowCreate: true })
 
     expect(result).toEqual({ action: "created", userId: "local_1" })
     expect(userCreate).toHaveBeenCalledWith(
@@ -75,7 +78,7 @@ describe("syncProfileFromClerk", () => {
   })
 
   it("is idempotent: a retry for an already-linked user only syncs", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada Lovelace" })
+    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada Lovelace", emailVerifiedAt: new Date() })
 
     const result = await syncProfileFromClerk(clerkUser())
 
@@ -89,9 +92,9 @@ describe("syncProfileFromClerk", () => {
     // cutover: their enrollments and orders hang off this row.
     userFindFirst
       .mockResolvedValueOnce(null) // no row with this clerkUserId
-      .mockResolvedValueOnce({ id: "local_old", fullName: null }) // unlinked match by email
+      .mockResolvedValueOnce({ id: "local_old", fullName: null, emailVerifiedAt: null }) // unlinked match by email
 
-    const result = await syncProfileFromClerk(clerkUser())
+    const result = await syncProfileFromClerk(clerkUser(), { allowCreate: true })
 
     expect(result).toEqual({ action: "relinked", userId: "local_old" })
     expect(userCreate).not.toHaveBeenCalled()
@@ -106,7 +109,7 @@ describe("syncProfileFromClerk", () => {
   it("only ever adopts a row that is unlinked and not tombstoned", async () => {
     userFindFirst.mockResolvedValue(null)
 
-    await syncProfileFromClerk(clerkUser())
+    await syncProfileFromClerk(clerkUser(), { allowCreate: true })
 
     // The where clause is the safety property, not the mock's return value.
     expect(userFindFirst).toHaveBeenNthCalledWith(
@@ -122,6 +125,7 @@ describe("syncProfileFromClerk", () => {
 
     const result = await syncProfileFromClerk(
       clerkUser({ email_addresses: [], primary_email_address_id: null }),
+      { allowCreate: true },
     )
 
     expect(result).toEqual({ action: "created", userId: "local_1" })
@@ -130,7 +134,7 @@ describe("syncProfileFromClerk", () => {
   })
 
   it("never overwrites a fullName the user typed themselves", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada L." })
+    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada L.", emailVerifiedAt: new Date() })
 
     await syncProfileFromClerk(clerkUser({ first_name: "Augusta", last_name: "King" }))
 
@@ -138,7 +142,7 @@ describe("syncProfileFromClerk", () => {
   })
 
   it("fills an empty fullName from Clerk's name", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: null })
+    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: null, emailVerifiedAt: new Date() })
 
     await syncProfileFromClerk(clerkUser())
 
@@ -149,8 +153,8 @@ describe("syncProfileFromClerk", () => {
   it("treats a concurrent unique violation as success, not a 500", async () => {
     // Two webhooks racing on the same clerkUserId would otherwise make Clerk
     // retry a delivery that has in fact already been applied.
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "x" })
-    userUpdate.mockRejectedValueOnce({ code: "P2002" })
+    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "x", emailVerifiedAt: new Date() })
+    userUpdate.mockRejectedValueOnce({ code: "P2002", meta: { target: ["clerkUserId"] } })
 
     await expect(syncProfileFromClerk(clerkUser())).resolves.toEqual({
       action: "synced",
@@ -159,7 +163,7 @@ describe("syncProfileFromClerk", () => {
   })
 
   it("propagates genuine database errors", async () => {
-    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "x" })
+    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "x", emailVerifiedAt: new Date() })
     userUpdate.mockRejectedValueOnce(new Error("connection lost"))
 
     await expect(syncProfileFromClerk(clerkUser())).rejects.toThrow("connection lost")
@@ -167,7 +171,7 @@ describe("syncProfileFromClerk", () => {
 
   it("records an audit row for the events it performs", async () => {
     userFindFirst.mockResolvedValue(null)
-    await syncProfileFromClerk(clerkUser())
+    await syncProfileFromClerk(clerkUser(), { allowCreate: true })
     expect(auditCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ event: "profile_created" }),
@@ -177,18 +181,26 @@ describe("syncProfileFromClerk", () => {
 })
 
 describe("anonymiseProfile", () => {
-  it("detaches the Clerk link instead of deleting the row", async () => {
+  it("detaches the Clerk link and clears PII instead of deleting the row", async () => {
     // "Order".userId is ON DELETE RESTRICT, so a hard delete would fail once an
     // order exists; "Enrollment".userId is CASCADE, so it would silently drop
     // enrolments. Neither is acceptable for a record of what someone paid for.
     userFindFirst.mockResolvedValueOnce({ id: "local_1" })
 
-    const result = await anonymiseProfile("user_abc", { id: "user_abc" })
+    const result = await anonymiseProfile("user_abc")
 
     expect(result).toEqual({ action: "synced", userId: "local_1" })
+    expect(transaction).toHaveBeenCalledOnce()
     expect(userUpdate).toHaveBeenCalledWith({
       where: { id: "local_1" },
-      data: { clerkUserId: null, deletedAt: expect.any(Date) },
+      data: expect.objectContaining({
+        clerkUserId: null,
+        deletedAt: expect.any(Date),
+        email: null,
+        emailVerifiedAt: null,
+        fullName: null,
+        collegeName: null,
+      }),
     })
     expect(auditCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -203,15 +215,14 @@ describe("anonymiseProfile", () => {
     expect(await anonymiseProfile("user_gone")).toEqual({ action: "noop" })
     expect(userUpdate).not.toHaveBeenCalled()
     expect(auditCreate).not.toHaveBeenCalled()
+    expect(transaction).not.toHaveBeenCalled()
   })
 })
 
 
 describe("F-02: verified-email adoption and storage", () => {
-  it.fails("does not relink a legacy row when the email is unverified", async () => {
-    userFindFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: "local_old", fullName: null })
+  it("does not relink a legacy row when the email is unverified", async () => {
+    userFindFirst.mockResolvedValue(null)
 
     const result = await syncProfileFromClerk(
       clerkUser({
@@ -219,13 +230,16 @@ describe("F-02: verified-email adoption and storage", () => {
           { id: "idm_1", email_address: "ada@example.com", verification: { status: "unverified" } },
         ],
       }),
+      { allowCreate: true },
     )
 
     expect(result).not.toEqual({ action: "relinked", userId: "local_old" })
     expect(userCreate).toHaveBeenCalled()
+    // Must not look up by verified email for adoption.
+    expect(userFindFirst).toHaveBeenCalledOnce()
   })
 
-  it.fails("stores email null when Clerk reports it unverified", async () => {
+  it("stores email null when Clerk reports it unverified", async () => {
     userFindFirst.mockResolvedValue(null)
 
     await syncProfileFromClerk(
@@ -234,17 +248,19 @@ describe("F-02: verified-email adoption and storage", () => {
           { id: "idm_1", email_address: "ada@example.com", verification: { status: "unverified" } },
         ],
       }),
+      { allowCreate: true },
     )
 
     expect(createData().email).toBeNull()
+    expect(createData().emailVerifiedAt).toBeNull()
   })
 
   it("relinks on a verified match and audits PROFILE_RELINKED", async () => {
     userFindFirst
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: "local_old", fullName: "Ada" })
+      .mockResolvedValueOnce({ id: "local_old", fullName: "Ada", emailVerifiedAt: null })
 
-    const result = await syncProfileFromClerk(clerkUser())
+    const result = await syncProfileFromClerk(clerkUser(), { allowCreate: true })
 
     expect(result).toEqual({ action: "relinked", userId: "local_old" })
     expect(auditCreate).toHaveBeenCalledWith(
@@ -254,7 +270,7 @@ describe("F-02: verified-email adoption and storage", () => {
     )
   })
 
-  it.fails("an unverified claim to an address cannot block the real owner's sync", async () => {
+  it("an unverified claim to an address cannot block the real owner's sync", async () => {
     // Attacker claims victim email unverified -> must not occupy UNIQUE email
     userFindFirst.mockResolvedValue(null)
     await syncProfileFromClerk(
@@ -264,6 +280,7 @@ describe("F-02: verified-email adoption and storage", () => {
           { id: "idm_1", email_address: "victim@example.com", verification: { status: "unverified" } },
         ],
       }),
+      { allowCreate: true },
     )
     expect(createData(0).email).toBeNull()
   })
@@ -271,39 +288,39 @@ describe("F-02: verified-email adoption and storage", () => {
 
 describe("F-04/F-05: PII clearing, tombstones and race-safe create", () => {
 
-  it.fails("re-registering with a deleted account's email creates a fresh profile", async () => {
-    // Simulates UNIQUE(email) conflict that persists until anonymise frees the email (P2002 on create).
+  it("re-registering with a deleted account's email creates a fresh profile", async () => {
+    // Simulates UNIQUE(email) conflict on create.
     // Fixed behavior: handle P2002-on-email by creating with email null + PROFILE_EMAIL_CONFLICT.
     userFindFirst.mockResolvedValue(null)
     userCreate
       .mockRejectedValueOnce({ code: "P2002", meta: { target: ["email"] } })
       .mockResolvedValueOnce({ id: "local_fresh" })
 
-    const result = await (syncProfileFromClerk as any)(clerkUser(), { allowCreate: true })
+    const result = await syncProfileFromClerk(clerkUser(), { allowCreate: true })
 
     expect(result).toEqual(expect.objectContaining({ userId: "local_fresh", action: "created" }))
     const second = userCreate.mock.calls[1] as unknown as [{ data: Record<string, unknown> }]
     expect(second[0].data.email).toBeNull()
   })
 
-  it.fails("create P2002 on clerkUserId returns the concurrent winner", async () => {
+  it("create P2002 on clerkUserId returns the concurrent winner", async () => {
     userFindFirst
       .mockResolvedValueOnce(null) // initial by clerkUserId
       .mockResolvedValueOnce(null) // adoptable
-      .mockResolvedValueOnce({ id: "local_winner", fullName: "Ada" }) // after P2002
+      .mockResolvedValueOnce({ id: "local_winner", fullName: "Ada", emailVerifiedAt: new Date() }) // after P2002
     userCreate.mockRejectedValueOnce({ code: "P2002", meta: { target: ["clerkUserId"] } })
 
-    const result = await (syncProfileFromClerk as any)(clerkUser(), { allowCreate: true })
+    const result = await syncProfileFromClerk(clerkUser(), { allowCreate: true })
     expect(result).toEqual(expect.objectContaining({ userId: "local_winner" }))
   })
 
-  it.fails("create P2002 on email creates with null email and audits PROFILE_EMAIL_CONFLICT", async () => {
+  it("create P2002 on email creates with null email and audits PROFILE_EMAIL_CONFLICT", async () => {
     userFindFirst.mockResolvedValue(null)
     userCreate
       .mockRejectedValueOnce({ code: "P2002", meta: { target: ["email"] } })
       .mockResolvedValueOnce({ id: "local_conflict" })
 
-    const result = await (syncProfileFromClerk as any)(clerkUser(), { allowCreate: true })
+    const result = await syncProfileFromClerk(clerkUser(), { allowCreate: true })
     expect(userCreate).toHaveBeenCalledTimes(2)
     const second = userCreate.mock.calls[1] as unknown as [{ data: Record<string, unknown> }]
     expect(second[0].data.email).toBeNull()
@@ -315,19 +332,17 @@ describe("F-04/F-05: PII clearing, tombstones and race-safe create", () => {
     expect(result).toEqual(expect.objectContaining({ userId: "local_conflict" }))
   })
 
-  it.fails("conflictsOn handles array and string meta.target (P2002)", async () => {
-    // P3 will introduce conflictsOn(err, field) used by sync/create paths.
-    const mod = await import("../services/profile-sync.js") as any
-    expect(typeof mod.conflictsOn).toBe("function")
-    expect(mod.conflictsOn({ code: "P2002", meta: { target: ["clerkUserId"] } }, "clerkUserId")).toBe(true)
-    expect(mod.conflictsOn({ code: "P2002", meta: { target: "User_email_key" } }, "email")).toBe(true)
-    expect(mod.conflictsOn({ code: "P2002", meta: { target: "User_email_key" } }, "clerkUserId")).toBe(false)
+  it("conflictsOn handles array and string meta.target (P2002)", () => {
+    expect(typeof conflictsOn).toBe("function")
+    expect(conflictsOn({ code: "P2002", meta: { target: ["clerkUserId"] } }, "clerkUserId")).toBe(true)
+    expect(conflictsOn({ code: "P2002", meta: { target: "User_email_key" } }, "email")).toBe(true)
+    expect(conflictsOn({ code: "P2002", meta: { target: "User_email_key" } }, "clerkUserId")).toBe(false)
   })
 })
 
 
 describe("F-10: emailVerifiedAt semantics", () => {
-  it.fails("emailVerifiedAt is preserved across syncs", async () => {
+  it("emailVerifiedAt is preserved across syncs", async () => {
     const first = new Date("2020-01-01T00:00:00Z")
     userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada", emailVerifiedAt: first })
     await syncProfileFromClerk(clerkUser())
@@ -344,6 +359,7 @@ describe("F-10: emailVerifiedAt semantics", () => {
         ],
       }),
     )
+    expect(updateData().email).toBeNull()
     expect(updateData().emailVerifiedAt).toBeNull()
   })
 })
