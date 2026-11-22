@@ -162,6 +162,27 @@ describe("syncProfileFromClerk", () => {
     })
   })
 
+  it("retries an update email collision without email and audits it", async () => {
+    userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "Ada", emailVerifiedAt: new Date() })
+    userUpdate
+      .mockRejectedValueOnce({ code: "P2002", meta: { target: ["email"] } })
+      .mockResolvedValueOnce({})
+
+    await expect(syncProfileFromClerk(clerkUser())).resolves.toEqual({
+      action: "synced",
+      userId: "local_1",
+    })
+
+    const retry = updateData(1)
+    expect(retry.email).toBeNull()
+    expect(retry.emailVerifiedAt).toBeNull()
+    expect(auditCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ event: "profile_email_conflict" }),
+      }),
+    )
+  })
+
   it("propagates genuine database errors", async () => {
     userFindFirst.mockResolvedValueOnce({ id: "local_1", fullName: "x", emailVerifiedAt: new Date() })
     userUpdate.mockRejectedValueOnce(new Error("connection lost"))
