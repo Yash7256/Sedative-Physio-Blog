@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import { withServer } from "../../test/harness.js"
 
 describe("images router (F-12)", () => {
-  it.fails("rejects same-origin path src", async () => {
+  it("rejects same-origin path src", async () => {
     const { imagesRouter } = await import("../router.js")
     const app = express()
     app.use("/api/images", imagesRouter)
@@ -12,7 +12,7 @@ describe("images router (F-12)", () => {
     expect(res.status).toBe(400)
   })
 
-  it.fails("rejects non-allowlisted remote host", async () => {
+  it("rejects non-allowlisted remote host", async () => {
     const { imagesRouter } = await import("../router.js")
     const app = express()
     app.use("/api/images", imagesRouter)

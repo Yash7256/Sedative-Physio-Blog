@@ -6,35 +6,35 @@ async function loadSafeFetch() {
 }
 
 describe("safeFetchImage (F-12)", () => {
-  it.fails("rejects non-https scheme", async () => {
+  it("rejects non-https scheme", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     await expect(
       safeFetchImage("http://i.ibb.co/a.png", { allowedHosts: new Set(["i.ibb.co"]) }),
     ).rejects.toThrow()
   })
 
-  it.fails("rejects non-443 port", async () => {
+  it("rejects non-443 port", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     await expect(
       safeFetchImage("https://i.ibb.co:8443/a.png", { allowedHosts: new Set(["i.ibb.co"]) }),
     ).rejects.toThrow()
   })
 
-  it.fails("blocks non-allowlisted host", async () => {
+  it("blocks non-allowlisted host", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     await expect(
       safeFetchImage("https://evil.example/img.png", { allowedHosts: new Set(["i.ibb.co"]) }),
     ).rejects.toThrow()
   })
 
-  it.fails("blocks userinfo trick host", async () => {
+  it("blocks userinfo trick host", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     await expect(
       safeFetchImage("https://i.ibb.co@evil.example/img.png", { allowedHosts: new Set(["i.ibb.co"]) }),
     ).rejects.toThrow()
   })
 
-  it.fails("blocks IP literals and localhost", async () => {
+  it("blocks IP literals and localhost", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     const allowed = new Set(["127.0.0.1", "localhost", "169.254.169.254"])
     await expect(safeFetchImage("https://127.0.0.1/img.png", { allowedHosts: allowed })).rejects.toThrow()
@@ -51,7 +51,7 @@ describe("safeFetchImage (F-12)", () => {
     ["loopback v6", "::1", 6],
     ["v4-mapped loopback", "::ffff:127.0.0.1", 6],
   ] as const) {
-    it.fails(`blocks allowlisted name resolving to ${label}`, async () => {
+    it(`blocks allowlisted name resolving to ${label}`, async () => {
       const { safeFetchImage } = await loadSafeFetch()
       await expect(
         safeFetchImage("https://i.ibb.co/img.png", {
@@ -62,7 +62,7 @@ describe("safeFetchImage (F-12)", () => {
     })
   }
 
-  it.fails("blocks redirect to a non-allowlisted or private target", async () => {
+  it("blocks redirect to a non-allowlisted or private target", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     let calls = 0
     const fetchImpl = vi.fn(async () => {
@@ -81,7 +81,7 @@ describe("safeFetchImage (F-12)", () => {
     ).rejects.toThrow()
   })
 
-  it.fails("blocks too many redirects", async () => {
+  it("blocks too many redirects", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     const fetchImpl = vi.fn(async () => new Response(null, { status: 302, headers: { location: "https://i.ibb.co/b.png" } }))
     await expect(
@@ -94,7 +94,7 @@ describe("safeFetchImage (F-12)", () => {
     ).rejects.toThrow()
   })
 
-  it.fails("rejects SVG or HTML content types", async () => {
+  it("rejects SVG or HTML content types", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     const base = { allowedHosts: new Set(["i.ibb.co"]), lookup: async () => [{ address: "93.184.216.34", family: 4 }] }
     await expect(
@@ -105,7 +105,7 @@ describe("safeFetchImage (F-12)", () => {
     ).rejects.toThrow()
   })
 
-  it.fails("aborts body exceeding cap without Content-Length", async () => {
+  it("aborts body exceeding cap without Content-Length", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     const chunk = new Uint8Array(1024)
     const stream = new ReadableStream({
@@ -126,7 +126,7 @@ describe("safeFetchImage (F-12)", () => {
     ).rejects.toThrow()
   })
 
-  it.fails("maps timeout to 504", async () => {
+  it("maps timeout to 504", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     const err = Object.assign(new Error("timeout"), { name: "TimeoutError" })
     await expect(
@@ -138,7 +138,7 @@ describe("safeFetchImage (F-12)", () => {
     ).rejects.toThrow()
   })
 
-  it.fails("happy path returns image bytes", async () => {
+  it("happy path returns image bytes", async () => {
     const { safeFetchImage } = await loadSafeFetch()
     const buf = Buffer.from("webp")
     const body = await safeFetchImage("https://i.ibb.co/a.png", {
