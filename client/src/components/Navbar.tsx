@@ -91,25 +91,21 @@ export function Navbar() {
             <Search className="size-[18px]" />
           </button>
 
-          {/* Account-only actions. A cart is a checkout preview and
-              notifications belong to a profile, so neither means anything
-              before there is a session to attach them to. `SignedIn` renders
-              nothing until Clerk has loaded, which keeps the signed-out navbar
-              from flashing these on the way to resolving a restored session. */}
-          <SignedIn>
-            <button
-              aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount > 1 ? "s" : ""}` : ""}`}
-              onClick={() => navigate("/cart")}
-              className="site-nav-link relative"
-            >
-              <ShoppingCart className="size-[18px]" />
-              {cartCount > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 grid size-4 place-items-center rounded-full bg-[#1683f6] text-[9px] font-bold text-white">
-                  {cartCount > 9 ? "9+" : cartCount}
-                </span>
-              )}
-            </button>
-          </SignedIn>
+          {/* The cart is part of evaluating a purchase, so it stays visible
+              signed-out; the checkout button asks for the session. Notifications
+              belong to a profile and remain account-only. */}
+          <button
+            aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount > 1 ? "s" : ""}` : ""}`}
+            onClick={() => navigate("/cart")}
+            className="site-nav-link relative"
+          >
+            <ShoppingCart className="size-[18px]" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 grid size-4 place-items-center rounded-full bg-[#1683f6] text-[9px] font-bold text-white">
+                {cartCount > 9 ? "9+" : cartCount}
+              </span>
+            )}
+          </button>
 
           <UserNav />
 

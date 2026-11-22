@@ -7,10 +7,10 @@ import { Navbar } from "../Navbar"
 import { CartProvider } from "@/lib/cartContext"
 
 /**
- * Which navbar actions are shown is a function of the session, and getting it
- * wrong is invisible in a screenshot of the signed-out state alone — a cart
- * icon that leaks through only shows up once someone is looking for it while
- * signed out. So both directions are asserted.
+ * Which navbar actions are shown is a function of the session. The cart is
+ * deliberately not one of them: browsing a cart is part of evaluating a
+ * purchase, so it is visible signed-out and the checkout button asks for the
+ * session. Notifications remain session-only because they belong to a profile.
  */
 const clerk = vi.hoisted(() => ({ isSignedIn: false, signOut: vi.fn(() => Promise.resolve()) }))
 
@@ -72,14 +72,14 @@ afterEach(() => {
 })
 
 describe("navbar session-aware actions", () => {
-  it("offers sign-in and the theme toggle, but no account actions, while signed out", () => {
+  it("offers the cart while signed out, but no account-only actions", () => {
     clerk.isSignedIn = false
     renderNavbar()
 
     expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument()
     expect(themeToggle()).toBeInTheDocument()
+    expect(cartButton()).toBeInTheDocument()
 
-    expect(cartButton()).not.toBeInTheDocument()
     expect(notificationButton()).not.toBeInTheDocument()
   })
 
@@ -90,7 +90,7 @@ describe("navbar session-aware actions", () => {
     expect(screen.queryByRole("button", { name: /sign ?up/i })).not.toBeInTheDocument()
   })
 
-  it("swaps in the cart and notification icons once signed in", () => {
+  it("adds the notification icon once signed in", () => {
     clerk.isSignedIn = true
     renderNavbar()
 
@@ -105,8 +105,9 @@ describe("navbar session-aware actions", () => {
     clerk.isSignedIn = true
     renderNavbar()
 
-    // The account page is gated, so this link is the only way in; if it silently
-    // stops pointing at /account the page becomes unreachable.
+    // The avatar is the signed-in shortcut to the account page; if it silently
+    // stops pointing at /account the shortcut breaks even though the URL is
+    // reachable directly.
     expect(screen.getByRole("link", { name: /view your profile/i })).toHaveAttribute("href", "/account")
   })
 

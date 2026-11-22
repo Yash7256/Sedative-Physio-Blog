@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { useClerk, useUser } from "@clerk/clerk-react"
+import { SignInButton, useAuth, useClerk, useUser } from "@clerk/clerk-react"
 import {
   AlertCircle,
   Bell,
@@ -99,6 +99,7 @@ const panel = "rounded-[26px] border border-black/10 bg-[#f3f3f3] px-6 py-7 shad
 
 export function Account() {
   const { user } = useUser()
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth()
   const { signOut, openUserProfile } = useClerk()
   const { profile, isProfilePending, error, updateProfile } = useAuthProfile()
 
@@ -156,6 +157,39 @@ export function Account() {
     () => new Map((enrolled ?? []).map(({ course }) => [course.id, course.title])),
     [enrolled],
   )
+
+  // The route is reachable while signed out so the URL stays useful. Rendering
+  // the real shell here would show dashes and a Log Out button for somebody who
+  // has no account data, so the page asks for the session instead.
+  if (!isAuthLoaded) return null
+  if (!isSignedIn) {
+    return (
+      <div className="account-page flex min-h-screen items-center justify-center px-6 py-24">
+        <div className="flex max-w-md flex-col items-center gap-5 text-center">
+          <div className="grid size-14 place-items-center rounded-full bg-[#e7e8e7] text-[#686a6b] dark:bg-white/[0.07] dark:text-[#b4b4af]">
+            <Lock size={24} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-xl font-semibold text-[#1e2233] dark:text-white">
+              Sign in to view your account
+            </h1>
+            <p className="text-sm text-[#686a6b] dark:text-[#b4b4af]">
+              Your profile, courses and orders are tied to your account. Browsing
+              the site and building a cart do not need a session.
+            </p>
+          </div>
+          <SignInButton mode="modal">
+            <button
+              type="button"
+              className="rounded-full bg-[#1683f6] px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Sign in
+            </button>
+          </SignInButton>
+        </div>
+      </div>
+    )
+  }
 
   const displayName = profile?.fullName?.trim() || profile?.email || "—"
   const email = profile?.email ?? user?.primaryEmailAddress?.emailAddress ?? "—"

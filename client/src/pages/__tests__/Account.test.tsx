@@ -22,7 +22,12 @@ const { useAuth, useUser, useClerk, signOut, openUserProfile } = vi.hoisted(() =
   openUserProfile: vi.fn(),
 }))
 
-vi.mock("@clerk/clerk-react", () => ({ useAuth, useUser, useClerk }))
+vi.mock("@clerk/clerk-react", () => ({
+  useAuth,
+  useUser,
+  useClerk,
+  SignInButton: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
 
 const fetchMock = vi.fn()
 
@@ -358,5 +363,20 @@ describe("honest empty states", () => {
     await openSection(/notifications/i)
 
     expect(await screen.findByText(/not wired up yet/i)).toBeInTheDocument()
+  })
+})
+
+describe("session", () => {
+  it("renders a sign-in prompt instead of the account shell while signed out", () => {
+    useAuth.mockReturnValue({ isLoaded: true, isSignedIn: false, userId: undefined })
+    useUser.mockReturnValue({ isLoaded: true, isSignedIn: false, user: null })
+    fetchMock.mockClear()
+
+    renderAccount()
+
+    expect(screen.getByRole("heading", { name: /sign in to view your account/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.queryByRole("navigation", { name: /account navigation/i })).not.toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
