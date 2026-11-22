@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "sec/**"
+  pull_request:
+
+jobs:
+  server:
+    name: server (typecheck, lint, test, audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install (no lifecycle scripts)
+        run: npm --prefix server ci --ignore-scripts
+      - name: Typecheck
+        run: npm --prefix server run typecheck
+      - name: Lint
+        run: npm --prefix server run lint
+      - name: Test
+        run: npm --prefix server test
+      - name: Audit (critical only during P1-P6; raised to high in P7)
+        run: npm --prefix server audit --omit=dev --audit-level=critical
+
+  client:
+    name: client (lint, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Install (no lifecycle scripts)
+        run: npm --prefix client ci --ignore-scripts
+      - name: Lint
+        run: npm --prefix client run lint
+      - name: Test
+        run: npm --prefix client test
+
+  deploy-deps:
+    name: root/server dependency parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check deploy dependencies
+        run: npm run check:deploy
+
+  secrets:
+    name: secret scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

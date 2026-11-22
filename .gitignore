@@ -7,3 +7,5 @@ dist/
 *.log
 .vercel
 .env*
+!.env.example
+!**/.env.example

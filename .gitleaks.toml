@@ -1,0 +1,12 @@
+title = "gitleaks config for Sedative-Physio-Blog"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Example env templates contain placeholder values, not real secrets"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)client/\.env\.example$''',
+  '''(^|/)server/\.env\.example$''',
+]
