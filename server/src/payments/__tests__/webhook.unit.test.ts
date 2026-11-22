@@ -10,7 +10,8 @@ const { mockTx, mockPrisma } = vi.hoisted(() => {
   const mockTx = {
     order: {
       update: vi.fn().mockResolvedValue({}),
-      findFirst: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      findFirst: vi.fn().mockResolvedValue(null),
     },
     enrollment: {
       upsert: vi.fn().mockResolvedValue({}),
@@ -103,6 +104,8 @@ describe("verifyRazorpayPayment", () => {
     process.env.RAZORPAY_KEY_SECRET = KEY_SECRET
     vi.clearAllMocks()
     mockTx.order.update.mockResolvedValue({})
+    mockTx.order.updateMany.mockResolvedValue({ count: 1 })
+    mockTx.order.findFirst.mockResolvedValue(null)
     mockTx.enrollment.upsert.mockResolvedValue({})
     mockPrisma.$transaction.mockImplementation((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx))
   })
@@ -130,7 +133,7 @@ describe("verifyRazorpayPayment", () => {
 
     expect(result.success).toBe(true)
     expect(result.enrolledCount).toBe(2)
-    expect(mockTx.order.update).toHaveBeenCalledWith(
+    expect(mockTx.order.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: "PAID", razorpayPaymentId: PAY_ID }),
       }),
@@ -224,6 +227,8 @@ describe("processRazorpayWebhook", () => {
     process.env.RAZORPAY_WEBHOOK_SECRET = WEBHOOK_SECRET
     vi.clearAllMocks()
     mockTx.order.update.mockResolvedValue({})
+    mockTx.order.updateMany.mockResolvedValue({ count: 1 })
+    mockTx.order.findFirst.mockResolvedValue(null)
     mockTx.enrollment.upsert.mockResolvedValue({})
     mockTx.enrollment.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.$transaction.mockImplementation((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx))
@@ -237,7 +242,7 @@ describe("processRazorpayWebhook", () => {
     delete process.env.RAZORPAY_WEBHOOK_SECRET
     await expect(
       processRazorpayWebhook({ rawBody: "{}", signature: "sig" }),
-    ).rejects.toThrow("RAZORPAY_WEBHOOK_SECRET is not configured")
+    ).rejects.toThrow("Webhook verification is temporarily unavailable.")
   })
 
   it("tampered body throws BadRequestError", async () => {
@@ -263,7 +268,7 @@ describe("processRazorpayWebhook", () => {
 
     const result = await processRazorpayWebhook({ rawBody: body, signature: sig })
     expect(result.processed).toBe(true)
-    expect(mockTx.order.update).toHaveBeenCalledWith(
+    expect(mockTx.order.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "PAID" }) }),
     )
     expect(mockTx.enrollment.upsert).toHaveBeenCalledTimes(1)
@@ -421,7 +426,10 @@ describe("processRazorpayWebhook", () => {
     expect(mockTx.enrollment.deleteMany).not.toHaveBeenCalled()
   })
 
-  it("refund.processed is ignored when order is not PAID", async () => {
+  // Old behaviour ignored refunds on PENDING orders. A refund implies a prior
+  // capture, so the terminal REFUNDED state must win even if this webhook beats
+  // the capture webhook (decision D2).
+  it("refund.processed marks a PENDING order REFUNDED without enrollments", async () => {
     const body = JSON.stringify({
       event: "refund.processed",
       payload: {
@@ -439,7 +447,7 @@ describe("processRazorpayWebhook", () => {
     const order = {
       id: "int_id",
       userId: "user_1",
-      status: "PENDING", // not PAID
+      status: "PENDING",
       courseIds: ["c1"],
       razorpayPaymentId: null,
       amount: 50000,
@@ -447,9 +455,12 @@ describe("processRazorpayWebhook", () => {
     mockPrisma.order.findUnique.mockResolvedValue(order)
 
     const result = await processRazorpayWebhook({ rawBody: body, signature: sig })
-    expect(result.processed).toBe(false)
-    expect(mockTx.order.update).not.toHaveBeenCalled()
-    expect(mockPrisma.order.update).not.toHaveBeenCalled()
+    expect(result.processed).toBe(true)
+    expect(mockTx.order.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: "REFUNDED" } }),
+    )
+    expect(mockTx.enrollment.upsert).not.toHaveBeenCalled()
+    expect(mockTx.enrollment.deleteMany).not.toHaveBeenCalled()
   })
 
   it("amount mismatch on order.paid does not mark PAID", async () => {
