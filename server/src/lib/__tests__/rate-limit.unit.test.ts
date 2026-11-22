@@ -51,7 +51,7 @@ function fakeRedis() {
 }
 
 describe("rate-limit (F-08)", () => {
-  it.fails("production without shared store throws unless override", async () => {
+  it("production without shared store throws unless override", async () => {
     // @ts-ignore - module created in P4
     const { createLimiter } = await import("../rate-limit.js")
     expect(() =>
@@ -64,7 +64,7 @@ describe("rate-limit (F-08)", () => {
     ).toThrow()
   })
 
-  it.fails("production allows memory store when RATE_LIMIT_ALLOW_MEMORY=1", async () => {
+  it("production allows memory store when RATE_LIMIT_ALLOW_MEMORY=1", async () => {
     // @ts-ignore - module created in P4
     const { createLimiter } = await import("../rate-limit.js")
     expect(() =>
@@ -77,7 +77,7 @@ describe("rate-limit (F-08)", () => {
     ).not.toThrow()
   })
 
-  it.fails("Upstash store increments and sets the window on first hit", async () => {
+  it("Upstash store increments and sets the window on first hit", async () => {
     // @ts-ignore - module created in P4
     const { UpstashStore } = await import("../rate-limit.js")
     const { redis } = fakeRedis()
@@ -87,7 +87,7 @@ describe("rate-limit (F-08)", () => {
     expect(redis.pexpire).toHaveBeenCalled()
   })
 
-  it.fails("Upstash store repairs a missing expiry", async () => {
+  it("Upstash store repairs a missing expiry", async () => {
     // @ts-ignore - module created in P4
     const { UpstashStore } = await import("../rate-limit.js")
     const { redis, store: data } = fakeRedis()
@@ -97,7 +97,7 @@ describe("rate-limit (F-08)", () => {
     expect(redis.pexpire).toHaveBeenCalled()
   })
 
-  it.fails("Upstash store decrement and resetKey work", async () => {
+  it("Upstash store decrement and resetKey work", async () => {
     // @ts-ignore - module created in P4
     const { UpstashStore } = await import("../rate-limit.js")
     const { redis } = fakeRedis()
@@ -109,7 +109,7 @@ describe("rate-limit (F-08)", () => {
     expect(redis.del).toHaveBeenCalled()
   })
 
-  it.fails("Upstash store rolls over after window", async () => {
+  it("Upstash store rolls over after window", async () => {
     // @ts-ignore - module created in P4
     const { UpstashStore } = await import("../rate-limit.js")
     const { redis, store: data } = fakeRedis()
@@ -122,7 +122,7 @@ describe("rate-limit (F-08)", () => {
     expect(b.totalHits).toBe(1)
   })
 
-  it.fails("public limiters pass on store error", async () => {
+  it("public limiters pass on store error", async () => {
     // @ts-ignore - module created in P4
     const { createLimiter } = await import("../rate-limit.js")
     const broken = { increment: vi.fn(async () => { throw new Error("boom") }), decrement: vi.fn(), resetKey: vi.fn(), init: vi.fn() }
@@ -141,7 +141,9 @@ describe("rate-limit (F-08)", () => {
   })
 
 
-  it.fails("no direct rateLimit( outside lib/rate-limit.ts", async () => {
+  // Build the needle so this guard does not flag its own source file.
+  const directCall = "rate" + "Limit("
+  it(`no direct ${directCall} outside lib/rate-limit.ts`, async () => {
     const fs = await import("node:fs")
     const path = await import("node:path")
     const root = path.resolve(process.cwd(), "src")
@@ -153,7 +155,7 @@ describe("rate-limit (F-08)", () => {
         else if (entry.isFile() && full.endsWith(".ts")) {
           if (full.endsWith(path.join("lib", "rate-limit.ts"))) continue
           const text = fs.readFileSync(full, "utf8")
-          if (text.includes("rateLimit(")) hits.push(path.relative(root, full))
+          if (text.includes(directCall)) hits.push(path.relative(root, full))
         }
       }
     }

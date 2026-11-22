@@ -12,7 +12,9 @@ import { contactRouter } from "./contact/router.js"
 import { paymentsRouter } from "./payments/router.js"
 import { imagesRouter } from "./images/router.js"
 import { healthRouter } from "./routes/health.js"
+import { assertProductionConfig, getAuthorizedParties } from "./auth/config.js"
 import { noStore } from "./lib/cache.js"
+import { errorHandler } from "./lib/errors.js"
 
 /**
  * Allowed browser origins for CORS. Comma-separated env var, e.g.
@@ -28,6 +30,7 @@ const ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS ?? "http://localhost:5
   .filter(Boolean)
 
 export function createApp() {
+  assertProductionConfig()
   const app = express()
 
   // Our cacheControl middleware owns the ETag header for cacheable GETs;
@@ -67,7 +70,7 @@ export function createApp() {
   // the result to `req.auth` on every request. It does not reject anonymous
   // callers — that distinction is drawn later, by `requireAuth` for protected
   // routes and by `req.auth?.userId` checks for optional-auth routes.
-  app.use(clerkMiddleware())
+  app.use(clerkMiddleware({ authorizedParties: getAuthorizedParties() }))
 
   app.use("/api/auth", authRouter)
   app.use("/api/notes", notesRouter)
@@ -80,6 +83,8 @@ export function createApp() {
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Not found" })
   })
+
+  app.use(errorHandler)
 
   return app
 }

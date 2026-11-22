@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from "express"
-import rateLimit from "express-rate-limit"
+import type { Store } from "express-rate-limit"
 
-import { handleError } from "../lib/errors.js"
+import { BadRequestError, handleError } from "../lib/errors.js"
+import { createLimiter } from "../lib/rate-limit.js"
 import { anonymiseProfile, syncProfileFromClerk } from "./services/profile-sync.js"
 import { ensureAuthProfile } from "./services/provision.js"
 import { classifyClerkEvent, verifyClerkEvent } from "./services/webhook-verify.js"
@@ -48,18 +49,26 @@ const WINDOW_MS = 60 * 1000
  * change that breaks the trust-proxy assumption is reported at startup instead
  * of silently weakening this control.
  */
-export function createDeliveryLimiters(limits: { perIp: number; global: number }) {
+export function createDeliveryLimiters(
+  limits: { perIp: number; global: number },
+  store?: Store,
+) {
   const shared = {
     windowMs: WINDOW_MS,
-    standardHeaders: true,
-    legacyHeaders: false,
+    failClosed: true,
+    store,
     validate: { trustProxy: true, xForwardedForHeader: true },
   } as const
 
   return {
-    perIp: rateLimit({ ...shared, limit: limits.perIp }),
-    globalCeiling: rateLimit({
+    perIp: createLimiter({
       ...shared,
+      prefix: "clerk-webhook-ip",
+      limit: limits.perIp,
+    }),
+    globalCeiling: createLimiter({
+      ...shared,
+      prefix: "clerk-webhook-global",
       limit: limits.global,
       keyGenerator: () => GLOBAL_KEY,
       message: { error: "Webhook endpoint is saturated. Please retry." },
@@ -130,7 +139,5 @@ function readRawBody(req: Request): string {
   const raw = (req as Request & { rawBody?: unknown }).rawBody
   if (typeof raw === "string" && raw.length > 0) return raw
   if (Buffer.isBuffer(raw) && raw.length > 0) return raw.toString("utf8")
-  throw new Error(
-    "Raw request body unavailable; the json body-parser hook in app.ts must set `rawBody` before Clerk webhooks can be verified.",
-  )
+  throw new BadRequestError("A JSON request body is required.")
 }

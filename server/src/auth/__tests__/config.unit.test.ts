@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 describe("auth config (F-07)", () => {
-  it.fails("parses and normalizes authorized parties", async () => {
+  it("parses and normalizes authorized parties", async () => {
     // @ts-ignore - module created in P4
     const { getAuthorizedParties } = await import("../config.js")
     const list = getAuthorizedParties({
@@ -10,7 +10,7 @@ describe("auth config (F-07)", () => {
     expect(list).toEqual(["https://example.com", "https://app.example.com"])
   })
 
-  it.fails("rejects non-origin entries", async () => {
+  it("rejects non-origin entries", async () => {
     // @ts-ignore - module created in P4
     const { getAuthorizedParties } = await import("../config.js")
     expect(() =>
@@ -20,7 +20,7 @@ describe("auth config (F-07)", () => {
     ).toThrow()
   })
 
-  it.fails("production with no origins throws", async () => {
+  it("production with no origins throws", async () => {
     // @ts-ignore - module created in P4
     const { assertProductionConfig } = await import("../config.js")
     expect(() =>

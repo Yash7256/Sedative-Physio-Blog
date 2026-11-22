@@ -1,8 +1,9 @@
 import { Router } from "express"
-import rateLimit, { ipKeyGenerator } from "express-rate-limit"
+import { ipKeyGenerator } from "express-rate-limit"
 
 import { sendContactEmail } from "./service.js"
 import { handleError } from "../lib/errors.js"
+import { createLimiter } from "../lib/rate-limit.js"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -18,19 +19,17 @@ const MAX_MESSAGE_LENGTH = 5000
 
 const HOUR_MS = 60 * 60 * 1000
 
-const ipLimiter = rateLimit({
+const ipLimiter = createLimiter({
+  prefix: "contact-ip",
   windowMs: HOUR_MS,
   limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { error: "Too many messages sent. Please try again later." },
 })
 
-const emailLimiter = rateLimit({
+const emailLimiter = createLimiter({
+  prefix: "contact-email",
   windowMs: HOUR_MS,
   limit: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
   keyGenerator: (req) => {
     const email = (req.body as { email?: unknown } | undefined)?.email
     return typeof email === "string" && email.trim()
