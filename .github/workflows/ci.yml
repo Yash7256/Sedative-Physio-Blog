@@ -26,8 +26,8 @@ jobs:
         run: npm --prefix server run lint
       - name: Test
         run: npm --prefix server test
-      - name: Audit (critical only during P1-P6; raised to high in P7)
-        run: npm --prefix server audit --omit=dev --audit-level=critical
+      - name: Audit
+        run: npm --prefix server audit --omit=dev --audit-level=high
 
   client:
     name: client (lint, test)
@@ -56,6 +56,8 @@ jobs:
           node-version: 22
       - name: Check deploy dependencies
         run: npm run check:deploy
+      - name: Dependency hygiene
+        run: npm run test:deps
 
   secrets:
     name: secret scanning
