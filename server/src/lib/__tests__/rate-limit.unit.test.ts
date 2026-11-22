@@ -140,6 +140,42 @@ describe("rate-limit (F-08)", () => {
     expect(res.status).not.toHaveBeenCalledWith(503)
   })
 
+  it("fail-closed limiters return 503 on store error and stop the request", async () => {
+    // @ts-ignore - module created in P4
+    const { createLimiter } = await import("../rate-limit.js")
+    const broken = { increment: vi.fn(async () => { throw new Error("boom") }), decrement: vi.fn(), resetKey: vi.fn(), init: vi.fn() }
+    const mw = createLimiter({
+      prefix: "closed",
+      windowMs: 1000,
+      limit: 1,
+      failClosed: true,
+      store: broken as any,
+      env: { NODE_ENV: "test" } as any,
+    })
+    const req = { ip: "1.2.3.4", headers: {}, app: { get: vi.fn(() => 1) } } as any
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis(), setHeader: vi.fn(), header: vi.fn() } as any
+    let nextCalls = 0
+    let finish!: () => void
+    const responded = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    res.json.mockImplementation(() => {
+      finish()
+      return res
+    })
+
+    mw(req, res, () => {
+      nextCalls += 1
+      finish()
+    })
+    await responded
+    await Promise.resolve()
+
+    expect(nextCalls).toBe(0)
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({ error: "Service temporarily unavailable" })
+  })
+
 
   // Build the needle so this guard does not flag its own source file.
   const directCall = "rate" + "Limit("

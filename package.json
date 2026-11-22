@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",
-    "@aws-sdk/s3-request-presigner": "^3.1125.0",
+    "@aws-sdk/s3-request-presigner": "^3.1172.0",
     "@clerk/backend": "^3.17.1",
     "@clerk/express": "^2.1.93",
     "@prisma/adapter-pg": "^7.10.0",
@@ -43,7 +43,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^24.13.3",
-    "@types/nodemailer": "^8.0.1",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@vercel/node": "^5.1.14",
     "concurrently": "^9.1.2",
