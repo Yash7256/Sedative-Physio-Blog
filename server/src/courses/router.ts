@@ -22,7 +22,8 @@ coursesRouter.get("/", catalogCache, async (_req, res) => {
 // GET /api/courses/:slug — course details with syllabus and tutor
 coursesRouter.get("/:slug", catalogCache, async (req, res) => {
   try {
-    const slug = req.params.slug
+    const slugParam = req.params.slug
+    const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam
     if (!slug) {
       res.status(400).json({ error: "Slug is required" })
       return
