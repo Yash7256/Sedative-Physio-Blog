@@ -4,9 +4,11 @@
 **Source of truth for findings:** the end-to-end auth audit (IDs `F-01` … `F-13` are used throughout).
 **Audience:** a coding agent (Codex) executing the plan, and the human who reviews each PR.
 
-> **Reading order.** Part A = how auth works today (HLD, then LLD) with defects marked.
-> Part B = how it must work after the fix (HLD, then LLD).
-> Part C = the phased plan Codex executes. Appendices hold rules, runbooks and traceability.
+> **Status.** Parts A and B are **historical design context** from the earlier Codex plan. The current source of truth is `implmentation/OPENCODE_IMPLEMENTATION_PLAN.md`; Part C and the appendices below are superseded wherever they conflict with it.
+
+> **Reading order.** Part A = how auth worked at the time of the audit (HLD, then LLD) with defects marked.
+> Part B = the target design proposed at that time (HLD, then LLD).
+> Part C and the appendices = the superseded plan, kept for traceability.
 
 ---
 

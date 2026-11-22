@@ -175,13 +175,21 @@ describe("updateAuthProfile", () => {
 
   it("surfaces a Clerk write failure instead of reporting a false success", async () => {
     clerkUpdateUser.mockRejectedValue(new Error("clerk is down"))
-    vi.spyOn(console, "error").mockImplementation(() => {})
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
 
     await expect(updateAuthProfile(CLERK_ID, { fullName: "Ada Lovelace" })).rejects.toThrow(
       /Could not save your name/,
     )
+    const logged = JSON.stringify(log.mock.calls)
+    const loggedDetail = log.mock.calls[0]?.[1]
+    log.mockRestore()
+
     // The local row must not claim a name Clerk does not have.
     expect(userUpdate).not.toHaveBeenCalled()
+    // An SDK error can carry a request payload or a stack; keep it out of logs.
+    expect(logged).toContain("Failed to update name in Clerk")
+    expect(typeof loggedDetail).toBe("string")
+    expect(loggedDetail).not.toContain("clerk is down")
   })
 
   it("rejects a tombstoned account", async () => {

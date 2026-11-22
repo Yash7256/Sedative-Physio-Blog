@@ -2,6 +2,10 @@
 
 New design in progress.
 
+## Security hardening
+
+Current plan, environment-variable list, human-only P0 runbook, and phase status: `implmentation/OPENCODE_IMPLEMENTATION_PLAN.md` and `docs/security.md`. Parts A/B of `implmentation/Auth.md` are historical context only.
+
 ## Razorpay Setup
 
 ### Environment Variables
