@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react"
+import { lazy, Suspense, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Box, Check, Download, Eye, Loader2, ShoppingCart, Sparkles } from "lucide-react"
 import { CourseDetailModal } from "../components/CourseDetailModal"
@@ -6,26 +6,53 @@ import { NotePreviewModal } from "../components/NotePreviewModal"
 import { SmartImage } from "../components/SmartImage"
 import { useCart } from "../lib/cartContext"
 import {
-  fetchNotes,
   fetchNoteDownload,
-  fetchModels,
-  fetchCourses,
   modelToResource,
   noteToResource,
   courseToResource,
   type Resource,
   type ResourceCategory,
 } from "../lib/resources"
+import { useCourseList, useModelList, useNoteList } from "../lib/resources-queries"
 
 const ModelViewerModal = lazy(() => import("../components/ModelViewerModal").then((m) => ({ default: m.ModelViewerModal })))
 
 interface Card extends Resource { kind: "note" | "model" | "course"; fileName: string | null; fileSize: number | null; url?: string; isFree?: boolean; price?: number }
 type PreviewState = { kind: "note"; id: string; title: string } | { kind: "model"; url: string; title: string } | { kind: "course"; slug: string; title: string } | null
 
+interface SectionStatus {
+  label: string
+  isPending: boolean
+  isError: boolean
+  isRefetchError: boolean
+  isFetching: boolean
+  hasData: boolean
+}
+
+type StatusMessage = { text: string; tone: "loading" | "error" | "stale" }
+
 function formatCoursePrice(paise: number | undefined): string {
   if (!paise) return "Free"
   const rupees = paise / 100
   return `₹${rupees.toFixed(Number.isInteger(rupees) ? 0 : 2)}`
+}
+
+/** Each section gets its own status; a failed query cannot hide a healthy one. */
+function sectionStatusMessage(status: SectionStatus | undefined): StatusMessage | null {
+  if (!status) return null
+  if (status.isPending && !status.hasData) return { text: `Loading ${status.label}…`, tone: "loading" }
+  if (status.hasData && (status.isError || status.isRefetchError)) {
+    return { text: `Could not refresh ${status.label}. Showing cached results.`, tone: "stale" }
+  }
+  if (status.isError || status.isRefetchError) return { text: `Could not load ${status.label}.`, tone: "error" }
+  if (status.isFetching) return { text: `Refreshing ${status.label}…`, tone: "loading" }
+  return null
+}
+
+const statusClass: Record<StatusMessage["tone"], string> = {
+  loading: "text-[#6b6d70]",
+  error: "text-[#8b4b42]",
+  stale: "text-[#8b6b3a]",
 }
 
 const librarySections: Array<{ key: ResourceCategory | "podcast"; title: string; explore: string }> = [
@@ -38,52 +65,74 @@ const librarySections: Array<{ key: ResourceCategory | "podcast"; title: string;
 
 export function Resources() {
   const isProd = import.meta.env.PROD
+  const courseQuery = useCourseList()
+  const noteQuery = useNoteList()
+  const modelQuery = useModelList()
   const [active, setActive] = useState<ResourceCategory | "all">("all")
-  const [cards, setCards] = useState<Card[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
   const [preview, setPreview] = useState<PreviewState>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    Promise.all([fetchNotes(), fetchModels(), fetchCourses()]).then(([noteList, modelList, courseList]) => {
-      if (cancelled) return
-      const noteCards: Card[] = noteList
-        .map(noteToResource)
-        .filter((r): r is Resource => r !== null)
-        .map((r) => {
-          const note = noteList.find((n) => n.id === r.id)!
-          return { ...r, kind: "note" as const, fileName: note.fileName, fileSize: note.fileSize }
-        })
-      const modelCards: Card[] = modelList.map((model) => ({
-        ...modelToResource(model),
-        kind: "model" as const,
-        fileName: model.fileName,
-        fileSize: model.fileSize,
-        url: model.jsDelivrUrl,
-      }))
-      const courseCards: Card[] = courseList.map((course) => ({
-        ...courseToResource(course),
-        kind: "course" as const,
-        fileName: "",
-        fileSize: null,
-        isFree: course.isFree,
-        price: course.price,
-      }))
-      setCards([...courseCards, ...noteCards, ...modelCards])
-    }).catch(() => !cancelled && setError("Could not load the latest library items. You can still explore the catalogue below."))
-      .finally(() => !cancelled && setLoading(false))
-    return () => { cancelled = true }
-  }, [])
+  const noteCards = useMemo<Card[]>(() => (noteQuery.data ?? []).flatMap((note) => {
+    const resource = noteToResource(note)
+    if (!resource) return []
+    return [{ ...resource, kind: "note" as const, fileName: note.fileName, fileSize: note.fileSize }]
+  }), [noteQuery.data])
+
+  const modelCards = useMemo<Card[]>(() => (modelQuery.data ?? []).map((model) => ({
+    ...modelToResource(model),
+    kind: "model" as const,
+    fileName: model.fileName,
+    fileSize: model.fileSize,
+    url: model.jsDelivrUrl,
+  })), [modelQuery.data])
+
+  const courseCards = useMemo<Card[]>(() => (courseQuery.data ?? []).map((course) => ({
+    ...courseToResource(course),
+    kind: "course" as const,
+    fileName: "",
+    fileSize: null,
+    isFree: course.isFree,
+    price: course.price,
+  })), [courseQuery.data])
+
+  const cards = useMemo(() => [...courseCards, ...noteCards, ...modelCards], [courseCards, noteCards, modelCards])
+
+  const statuses: Partial<Record<ResourceCategory | "podcast", SectionStatus>> = {
+    courses: {
+      label: "courses",
+      isPending: courseQuery.isPending,
+      isError: courseQuery.isError,
+      isRefetchError: courseQuery.isRefetchError,
+      isFetching: courseQuery.isFetching,
+      hasData: Boolean(courseQuery.data),
+    },
+    notes: {
+      label: "notes",
+      isPending: noteQuery.isPending,
+      isError: noteQuery.isError,
+      isRefetchError: noteQuery.isRefetchError,
+      isFetching: noteQuery.isFetching,
+      hasData: Boolean(noteQuery.data),
+    },
+    "3d-models": {
+      label: "models",
+      isPending: modelQuery.isPending,
+      isError: modelQuery.isError,
+      isRefetchError: modelQuery.isRefetchError,
+      isFetching: modelQuery.isFetching,
+      hasData: Boolean(modelQuery.data),
+    },
+  }
 
   const handleDownload = async (id: string) => {
     setDownloadingId(id)
+    setDownloadError(null)
     try {
       const { url, fileName } = await fetchNoteDownload(id)
       const link = document.createElement("a")
       link.href = url; link.download = fileName; document.body.appendChild(link); link.click(); link.remove()
-    } catch { setError("Could not start the download. Please try again.") } finally { setDownloadingId(null) }
+    } catch { setDownloadError("Could not start the download. Please try again.") } finally { setDownloadingId(null) }
   }
   const openPreview = (card: Card) => {
     if (card.kind === "model" && card.url) setPreview({ kind: "model", url: card.url, title: card.title })
@@ -116,17 +165,26 @@ export function Resources() {
           ))}
         </div>
       </section>
-      {loading && <div className="py-12 text-center"><Loader2 className="mx-auto size-6 animate-spin text-[#6b6d70]" /><p className="mt-3 text-sm text-[#6b6d70]">Loading latest resources…</p></div>}
-      {error && <p className="py-5 text-center text-sm text-[#8b4b42]">{error}</p>}
+      {downloadError && <p className="py-5 text-center text-sm text-[#8b4b42]" role="alert">{downloadError}</p>}
       <div className="mt-10 space-y-14 sm:mt-14 sm:space-y-18">{visibleSections.map((section) => {
         const comingSoon = isProd && section.key === "3d-models"
-        const dynamic = section.key === "podcast" ? [] : cards.filter((card) => card.category === section.key)
-        const limited = active === "all" ? dynamic.slice(0, 3) : dynamic
         if (comingSoon) {
           return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2></div><div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-center text-white" data-reveal><div><p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80"><Box className="size-3.5" /> Coming Soon</p><p className="font-display mx-auto mt-5 max-w-[560px] text-[clamp(1.25rem,2.5vw,2rem)] font-semibold leading-tight tracking-[-.03em]">Interactive 3D anatomy models are on their way.</p><p className="mx-auto mt-3 max-w-[480px] text-sm leading-relaxed text-white/70">Explore bones, muscles, and joints in fully explorable 3D — coming soon to Sedative Physio.</p></div></div></section>
         }
-        if (limited.length === 0) return null
-        return <section key={section.key}><div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2>{active === "all" && <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="text-xs text-[#696b6d] underline-offset-4 hover:underline">View all</button>}</div><div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{limited.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div><button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="mt-8 flex w-full items-center justify-center border-t border-black/10 pt-5 text-sm text-[#707275] transition-colors hover:text-black">{section.explore}</button></section>
+
+        const dynamic = section.key === "podcast" ? [] : cards.filter((card) => card.category === section.key)
+        const limited = active === "all" ? dynamic.slice(0, 3) : dynamic
+        const message = sectionStatusMessage(statuses[section.key])
+        if (limited.length === 0 && !message) return null
+
+        return <section key={section.key}>
+          <div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2>{active === "all" && limited.length > 0 && <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="text-xs text-[#696b6d] underline-offset-4 hover:underline">View all</button>}</div>
+          {message && <p className={`mb-4 text-sm ${statusClass[message.tone]}`} role={message.tone === "loading" ? "status" : "alert"}>{message.text}</p>}
+          {limited.length > 0 && <>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{limited.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div>
+            <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="mt-8 flex w-full items-center justify-center border-t border-black/10 pt-5 text-sm text-[#707275] transition-colors hover:text-black">{section.explore}</button>
+          </>}
+        </section>
       })}</div>
       <section data-scroll-fade className="mt-16 overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-white sm:mt-24 sm:px-12 sm:py-14"><h2 data-reveal className="text-[clamp(2rem,4vw,4rem)] font-bold leading-none tracking-[-.04em]">Coming Soon</h2><p className="mt-4 max-w-[690px] text-sm leading-relaxed text-white/75">We’re continuously expanding our resource library. More tools and materials will be added soon to support your learning journey.</p><div className="mt-7 flex flex-wrap gap-2">{["Study Guides", "Clinical Protocols", "Video Tutorials", "Research Papers"].map((item) => <span key={item} className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/80">{item}</span>)}</div></section>
     </main>
