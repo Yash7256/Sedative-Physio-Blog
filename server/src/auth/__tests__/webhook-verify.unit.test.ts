@@ -1,4 +1,4 @@
-import { describe, expect, it, afterEach } from "vitest"
+import { describe, expect, it, afterEach, vi } from "vitest"
 import crypto from "node:crypto"
 
 import {
@@ -175,8 +175,18 @@ describe("verifyClerkEvent", () => {
 
   it("fails loudly when CLERK_WEBHOOK_SECRET is unset", () => {
     delete process.env.CLERK_WEBHOOK_SECRET
-    // A misconfigured deployment must be obvious, not silently skip verification.
-    expect(() => verifyClerkEvent("{}", {})).toThrow(/CLERK_WEBHOOK_SECRET/)
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    // A misconfigured deployment must be obvious, not silently skip verification,
+    // but the variable name belongs in the log, never in a client-visible error.
+    let message = ""
+    try {
+      verifyClerkEvent("{}", {})
+    } catch (err) {
+      message = err instanceof Error ? err.message : String(err)
+    }
+    log.mockRestore()
+    expect(message).toMatch(/temporarily unavailable/i)
+    expect(message).not.toMatch(/CLERK_WEBHOOK_SECRET|\.env/)
   })
 
   it("rejects an authenticated body that is not valid JSON", () => {

@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis"
-import type { RequestHandler } from "express"
+import type { NextFunction, RequestHandler } from "express"
 import rateLimit, { type Options, type Store } from "express-rate-limit"
 
 /** The subset of the Upstash client the store actually uses. */
@@ -127,9 +127,19 @@ export function createLimiter({
   if (!failClosed) return middleware
 
   return (req, res, next) => {
-    Promise.resolve(middleware(req, res, () => next())).catch(() => {
-      if (res.headersSent) return
-      res.status(503).json({ error: "Service temporarily unavailable" })
-    })
+    // express-rate-limit converts its own store errors into next(error). A
+    // callback that ignores that argument would silently continue the request,
+    // so the fail-closed response has to be produced from this next handler.
+    const failClosedNext: NextFunction = (err) => {
+      if (err) {
+        if (!res.headersSent) {
+          res.status(503).json({ error: "Service temporarily unavailable" })
+        }
+        return
+      }
+      next()
+    }
+
+    Promise.resolve(middleware(req, res, failClosedNext)).catch(failClosedNext)
   }
 }

@@ -1,5 +1,7 @@
 import { prisma } from "../../lib/prisma.js"
-import { AUDIT_EVENT } from "../constants.js"
+import { currentRequestContext } from "../context.js"
+import { AUDIT_EVENT, type AuditEvent } from "../constants.js"
+import { recordAuditEventSafely } from "./audit.js"
 import { readFallbackName, readPrimaryEmail } from "./webhook-verify.js"
 import type { ClerkUserData } from "./webhook-verify.js"
 
@@ -157,6 +159,8 @@ export async function anonymiseProfile(clerkUserId: string): Promise<SyncOutcome
 
   if (!user) return { action: "noop" }
 
+  // Only the PII rewrite needs to be atomic. A separate audit write means a
+  // logging outage cannot undo a deletion the user was told had succeeded.
   await prisma.$transaction([
     prisma.user.update({
       where: { id: user.id },
@@ -169,14 +173,9 @@ export async function anonymiseProfile(clerkUserId: string): Promise<SyncOutcome
         collegeName: null,
       },
     }),
-    prisma.authAuditLog.create({
-      data: {
-        userId: user.id,
-        event: AUDIT_EVENT.PROFILE_ANONYMISED,
-        metadata: { clerkUserId },
-      },
-    }),
   ])
+
+  await recordProfileEvent(user.id, AUDIT_EVENT.PROFILE_ANONYMISED, { clerkUserId })
 
   return { action: "synced", userId: user.id }
 }
@@ -263,14 +262,13 @@ export function conflictsOn(err: unknown, field: "email" | "clerkUserId"): boole
 
 async function recordProfileEvent(
   userId: string,
-  event: string,
+  event: AuditEvent,
   metadata?: Record<string, string | number | boolean | null>,
 ): Promise<void> {
-  await prisma.authAuditLog.create({
-    data: {
-      userId,
-      event,
-      metadata,
-    },
+  await recordAuditEventSafely({
+    userId,
+    event,
+    context: currentRequestContext(),
+    metadata,
   })
 }

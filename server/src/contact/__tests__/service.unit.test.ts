@@ -34,8 +34,18 @@ describe("sendContactEmail", () => {
   })
 
   it("does not attempt delivery when SMTP is unconfigured, and does not throw", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+
     await expect(sendContactEmail(VALID_PAYLOAD)).resolves.toBeUndefined()
+    const logged = JSON.stringify(warn.mock.calls)
+    warn.mockRestore()
+
     expect(sendMail).not.toHaveBeenCalled()
+    expect(logged).toContain("SMTP not configured")
+    expect(logged).not.toContain(VALID_PAYLOAD.name)
+    expect(logged).not.toContain(VALID_PAYLOAD.email)
+    expect(logged).not.toContain(VALID_PAYLOAD.phone)
+    expect(logged).not.toContain(VALID_PAYLOAD.message)
   })
 
   it("sends to the CONTACT_EMAIL override when SMTP is configured", async () => {

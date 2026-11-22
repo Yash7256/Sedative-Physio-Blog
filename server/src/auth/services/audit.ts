@@ -39,3 +39,16 @@ export async function recordAuditEvent({
     },
   })
 }
+
+/**
+ * Audit logging must never turn a successful profile change into a failed one.
+ * The failure is logged by name only: the context may contain an IP and a user
+ * agent, and neither belongs in a log line.
+ */
+export async function recordAuditEventSafely(params: RecordAuditParams): Promise<void> {
+  try {
+    await recordAuditEvent(params)
+  } catch (err) {
+    console.error("[audit] Failed to record profile event:", err instanceof Error ? err.name : "Unknown error")
+  }
+}

@@ -53,8 +53,9 @@ export function readAuthUserId(req: Request): string | null {
  * `createClerkClient` builds a client with its own fetch plumbing and config
  * parsing, so calling it per request re-does that work for no benefit. Held in a
  * module global rather than created at import time so that a missing
- * `CLERK_SECRET_KEY` surfaces at the call site with a clear message instead of
- * during module load, where the stack trace points at this file.
+ * missing server configuration surfaces at the call site instead of during
+ * module load, where the stack trace points at this file. The variable name is
+ * logged here; callers return a generic public error.
  */
 let clerkClient: ReturnType<typeof createClerkClient> | null = null
 
@@ -63,8 +64,10 @@ export function getClerkClient(): ReturnType<typeof createClerkClient> {
     const secretKey = process.env.CLERK_SECRET_KEY
     if (!secretKey) {
       // Without this the SDK's own error is about a request to a null key, which
-      // says nothing about the missing environment variable.
-      throw new Error("CLERK_SECRET_KEY is not set")
+      // says nothing about the missing configuration. Name the variable in the
+      // log only; the thrown message is safe to show to a client.
+      console.error("[clerk] Missing required server configuration: CLERK_SECRET_KEY")
+      throw new Error("Authentication is temporarily unavailable.")
     }
     clerkClient = createClerkClient({ secretKey })
   }

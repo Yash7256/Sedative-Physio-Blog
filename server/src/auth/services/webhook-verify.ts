@@ -209,7 +209,9 @@ export function verifyClerkEvent(
 ): VerifiedClerkEvent {
   const secret = process.env.CLERK_WEBHOOK_SECRET
   if (!secret) {
-    throw new Error("CLERK_WEBHOOK_SECRET is not set; cannot verify Clerk webhooks.")
+    // Name the missing setting in the log, not in a response an attacker can read.
+    console.error("[clerk] Missing required webhook configuration: CLERK_WEBHOOK_SECRET")
+    throw new Error("Webhook verification is temporarily unavailable.")
   }
 
   const payload = {

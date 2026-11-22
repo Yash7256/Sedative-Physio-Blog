@@ -8,10 +8,13 @@
  */
 
 /**
- * Per-request provenance recorded on audit rows. Passed explicitly into
- * services so they never touch `req` and stay unit-testable.
+ * Per-request provenance recorded on audit rows. Carried through the request's
+ * async scope so services never touch `req` and stay unit-testable.
  */
 export interface RequestContext {
   ipAddress: string | null
   userAgent: string | null
 }
+
+/** For callers with no inbound request, e.g. a background sync triggered by a payment. */
+export const NO_REQUEST_CONTEXT: RequestContext = { ipAddress: null, userAgent: null }
