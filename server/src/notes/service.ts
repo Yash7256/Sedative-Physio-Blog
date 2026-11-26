@@ -1,5 +1,12 @@
 import { prisma } from "../lib/prisma.js"
-import { NotFoundError } from "../lib/errors.js"
+import { BadRequestError, NotFoundError } from "../lib/errors.js"
+import {
+  DEFAULT_PAGE_SIZE,
+  olderThan,
+  pageResult,
+  type Page,
+  type PageRequest,
+} from "../lib/pagination.js"
 import { ValidationError } from "./errors.js"
 import { getObjectUrl, r2Configured } from "./r2.js"
 
@@ -26,13 +33,30 @@ export interface NoteFile {
   fileSize: number | null
 }
 
-export async function listNotes(category?: string): Promise<NoteSummary[]> {
-  const notes = await prisma.note.findMany({
+export async function listNotes(
+  category?: string,
+  pageRequest: PageRequest = { limit: DEFAULT_PAGE_SIZE, cursorId: null },
+): Promise<Page<NoteSummary>> {
+  const anchor = pageRequest.cursorId
+    ? await prisma.note.findFirst({
+        where: {
+          id: pageRequest.cursorId,
+          isPublished: true,
+          ...(category ? { category } : {}),
+        },
+        select: { createdAt: true },
+      })
+    : null
+  if (pageRequest.cursorId && !anchor) throw new BadRequestError("Invalid cursor")
+
+  const rows = await prisma.note.findMany({
     where: {
       isPublished: true,
       ...(category ? { category } : {}),
+      ...(anchor ? olderThan({ createdAt: anchor.createdAt, id: pageRequest.cursorId! }) : {}),
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: pageRequest.limit + 1,
     select: {
       id: true,
       title: true,
@@ -45,7 +69,7 @@ export async function listNotes(category?: string): Promise<NoteSummary[]> {
       fileSize: true,
     },
   })
-  return notes
+  return pageResult(rows, pageRequest.limit)
 }
 
 export async function getDownload(id: string): Promise<NoteDownload> {

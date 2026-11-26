@@ -116,7 +116,7 @@ beforeEach(() => {
   useClerk.mockReturnValue({ signOut, openUserProfile })
   signOut.mockClear()
   openUserProfile.mockClear()
-  route(PROFILE, { "/my-orders": [], "/my-enrollments": [], "/api/courses": [COURSE] })
+  route(PROFILE, { "/my-orders": [], "/my-enrollments": [], "/api/courses": { items: [COURSE], nextCursor: null } })
 })
 
 afterEach(() => {
@@ -304,7 +304,7 @@ describe("navigation", () => {
 
 describe("courses and orders", () => {
   it("lists the courses the user is actually enrolled in", async () => {
-    route(PROFILE, { "/my-orders": [], "/my-enrollments": ["c1"], "/api/courses": [COURSE] })
+    route(PROFILE, { "/my-orders": [], "/my-enrollments": ["c1"], "/api/courses": { items: [COURSE], nextCursor: null } })
     renderAccount()
 
     await openSection(/my courses/i)
@@ -319,7 +319,7 @@ describe("courses and orders", () => {
   })
 
   it("shows a real order with its amount, date and status", async () => {
-    route(PROFILE, { "/my-orders": [ORDER], "/my-enrollments": ["c1"], "/api/courses": [COURSE] })
+    route(PROFILE, { "/my-orders": [ORDER], "/my-enrollments": ["c1"], "/api/courses": { items: [COURSE], nextCursor: null } })
     renderAccount()
 
     await openSection(/^orders$/i)
@@ -337,7 +337,7 @@ describe("courses and orders", () => {
   })
 
   it("names the course by count when it is no longer in the catalogue", async () => {
-    route(PROFILE, { "/my-orders": [ORDER], "/my-enrollments": [], "/api/courses": [] })
+    route(PROFILE, { "/my-orders": [ORDER], "/my-enrollments": [], "/api/courses": { items: [], nextCursor: null } })
     renderAccount()
 
     await openSection(/^orders$/i)

@@ -1,3 +1,11 @@
+import { BadRequestError } from "../lib/errors.js"
+import {
+  DEFAULT_PAGE_SIZE,
+  olderThan,
+  pageResult,
+  type Page,
+  type PageRequest,
+} from "../lib/pagination.js"
 import { prisma } from "../lib/prisma.js"
 
 export interface CourseSummary {
@@ -44,10 +52,24 @@ export interface TutorSummary {
   bio: string | null
 }
 
-export async function listCourses(): Promise<CourseSummary[]> {
-  return prisma.course.findMany({
-    where: { isPublished: true },
-    orderBy: { createdAt: "desc" },
+export async function listCourses(
+  pageRequest: PageRequest = { limit: DEFAULT_PAGE_SIZE, cursorId: null },
+): Promise<Page<CourseSummary>> {
+  const anchor = pageRequest.cursorId
+    ? await prisma.course.findFirst({
+        where: { id: pageRequest.cursorId, isPublished: true },
+        select: { createdAt: true },
+      })
+    : null
+  if (pageRequest.cursorId && !anchor) throw new BadRequestError("Invalid cursor")
+
+  const rows = await prisma.course.findMany({
+    where: {
+      isPublished: true,
+      ...(anchor ? olderThan({ createdAt: anchor.createdAt, id: pageRequest.cursorId! }) : {}),
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: pageRequest.limit + 1,
     select: {
       id: true,
       title: true,
@@ -61,6 +83,7 @@ export async function listCourses(): Promise<CourseSummary[]> {
       isFree: true,
     },
   })
+  return pageResult(rows, pageRequest.limit)
 }
 
 export async function getCourseBySlug(slug: string): Promise<CourseDetail | null> {
