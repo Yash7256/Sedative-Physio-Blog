@@ -12,10 +12,11 @@ const serviceMock = vi.hoisted(() => ({
 
 vi.mock("../service.js", () => serviceMock)
 
-import { notesRouter } from "../router.js"
+import { notesPublicRouter, notesRouter } from "../router.js"
 
 function app() {
   const instance = express()
+  instance.use("/api/notes", notesPublicRouter)
   instance.use("/api/notes", notesRouter)
   return instance
 }
