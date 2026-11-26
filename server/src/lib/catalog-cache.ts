@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto"
+import { performance } from "node:perf_hooks"
 import type { RequestHandler } from "express"
 import { LRUCache } from "lru-cache"
 
 import type { CachePolicy } from "./cache.js"
 import { MAX_PAGE_SIZE } from "./pagination.js"
+import { serverTimingHeader } from "./timing.js"
 
 /** Short enough that a direct DB edit cannot be hidden for a day. */
 export const CATALOG_CACHE_POLICY: CachePolicy = { browser: 60, cdn: 120, swr: 120 }
@@ -119,7 +121,10 @@ export function createCatalogCache(ttlMs = CATALOG_TTL_MS): CatalogCache {
     entry: CacheEntry,
     catalog: CatalogName,
     header: string,
+    lookupMs: number,
+    loadMs?: number,
   ): void => {
+    res.setHeader("Server-Timing", serverTimingHeader(lookupMs, loadMs))
     res.setHeader("Cache-Control", header)
     res.setHeader("ETag", entry.etag)
     res.setHeader("Vercel-Cache-Tag", catalogCacheTag(catalog))
@@ -138,11 +143,13 @@ export function createCatalogCache(ttlMs = CATALOG_TTL_MS): CatalogCache {
       return (req, res, next) => {
         if (req.method !== "GET" && req.method !== "HEAD") return next()
 
+        const lookupStartedAt = performance.now()
         const version = versions.get(catalog) ?? 0
         const key = keyFor(catalog, version, req, allowedParams)
         const hit = store.get(key)
+        const lookupMs = performance.now() - lookupStartedAt
         if (hit) {
-          send(req, res, hit, catalog, header)
+          send(req, res, hit, catalog, header, lookupMs)
           return
         }
 
@@ -151,6 +158,7 @@ export function createCatalogCache(ttlMs = CATALOG_TTL_MS): CatalogCache {
         // lands while they wait, they fall through and load the new version.
         const pending = inFlight.get(key)
         if (pending) {
+          const waitStartedAt = performance.now()
           void pending.then(
             (entry) => {
               if (!entry || versions.get(catalog) !== version) {
@@ -158,7 +166,7 @@ export function createCatalogCache(ttlMs = CATALOG_TTL_MS): CatalogCache {
                 return
               }
               try {
-                send(req, res, entry, catalog, header)
+                send(req, res, entry, catalog, header, lookupMs, performance.now() - waitStartedAt)
               } catch {
                 if (!res.headersSent) next()
               }
@@ -184,12 +192,14 @@ export function createCatalogCache(ttlMs = CATALOG_TTL_MS): CatalogCache {
         res.once("close", () => settle(null))
         res.once("finish", () => settle(null))
 
+        const loadStartedAt = performance.now()
         const json = res.json.bind(res)
         res.json = ((body: unknown) => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             const entry = { body, etag: etagFor(body) }
             // Never store a response that started before a version bump.
             if (versions.get(catalog) === version) store.set(key, entry)
+            res.setHeader("Server-Timing", serverTimingHeader(lookupMs, performance.now() - loadStartedAt))
             res.setHeader("Cache-Control", header)
             res.setHeader("ETag", entry.etag)
             res.setHeader("Vercel-Cache-Tag", catalogCacheTag(catalog))
