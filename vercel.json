@@ -33,7 +33,7 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
-      "source": "/(bento[1-6]|hero|akshay|certificate|avatar|logo[^/]*|trust[1-4])\\.(png|webp)|favicon\\.svg",
+      "source": "/((?!api/|assets/).*)\\.(png|webp|jpg|jpeg|svg)",
       "headers": [
         {
           "key": "Cache-Control",
