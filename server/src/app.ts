@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser"
 import { clerkMiddleware } from "@clerk/express"
 
 import { authRouter } from "./auth/router.js"
-import { notesRouter } from "./notes/router.js"
+import { notesPublicRouter, notesRouter } from "./notes/router.js"
 import { modelsRouter } from "./models/router.js"
 import { coursesRouter } from "./courses/router.js"
 import { contactRouter } from "./contact/router.js"
@@ -69,6 +69,13 @@ export function createApp() {
   // the same reason tells you nothing about whether the app is otherwise up.
   app.use("/api/health", healthRouter)
 
+  // Public catalog reads are safe before Clerk: they are anonymous by design and
+  // their cache headers make them the only routes that can answer in ~1 ms.
+  // Only list/detail handlers are mounted here; note files stay behind Clerk.
+  app.use("/api/courses", coursesRouter)
+  app.use("/api/models", modelsRouter)
+  app.use("/api/notes", notesPublicRouter)
+
   // Clerk verifies the session token (header or `__session` cookie) and attaches
   // the result to `req.auth` on every request. It does not reject anonymous
   // callers — that distinction is drawn later, by `requireAuth` for protected
@@ -77,8 +84,6 @@ export function createApp() {
 
   app.use("/api/auth", authRouter)
   app.use("/api/notes", notesRouter)
-  app.use("/api/models", modelsRouter)
-  app.use("/api/courses", coursesRouter)
   app.use("/api/contact", contactRouter)
   app.use("/api/payments", paymentsRouter)
   app.use("/api/images", imagesRouter)

@@ -7,6 +7,10 @@ import { fileEtag } from "../lib/cache.js"
 import { CATALOG_CACHE_POLICY, catalogCache } from "../lib/catalog-cache.js"
 import { parsePageRequest } from "../lib/pagination.js"
 
+/** Public catalog list. Mounted before Clerk so a cached list stays on the fast path. */
+export const notesPublicRouter = Router()
+
+/** Note file routes. Kept behind Clerk so an auth change cannot make them public by accident. */
 export const notesRouter = Router()
 
 const listCache = catalogCache.middleware({
@@ -16,7 +20,7 @@ const listCache = catalogCache.middleware({
 })
 
 // GET /api/notes — list published notes (optionally filtered by ?category=)
-notesRouter.get("/", listCache, async (req, res) => {
+notesPublicRouter.get("/", listCache, async (req, res) => {
   try {
     const category = typeof req.query["category"] === "string" ? req.query["category"] : undefined
     // Bounded so arbitrary category strings cannot mint unbounded cache keys.

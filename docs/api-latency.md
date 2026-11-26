@@ -32,6 +32,16 @@ Report p50 and p99 separately for:
 
 Never quote a single sample as the SLA.
 
+## Public catalog fast path
+
+Sedative Physio mounts anonymous catalog reads before Clerk:
+
+- `GET /api/courses` and `GET /api/courses/:slug`
+- `GET /api/models`
+- `GET /api/notes`
+
+Note files, downloads, contact, payments, images, auth, and cache purge stay behind Clerk. This keeps the measured fast path free of session verification without weakening any protected route.
+
 ## Shared catalog versions
 
 Catalog versions live in Redis so a purge can invalidate every API instance. Each process keeps a local copy for up to 1 second (`CATALOG_VERSION_REFRESH_MS`) to keep reads free of Redis round trips.
