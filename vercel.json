@@ -10,7 +10,8 @@
     "server": {
       "root": "server",
       "framework": "express",
-      "entrypoint": "src/index.ts"
+      "entrypoint": "src/index.ts",
+      "buildCommand": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
     }
   },
   "rewrites": [
