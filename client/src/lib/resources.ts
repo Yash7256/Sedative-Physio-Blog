@@ -1,4 +1,4 @@
-import { ApiError, apiFetch, apiJson } from "./api"
+import { ApiError, apiFetch, apiJson, type ApiFetchInit } from "./api"
 
 export type ResourceCategory = "notes" | "3d-models" | "courses" | "journals"
 
@@ -95,9 +95,12 @@ export const categories: { key: ResourceCategory | "all"; label: string }[] = [
   { key: "journals", label: "Journals" },
 ]
 
+/** Signal and timeout options accepted by the public resource fetchers. */
+export type ResourceFetchOptions = Pick<ApiFetchInit, "signal" | "timeoutMs">
+
 /** Fetch the list of published notes from the backend. */
-export async function fetchNotes(): Promise<NoteSummary[]> {
-  return apiJson<NoteSummary[]>("/api/notes")
+export async function fetchNotes(options: ResourceFetchOptions = {}): Promise<NoteSummary[]> {
+  return apiJson<NoteSummary[]>("/api/notes", options)
 }
 
 /** Request a presigned download URL for a note's R2 file. */
@@ -121,13 +124,13 @@ export async function downloadNoteFile(id: string, fallbackName: string): Promis
 }
 
 /** Fetch the list of uploaded 3D models from the backend. */
-export async function fetchModels(): Promise<ModelSummary[]> {
-  return apiJson<ModelSummary[]>("/api/models")
+export async function fetchModels(options: ResourceFetchOptions = {}): Promise<ModelSummary[]> {
+  return apiJson<ModelSummary[]>("/api/models", options)
 }
 
 /** Fetch the list of published courses from the backend. */
-export async function fetchCourses(): Promise<CourseSummary[]> {
-  return apiJson<CourseSummary[]>("/api/courses")
+export async function fetchCourses(options: ResourceFetchOptions = {}): Promise<CourseSummary[]> {
+  return apiJson<CourseSummary[]>("/api/courses", options)
 }
 
 /** Fetch a single course's details (syllabus + tutor) by slug. */
