@@ -1,5 +1,5 @@
-import { lazy, Suspense, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { lazy, Suspense, useEffect, useMemo, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { Box, Check, Download, Eye, Loader2, ShoppingCart, Sparkles } from "lucide-react"
 import { CourseDetailModal } from "../components/CourseDetailModal"
 import { NotePreviewModal } from "../components/NotePreviewModal"
@@ -19,6 +19,29 @@ const ModelViewerModal = lazy(() => import("../components/ModelViewerModal").the
 
 interface Card extends Resource { kind: "note" | "model" | "course"; fileName: string | null; fileSize: number | null; url?: string; isFree?: boolean; price?: number }
 type PreviewState = { kind: "note"; id: string; title: string } | { kind: "model"; url: string; title: string } | { kind: "course"; slug: string; title: string } | null
+type ResourceFilter = "courses" | "3d-models" | "notes"
+
+const FILTER_PARAM = "type"
+const DEFAULT_FILTER: ResourceFilter = "courses"
+/** Long enough to ignore a click that is immediately reversed, short enough to feel instant. */
+const FILTER_DEBOUNCE_MS = 200
+const SKELETON_CARDS = 3
+
+function resourceFilterFrom(value: string | null): ResourceFilter {
+  return value === "courses" || value === "3d-models" || value === "notes" ? value : DEFAULT_FILTER
+}
+
+/** Card-shaped placeholder rendered inside the selected section, never as a page overlay. */
+function ResourceCardSkeleton() {
+  return (
+    <div data-testid="resource-card-skeleton" aria-hidden="true" className="min-w-0 animate-pulse">
+      <div className="aspect-square w-full rounded-[12px] bg-[#dedfdd] sm:rounded-[18px]" />
+      <div className="mt-3 h-4 w-2/3 rounded bg-[#dedfdd]" />
+      <div className="mt-2 h-3 w-1/2 rounded bg-[#e9e9e7]" />
+      <div className="mt-3 h-9 w-full rounded-lg bg-[#e9e9e7]" />
+    </div>
+  )
+}
 
 interface SectionStatus {
   label: string
@@ -65,10 +88,36 @@ const librarySections: Array<{ key: ResourceCategory | "podcast"; title: string;
 
 export function Resources() {
   const isProd = import.meta.env.PROD
-  const courseQuery = useCourseList()
-  const noteQuery = useNoteList()
-  const modelQuery = useModelList()
-  const [active, setActive] = useState<ResourceCategory | "all">("all")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const rawFilter = searchParams.get(FILTER_PARAM)
+  // The URL is the source of truth: a shared or back-navigated URL restores the view.
+  const active = resourceFilterFrom(rawFilter)
+  // The tab switches immediately but its query starts after the debounce, so a
+  // click that is quickly reversed never triggers a request for the abandoned tab.
+  const [queriedFilter, setQueriedFilter] = useState<ResourceFilter>(active)
+
+  useEffect(() => {
+    if (rawFilter === active) return
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set(FILTER_PARAM, active)
+        return next
+      },
+      { replace: true },
+    )
+  }, [rawFilter, active, setSearchParams])
+
+  useEffect(() => {
+    if (queriedFilter === active) return undefined
+    const timer = window.setTimeout(() => setQueriedFilter(active), FILTER_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [active, queriedFilter])
+
+  const courseQuery = useCourseList({ enabled: queriedFilter === "courses" })
+  const noteQuery = useNoteList({ enabled: queriedFilter === "notes" })
+  // In production 3D models are a Coming Soon panel, so that filter never fetches.
+  const modelQuery = useModelList({ enabled: queriedFilter === "3d-models" && !isProd })
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [preview, setPreview] = useState<PreviewState>(null)
@@ -139,7 +188,7 @@ export function Resources() {
     if (card.kind === "note") setPreview({ kind: "note", id: card.id, title: card.title })
     if (card.kind === "course" && card.slug) setPreview({ kind: "course", slug: card.slug, title: card.title })
   }
-  const visibleSections = active === "all" ? librarySections : librarySections.filter((section) => section.key === active)
+  const visibleSections = librarySections.filter((section) => section.key === active)
 
   return <div className="resources-page min-h-screen overflow-hidden bg-[#f4f4f2] text-[#111214]">
     <main className="mx-auto max-w-[1280px] px-5 pb-12 sm:px-10 sm:pb-16 lg:px-[52px]">
@@ -149,18 +198,22 @@ export function Resources() {
       </section>
       <section aria-label="Resource filters" className="border-y border-black/10 py-5">
         <div className="flex flex-wrap gap-2">
-          {(["all", "courses", "3d-models", "notes"] as const).map((key) => (
+          {(["courses", "3d-models", "notes"] as const).map((key) => (
             <button
               key={key}
               type="button"
-              onClick={() => setActive(key === "all" ? "all" : key)}
+              onClick={() => setSearchParams((prev) => {
+                const next = new URLSearchParams(prev)
+                next.set(FILTER_PARAM, key)
+                return next
+              })}
               className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
                 active === key
                   ? "border-[#111214] bg-[#111214] text-white"
                   : "border-black/20 bg-transparent text-[#626467] hover:border-black/45 hover:text-black"
               }`}
             >
-              {key === "all" ? "All" : key === "3d-models" ? "3D Models" : key.charAt(0).toUpperCase() + key.slice(1)}
+              {key === "3d-models" ? "3D Models" : key.charAt(0).toUpperCase() + key.slice(1)}
             </button>
           ))}
         </div>
@@ -173,17 +226,16 @@ export function Resources() {
         }
 
         const dynamic = section.key === "podcast" ? [] : cards.filter((card) => card.category === section.key)
-        const limited = active === "all" ? dynamic.slice(0, 3) : dynamic
-        const message = sectionStatusMessage(statuses[section.key])
-        if (limited.length === 0 && !message) return null
+        const status = statuses[section.key]
+        const message = sectionStatusMessage(status)
+        const isFirstLoad = Boolean(status?.isPending && !status.hasData)
+        if (dynamic.length === 0 && !message) return null
 
         return <section key={section.key}>
-          <div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2>{active === "all" && limited.length > 0 && <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="text-xs text-[#696b6d] underline-offset-4 hover:underline">View all</button>}</div>
+          <div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2></div>
           {message && <p className={`mb-4 text-sm ${statusClass[message.tone]}`} role={message.tone === "loading" ? "status" : "alert"}>{message.text}</p>}
-          {limited.length > 0 && <>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{limited.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div>
-            <button type="button" onClick={() => section.key !== "podcast" && setActive(section.key as ResourceCategory)} className="mt-8 flex w-full items-center justify-center border-t border-black/10 pt-5 text-sm text-[#707275] transition-colors hover:text-black">{section.explore}</button>
-          </>}
+          {isFirstLoad && <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{Array.from({ length: SKELETON_CARDS }, (_, index) => <ResourceCardSkeleton key={index} />)}</div>}
+          {dynamic.length > 0 && <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{dynamic.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div>}
         </section>
       })}</div>
       <section data-scroll-fade className="mt-16 overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-white sm:mt-24 sm:px-12 sm:py-14"><h2 data-reveal className="text-[clamp(2rem,4vw,4rem)] font-bold leading-none tracking-[-.04em]">Coming Soon</h2><p className="mt-4 max-w-[690px] text-sm leading-relaxed text-white/75">We’re continuously expanding our resource library. More tools and materials will be added soon to support your learning journey.</p><div className="mt-7 flex flex-wrap gap-2">{["Study Guides", "Clinical Protocols", "Video Tutorials", "Research Papers"].map((item) => <span key={item} className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/80">{item}</span>)}</div></section>

@@ -71,6 +71,23 @@ describe("resource queries", () => {
     )
   })
 
+  it("does not fetch sections whose filter is not selected", async () => {
+    const { result } = renderHook(
+      () => ({
+        courses: useCourseList(),
+        notes: useNoteList({ enabled: false }),
+        models: useModelList({ enabled: false }),
+      }),
+      { wrapper },
+    )
+
+    await waitFor(() => expect(result.current.courses.data).toEqual(courses))
+
+    expect(mocks.fetchCourses).toHaveBeenCalledTimes(1)
+    expect(mocks.fetchNotes).not.toHaveBeenCalled()
+    expect(mocks.fetchModels).not.toHaveBeenCalled()
+  })
+
   it("deduplicates concurrent consumers of the same query", async () => {
     const { result } = renderHook(
       () => ({ first: useCourseList(), second: useCourseList() }),
