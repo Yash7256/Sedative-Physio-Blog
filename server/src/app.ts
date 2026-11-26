@@ -11,6 +11,7 @@ import { coursesRouter } from "./courses/router.js"
 import { contactRouter } from "./contact/router.js"
 import { paymentsRouter } from "./payments/router.js"
 import { imagesRouter } from "./images/router.js"
+import { cacheRouter } from "./cache/router.js"
 import { healthRouter } from "./routes/health.js"
 import { assertProductionConfig, getAuthorizedParties } from "./auth/config.js"
 import { noStore } from "./lib/cache.js"
@@ -79,6 +80,7 @@ export function createApp() {
   app.use("/api/contact", contactRouter)
   app.use("/api/payments", paymentsRouter)
   app.use("/api/images", imagesRouter)
+  app.use("/api/cache", cacheRouter)
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Not found" })

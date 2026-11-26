@@ -29,7 +29,8 @@ describe("GET /api/courses pagination contract", () => {
 
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ items: [{ id: "c1" }], nextCursor: null })
-    expect(res.headers.get("cache-control")).toContain("s-maxage=300")
+    expect(res.headers.get("cache-control")).toContain("s-maxage=120")
+    expect(res.headers.get("cache-control")).toContain("stale-while-revalidate=120")
     expect(serviceMock.listCourses).toHaveBeenCalledWith({ limit: 12, cursorId: null })
   })
 

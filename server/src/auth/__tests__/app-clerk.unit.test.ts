@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 
 describe("clerk middleware config (F-07)", () => {
+  // Dynamic import builds the whole app; allow time when gates run in parallel.
   it("clerkMiddleware receives authorizedParties", async () => {
     const clerkMiddleware = vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next())
     vi.doMock("@clerk/express", () => ({ clerkMiddleware }))
@@ -14,5 +15,5 @@ describe("clerk middleware config (F-07)", () => {
     expect(clerkMiddleware).toHaveBeenCalledWith(
       expect.objectContaining({ authorizedParties: ["https://example.com"] }),
     )
-  })
+  }, 15_000)
 })

@@ -1,17 +1,22 @@
 import { Router } from "express"
 import { getCourseBySlug, listCourses } from "./service.js"
 import { handleError } from "../lib/errors.js"
-import { cacheControl } from "../lib/cache.js"
+import { CATALOG_CACHE_POLICY, catalogCache } from "../lib/catalog-cache.js"
 import { parsePageRequest } from "../lib/pagination.js"
 
 export const coursesRouter = Router()
 
-// Catalog data is near-immutable: cache at the CDN for 5 min, browser for 1 min,
-// and keep serving stale copies for a day while revalidating in the background.
-const catalogCache = cacheControl({ browser: 60, cdn: 300, swr: 86400 })
+// Catalog reads opt into short shared caching; the in-memory layer sits in
+// front of the service, and a version bump invalidates every cursor variant.
+const listCache = catalogCache.middleware({
+  catalog: "courses",
+  policy: CATALOG_CACHE_POLICY,
+  allowedParams: ["limit", "cursor"],
+})
+const detailCache = catalogCache.middleware({ catalog: "courses", policy: CATALOG_CACHE_POLICY })
 
 // GET /api/courses — list published courses, cursor-paginated
-coursesRouter.get("/", catalogCache, async (req, res) => {
+coursesRouter.get("/", listCache, async (req, res) => {
   try {
     const page = await listCourses(parsePageRequest(req.query))
     res.status(200).json(page)
@@ -21,7 +26,7 @@ coursesRouter.get("/", catalogCache, async (req, res) => {
 })
 
 // GET /api/courses/:slug — course details with syllabus and tutor
-coursesRouter.get("/:slug", catalogCache, async (req, res) => {
+coursesRouter.get("/:slug", detailCache, async (req, res) => {
   try {
     const slugParam = req.params.slug
     const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam

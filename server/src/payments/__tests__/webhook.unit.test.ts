@@ -43,10 +43,14 @@ const { mockTx, mockPrisma } = vi.hoisted(() => {
 vi.mock("../../lib/prisma.js", () => ({ prisma: mockPrisma }))
 
 // Mock Razorpay SDK to avoid instantiation errors in createRazorpayOrder tests
+const { mockRazorpayOrdersCreate } = vi.hoisted(() => ({
+  mockRazorpayOrdersCreate: vi.fn().mockResolvedValue({ id: "order_new", amount: 5000, currency: "INR" }),
+}))
+
 vi.mock("razorpay", () => ({
-  default: vi.fn().mockImplementation(() => ({
-    orders: { create: vi.fn().mockResolvedValue({ id: "order_new", amount: 5000, currency: "INR" }) },
-  })),
+  default: vi.fn(function () {
+    return { orders: { create: mockRazorpayOrdersCreate } }
+  }),
 }))
 
 // ── Now import the service ───────────────────────────────────────────────────
@@ -524,5 +528,22 @@ describe("createRazorpayOrder", () => {
         localUserId: "user_1",
       }),
     ).rejects.toThrow("Some selected courses are unavailable or not published")
+  })
+
+  it("re-reads the price from the database rather than trusting a cached catalogue body", async () => {
+    mockPrisma.course.findMany.mockResolvedValue([
+      { id: "course_1", price: 7777, isFree: false },
+    ])
+    mockRazorpayOrdersCreate.mockClear()
+
+    await createRazorpayOrder({
+      courseIds: ["course_1"],
+      localUserId: "user_1",
+    })
+
+    expect(mockPrisma.course.findMany).toHaveBeenCalled()
+    expect(mockRazorpayOrdersCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 7777, currency: "INR" }),
+    )
   })
 })

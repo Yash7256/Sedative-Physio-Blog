@@ -3,15 +3,27 @@ import { Readable } from "node:stream"
 import { listNotes, getDownload, getNoteFile } from "./service.js"
 import { getObjectUrl } from "./r2.js"
 import { handleError } from "../lib/errors.js"
-import { cacheControl, fileEtag } from "../lib/cache.js"
+import { fileEtag } from "../lib/cache.js"
+import { CATALOG_CACHE_POLICY, catalogCache } from "../lib/catalog-cache.js"
 import { parsePageRequest } from "../lib/pagination.js"
 
 export const notesRouter = Router()
 
+const listCache = catalogCache.middleware({
+  catalog: "notes",
+  policy: CATALOG_CACHE_POLICY,
+  allowedParams: ["category", "limit", "cursor"],
+})
+
 // GET /api/notes — list published notes (optionally filtered by ?category=)
-notesRouter.get("/", cacheControl({ browser: 60, cdn: 300, swr: 86400 }), async (req, res) => {
+notesRouter.get("/", listCache, async (req, res) => {
   try {
     const category = typeof req.query["category"] === "string" ? req.query["category"] : undefined
+    // Bounded so arbitrary category strings cannot mint unbounded cache keys.
+    if (category !== undefined && !/^[a-z0-9-]{1,32}$/.test(category)) {
+      res.status(400).json({ error: "Invalid category" })
+      return
+    }
     const page = await listNotes(category, parsePageRequest(req.query))
     res.status(200).json(page)
   } catch (err) {
