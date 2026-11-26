@@ -23,6 +23,8 @@ export function catalogVersionKey(catalog: CatalogName): string {
 
 interface CacheEntry {
   body: unknown
+  /** Serialized once on fill so a cache hit does not stringify the body again. */
+  serialized: string
   etag: string
 }
 
@@ -68,8 +70,8 @@ function policyHeader(policy: CachePolicy): string {
     .join(", ")
 }
 
-function etagFor(body: unknown): string {
-  return `W/"${createHash("sha1").update(JSON.stringify(body)).digest("base64url")}"`
+function etagForSerialized(serialized: string): string {
+  return `W/"${createHash("sha1").update(serialized).digest("base64url")}"`
 }
 
 /**
@@ -220,7 +222,7 @@ export function createCatalogCache(
       res.end()
       return
     }
-    res.status(200).json(entry.body)
+    res.status(200).type("application/json").send(entry.serialized)
   }
 
   return {
@@ -284,7 +286,8 @@ export function createCatalogCache(
         const json = res.json.bind(res)
         res.json = ((body: unknown) => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            const entry = { body, etag: etagFor(body) }
+            const serialized = JSON.stringify(body)
+            const entry = { body, serialized, etag: etagForSerialized(serialized) }
             // Never store a response that started before a version bump.
             if (versions.get(catalog) === version) store.set(key, entry)
             res.setHeader("Server-Timing", serverTimingHeader(lookupMs, performance.now() - loadStartedAt))
@@ -296,9 +299,10 @@ export function createCatalogCache(
               res.status(304)
               return res.end()
             }
-          } else {
-            settle(null)
+            res.status(200).type("application/json").send(serialized)
+            return res
           }
+          settle(null)
           return json(body)
         }) as typeof res.json
 
