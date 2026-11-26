@@ -16,6 +16,7 @@ import { healthRouter } from "./routes/health.js"
 import { assertProductionConfig, getAuthorizedParties } from "./auth/config.js"
 import { noStore } from "./lib/cache.js"
 import { errorHandler } from "./lib/errors.js"
+import { timingAllowOrigin } from "./lib/timing.js"
 
 /**
  * Allowed browser origins for CORS. Comma-separated env var, e.g.
@@ -61,6 +62,7 @@ export function createApp() {
   // see lib/cache.ts. The routes that opt in (courses, notes, models, images,
   // note files) set their own Cache-Control, which replaces this value.
   app.use(noStore())
+  app.use(timingAllowOrigin(ALLOWED_ORIGINS))
 
   // Health is mounted before Clerk on purpose: if the Clerk keys are missing or
   // wrong, every authenticated route breaks, and a health check that fails for
