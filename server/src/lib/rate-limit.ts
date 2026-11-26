@@ -1,32 +1,7 @@
-import { Redis } from "@upstash/redis"
 import type { NextFunction, RequestHandler } from "express"
 import rateLimit, { type Options, type Store } from "express-rate-limit"
 
-/** The subset of the Upstash client the store actually uses. */
-interface RedisLike {
-  multi(): {
-    incr(key: string): { pttl(key: string): { exec(): Promise<unknown> } }
-  }
-  pexpire(key: string, ms: number): Promise<unknown>
-  decr(key: string): Promise<unknown>
-  del(key: string): Promise<unknown>
-}
-
-let redisClient: RedisLike | undefined
-
-function getRedisClient(env: NodeJS.ProcessEnv): RedisLike {
-  if (redisClient) return redisClient
-
-  const url = env.UPSTASH_REDIS_REST_URL
-  const token = env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) {
-    console.error("[rate-limit] Shared rate-limit store credentials are missing")
-    throw new Error("Shared rate-limit store is not configured.")
-  }
-
-  redisClient = new Redis({ url, token }) as unknown as RedisLike
-  return redisClient
-}
+import { getRedisClient, type RedisLike } from "./redis.js"
 
 /**
  * A shared, atomic fixed-window counter for express-rate-limit v8.
@@ -108,7 +83,7 @@ export function createLimiter({
     if (env.RATE_LIMIT_ALLOW_MEMORY === "1") {
       console.warn("[rate-limit] Using per-instance memory limits")
     } else {
-      activeStore = new UpstashStore(prefix, windowMs, getRedisClient(env))
+      activeStore = new UpstashStore(prefix, windowMs, getRedisClient(env, "rate-limit"))
     }
   }
 
