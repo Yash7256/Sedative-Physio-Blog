@@ -32,6 +32,15 @@ Report p50 and p99 separately for:
 
 Never quote a single sample as the SLA.
 
+## Shared catalog versions
+
+Catalog versions live in Redis so a purge can invalidate every API instance. Each process keeps a local copy for up to 1 second (`CATALOG_VERSION_REFRESH_MS`) to keep reads free of Redis round trips.
+
+- After an admin purge, every instance converges within that 1-second window.
+- If Redis reads fail, public catalog reads keep serving their local cache instead of failing.
+- The purge route fails closed with 503 when the version store is unavailable.
+- CDN tags remain stable in this phase; edge entries are invalidated by tag.
+
 ## What is deliberately outside this target
 
 - Cold database queries.

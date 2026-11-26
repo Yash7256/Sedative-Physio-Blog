@@ -64,6 +64,14 @@ export class GatewayError extends Error {
   }
 }
 
+export class ServiceUnavailableError extends Error {
+  statusCode = 503
+  constructor(message = "Service temporarily unavailable") {
+    super(message)
+    this.name = "ServiceUnavailableError"
+  }
+}
+
 /**
  * An error carrying an explicit HTTP status. Every class above sets one, and
  * module-local subclasses (e.g. `auth/errors.ts`) inherit it, so `handleError`

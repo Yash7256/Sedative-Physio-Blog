@@ -9,7 +9,12 @@ import {
   type CatalogCache,
   type CatalogName,
 } from "../lib/catalog-cache.js"
-import { BadRequestError, GatewayError, handleError } from "../lib/errors.js"
+import {
+  BadRequestError,
+  GatewayError,
+  ServiceUnavailableError,
+  handleError,
+} from "../lib/errors.js"
 
 /** Clerk owns identity; this is only an allowlist of Clerk user ids. */
 export function isCacheAdmin(userId: string | null, env: NodeJS.ProcessEnv = process.env): boolean {
@@ -103,6 +108,11 @@ export function createCacheRouter(options: CacheRouterOptions): Router {
         throw new BadRequestError("Unknown catalog")
       }
 
+      // Fail before touching the CDN when the shared version store is absent.
+      if (!options.cache.versionStoreReady()) {
+        throw new ServiceUnavailableError("Catalog version store unavailable")
+      }
+
       // Purge first: if the CDN call fails, leave the old version in place so a
       // retry cannot silently serve a half-invalidated catalogue.
       try {
@@ -111,7 +121,12 @@ export function createCacheRouter(options: CacheRouterOptions): Router {
         if (err instanceof CachePurgeConfigError || err instanceof GatewayError) throw err
         throw new GatewayError("CDN purge failed")
       }
-      options.cache.bump(catalogs)
+
+      try {
+        await options.cache.bumpShared(catalogs)
+      } catch {
+        throw new ServiceUnavailableError("Catalog version store unavailable")
+      }
       res.json({ purged: catalogs, cdn: "purged" })
     } catch (err) {
       handleError(err, res)

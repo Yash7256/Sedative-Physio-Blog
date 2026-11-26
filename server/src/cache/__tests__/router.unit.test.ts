@@ -2,6 +2,7 @@ import express from "express"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { createCatalogCache, type CatalogName } from "../../lib/catalog-cache.js"
+import { createFakeRedis } from "../../test/fake-redis.js"
 import { anonymous, asUser, fakeAuth, withServer, type FakeSession } from "../../test/harness.js"
 import { createCacheRouter, purgeVercelCache } from "../router.js"
 
@@ -29,7 +30,8 @@ afterEach(() => {
 
 describe("POST /cache/purge", () => {
   it("rejects an anonymous caller", async () => {
-    const cache = createCatalogCache()
+    const { redis } = createFakeRedis()
+    const cache = createCatalogCache(60_000, { redis: redis as any })
     const purge = purgeMock()
 
     await withServer(appFor(anonymous, cache, purge), async (base) => {
@@ -41,7 +43,8 @@ describe("POST /cache/purge", () => {
   })
 
   it("rejects a signed-in caller outside the admin allowlist", async () => {
-    const cache = createCatalogCache()
+    const { redis } = createFakeRedis()
+    const cache = createCatalogCache(60_000, { redis: redis as any })
     const purge = purgeMock()
 
     await withServer(appFor(asUser("user_student"), cache, purge), async (base) => {
@@ -53,7 +56,8 @@ describe("POST /cache/purge", () => {
 
   it("fails closed when the admin allowlist is missing", async () => {
     delete process.env.CACHE_ADMIN_USER_IDS
-    const cache = createCatalogCache()
+    const { redis } = createFakeRedis()
+    const cache = createCatalogCache(60_000, { redis: redis as any })
     const purge = purgeMock()
 
     await withServer(appFor(asUser("user_admin"), cache, purge), async (base) => {
@@ -64,7 +68,8 @@ describe("POST /cache/purge", () => {
   })
 
   it("purges the CDN then bumps every catalog version for an admin", async () => {
-    const cache = createCatalogCache()
+    const { redis } = createFakeRedis()
+    const cache = createCatalogCache(60_000, { redis: redis as any })
     const purge = purgeMock()
 
     await withServer(appFor(asUser("user_admin"), cache, purge), async (base) => {
@@ -84,7 +89,8 @@ describe("POST /cache/purge", () => {
   })
 
   it("defaults to all catalogs and refuses unknown names", async () => {
-    const cache = createCatalogCache()
+    const { redis } = createFakeRedis()
+    const cache = createCatalogCache(60_000, { redis: redis as any })
     const purge = purgeMock()
 
     await withServer(appFor(asUser("user_admin_two"), cache, purge), async (base) => {
@@ -103,7 +109,8 @@ describe("POST /cache/purge", () => {
   })
 
   it("does not bump versions when the CDN purge fails", async () => {
-    const cache = createCatalogCache()
+    const { redis } = createFakeRedis()
+    const cache = createCatalogCache(60_000, { redis: redis as any })
     const purge = purgeMock().mockRejectedValue(new Error("CDN unavailable"))
 
     await withServer(appFor(asUser("user_admin"), cache, purge), async (base) => {

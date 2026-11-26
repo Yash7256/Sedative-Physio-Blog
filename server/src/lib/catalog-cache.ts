@@ -5,15 +5,21 @@ import { LRUCache } from "lru-cache"
 
 import type { CachePolicy } from "./cache.js"
 import { MAX_PAGE_SIZE } from "./pagination.js"
+import { getRedisClient, type RedisLike } from "./redis.js"
 import { serverTimingHeader } from "./timing.js"
 
 /** Short enough that a direct DB edit cannot be hidden for a day. */
 export const CATALOG_CACHE_POLICY: CachePolicy = { browser: 60, cdn: 120, swr: 120 }
 export const CATALOG_TTL_MS = 60_000
 export const CATALOG_CACHE_MAX_ENTRIES = 500
+export const CATALOG_VERSION_REFRESH_MS = 1_000
 
 export const CATALOG_NAMES = ["courses", "notes", "models"] as const
 export type CatalogName = (typeof CATALOG_NAMES)[number]
+
+export function catalogVersionKey(catalog: CatalogName): string {
+  return `catalog:version:${catalog}`
+}
 
 interface CacheEntry {
   body: unknown
@@ -27,11 +33,23 @@ export interface CatalogCacheOptions {
   allowedParams?: readonly string[]
 }
 
+export interface CatalogCacheFactoryOptions {
+  /** Injected for tests; production uses the lazy Upstash client. */
+  redis?: RedisLike
+  env?: NodeJS.ProcessEnv
+  versionTtlMs?: number
+}
+
 export interface CatalogCache {
   middleware(options: CatalogCacheOptions): RequestHandler
+  /** Locally cached version; a read may refresh it from Redis first. */
   version(catalog: CatalogName): number
-  /** Invalidates every cursor/filter variant of a catalog in one step. */
+  refreshVersion(catalog: CatalogName): Promise<number>
+  /** Local-only bump kept for unit tests and single-process callers. */
   bump(catalogs: CatalogName | readonly CatalogName[]): number[]
+  /** Atomic shared bump used by the purge route. */
+  bumpShared(catalogs: CatalogName | readonly CatalogName[]): Promise<number[]>
+  versionStoreReady(): boolean
   clear(): void
 }
 
@@ -92,26 +110,95 @@ function keyFor(
  * Per-process response cache for public catalog reads.
  *
  * The version prefix makes invalidation O(1): bumping a catalog counter makes
- * every cursor and filter variant unreachable at once. With more than one API
- * instance the version belongs in Redis (already a dependency here); until
- * then this in-memory instance is the single source of truth.
+ * every cursor and filter variant unreachable at once. The counter lives in
+ * Redis when configured, so a purge reaches every API instance; each process
+ * keeps a short-lived local copy to keep the read path free of Redis calls.
  */
-export function createCatalogCache(ttlMs = CATALOG_TTL_MS): CatalogCache {
+export function createCatalogCache(
+  ttlMs = CATALOG_TTL_MS,
+  options: CatalogCacheFactoryOptions = {},
+): CatalogCache {
+  const versionTtlMs = options.versionTtlMs ?? CATALOG_VERSION_REFRESH_MS
   const store = new LRUCache<string, CacheEntry>({
     max: CATALOG_CACHE_MAX_ENTRIES,
     ttl: ttlMs,
   })
   const versions = new Map<CatalogName, number>(CATALOG_NAMES.map((name) => [name, 0]))
+  const versionCheckedAt = new Map<CatalogName, number>()
+  const versionFlights = new Map<CatalogName, Promise<number>>()
   const inFlight = new Map<string, Promise<CacheEntry | null>>()
+  let versionStore = options.redis
+
+  const resolveVersionStore = (): RedisLike | undefined => {
+    if (versionStore) return versionStore
+    try {
+      versionStore = getRedisClient(options.env ?? process.env, "catalog version")
+    } catch {
+      // Public reads keep working with the last local version.
+      return undefined
+    }
+    return versionStore
+  }
+
+  const refreshVersion = async (catalog: CatalogName): Promise<number> => {
+    const checkedAt = versionCheckedAt.get(catalog) ?? 0
+    if (Date.now() - checkedAt < versionTtlMs) return versions.get(catalog) ?? 0
+
+    const pending = versionFlights.get(catalog)
+    if (pending) return pending
+
+    const flight = (async () => {
+      const redisStore = resolveVersionStore()
+      if (redisStore) {
+        try {
+          const raw = await redisStore.get(catalogVersionKey(catalog))
+          const parsed = raw === null ? 0 : Number(raw)
+          if (Number.isSafeInteger(parsed) && parsed >= 0) versions.set(catalog, parsed)
+        } catch {
+          // Keep the last known version; a public read must not fail on Redis.
+        }
+      }
+      versionCheckedAt.set(catalog, Date.now())
+      versionFlights.delete(catalog)
+      return versions.get(catalog) ?? 0
+    })()
+    versionFlights.set(catalog, flight)
+    return flight
+  }
+
+  const clearCatalogEntries = (names: readonly CatalogName[]): void => {
+    for (const key of store.keys()) {
+      if (names.some((name) => key.startsWith(`${name}:`))) store.delete(key)
+    }
+  }
 
   const bump = (catalogs: CatalogName | readonly CatalogName[]): number[] => {
     const names = Array.isArray(catalogs) ? catalogs : [catalogs]
     for (const name of names) {
       versions.set(name, (versions.get(name) ?? 0) + 1)
+      versionCheckedAt.set(name, Date.now())
     }
-    for (const key of store.keys()) {
-      if (names.some((name) => key.startsWith(`${name}:`))) store.delete(key)
-    }
+    clearCatalogEntries(names)
+    return names.map((name) => versions.get(name) ?? 0)
+  }
+
+  const bumpShared = async (
+    catalogs: CatalogName | readonly CatalogName[],
+  ): Promise<number[]> => {
+    const names = Array.isArray(catalogs) ? catalogs : [catalogs]
+    const redisStore = resolveVersionStore()
+    if (!redisStore) throw new Error("Catalog version store is not configured")
+
+    let chain = redisStore.multi()
+    for (const name of names) chain = chain.incr(catalogVersionKey(name))
+    const values = await chain.exec()
+
+    names.forEach((name, index) => {
+      const parsed = Number(values[index])
+      if (Number.isSafeInteger(parsed) && parsed >= 0) versions.set(name, parsed)
+      versionCheckedAt.set(name, Date.now())
+    })
+    clearCatalogEntries(names)
     return names.map((name) => versions.get(name) ?? 0)
   }
 
@@ -140,9 +227,10 @@ export function createCatalogCache(ttlMs = CATALOG_TTL_MS): CatalogCache {
     middleware({ catalog, policy, allowedParams = [] }: CatalogCacheOptions): RequestHandler {
       const header = policyHeader(policy)
 
-      return (req, res, next) => {
+      return async (req, res, next) => {
         if (req.method !== "GET" && req.method !== "HEAD") return next()
 
+        await refreshVersion(catalog)
         const lookupStartedAt = performance.now()
         const version = versions.get(catalog) ?? 0
         const key = keyFor(catalog, version, req, allowedParams)
@@ -222,11 +310,21 @@ export function createCatalogCache(ttlMs = CATALOG_TTL_MS): CatalogCache {
       return versions.get(catalog) ?? 0
     },
 
+    refreshVersion,
+
     bump,
+
+    bumpShared,
+
+    versionStoreReady(): boolean {
+      return Boolean(resolveVersionStore())
+    },
 
     clear(): void {
       store.clear()
       inFlight.clear()
+      versionFlights.clear()
+      versionCheckedAt.clear()
     },
   }
 }
