@@ -38,3 +38,22 @@ Enable these events:
 - Use `rzp_test_...` keys in development
 - Use `rzp_live_...` keys in production
 - **Never** commit `RAZORPAY_KEY_SECRET` or `RAZORPAY_WEBHOOK_SECRET` to source control
+
+## Catalog cache
+
+Public course, note and model lists use `max-age=60`, `s-maxage=120` and
+`stale-while-revalidate=120`, backed by a 60-second per-process response cache.
+After editing those tables directly, call `POST /api/cache/purge` with a Clerk
+session whose user id is listed in `CACHE_ADMIN_USER_IDS` (comma-separated).
+It bumps every catalog version and invalidates the CDN tags.
+
+The purge endpoint fails closed unless these are configured in the environment:
+
+| Variable | Description |
+|---|---|
+| `CACHE_ADMIN_USER_IDS` | Comma-separated Clerk user ids allowed to purge |
+| `VERCEL_ACCESS_TOKEN` (or `VERCEL_TOKEN`) | Token with permission to invalidate the project's CDN cache |
+| `VERCEL_PROJECT_ID` (or `VERCEL_PROJECT_NAME`) | Target Vercel project |
+| `VERCEL_TEAM_ID` | Optional team id when the project belongs to a team |
+
+With more than one API instance the version counters should move to Redis.

@@ -2,6 +2,7 @@ import express from "express"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import { cacheControl, fileEtag, NO_STORE, noStore } from "../cache.js"
+import { CATALOG_CACHE_POLICY } from "../catalog-cache.js"
 
 /**
  * Driven over a real socket with fetch rather than an in-process request
@@ -24,7 +25,7 @@ function buildApp() {
   a.set("etag", false)
   a.use(noStore())
 
-  a.get("/public", cacheControl({ browser: 60, cdn: 300, swr: 86400 }), (_req, res) => {
+  a.get("/public", cacheControl(CATALOG_CACHE_POLICY), (_req, res) => {
     res.json({ items: [1, 2, 3] })
   })
   a.get("/private", (_req, res) => {
@@ -96,7 +97,7 @@ describe("cacheControl opt-in", () => {
   it("overrides the default on a 200", async () => {
     const res = await fetch(`${base}/public`)
     expect(cc(res)).toBe(
-      "public, s-maxage=300, max-age=60, stale-while-revalidate=86400",
+      "public, s-maxage=120, max-age=60, stale-while-revalidate=120",
     )
   })
 
