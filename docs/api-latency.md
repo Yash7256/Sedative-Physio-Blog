@@ -32,6 +32,21 @@ Report p50 and p99 separately for:
 
 Never quote a single sample as the SLA.
 
+## Pre-serialized cache entries
+
+A Sedative Physio cache fill serializes the response body once. Hits send those bytes directly instead of calling `JSON.stringify` again, so the hit path only performs the version/LRU lookup measured by the `cache` segment.
+
+Local harness result after P17 (1000 sequential hits):
+
+| Percentile | `cache;dur` |
+|---|---:|
+| p50 | 0.010 ms |
+| p95 | 0.032 ms |
+| p99 | 0.075 ms |
+| max | 0.274 ms |
+
+These are server-side lookup numbers from `Server-Timing`, not network timings.
+
 ## Public catalog fast path
 
 Sedative Physio mounts anonymous catalog reads before Clerk:
