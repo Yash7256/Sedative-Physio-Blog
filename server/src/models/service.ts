@@ -1,3 +1,11 @@
+import { BadRequestError } from "../lib/errors.js"
+import {
+  DEFAULT_PAGE_SIZE,
+  olderThan,
+  pageResult,
+  type Page,
+  type PageRequest,
+} from "../lib/pagination.js"
 import { prisma } from "../lib/prisma.js"
 
 export interface ModelSummary {
@@ -9,9 +17,21 @@ export interface ModelSummary {
   createdAt: Date
 }
 
-export async function listModels(): Promise<ModelSummary[]> {
-  return prisma.model3D.findMany({
-    orderBy: { createdAt: "desc" },
+export async function listModels(
+  pageRequest: PageRequest = { limit: DEFAULT_PAGE_SIZE, cursorId: null },
+): Promise<Page<ModelSummary>> {
+  const anchor = pageRequest.cursorId
+    ? await prisma.model3D.findFirst({
+        where: { id: pageRequest.cursorId },
+        select: { createdAt: true },
+      })
+    : null
+  if (pageRequest.cursorId && !anchor) throw new BadRequestError("Invalid cursor")
+
+  const rows = await prisma.model3D.findMany({
+    where: anchor ? olderThan({ createdAt: anchor.createdAt, id: pageRequest.cursorId! }) : {},
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: pageRequest.limit + 1,
     select: {
       id: true,
       name: true,
@@ -21,4 +41,5 @@ export async function listModels(): Promise<ModelSummary[]> {
       createdAt: true,
     },
   })
+  return pageResult(rows, pageRequest.limit)
 }

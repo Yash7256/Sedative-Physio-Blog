@@ -92,6 +92,7 @@ model Note {
 
   @@index([category, isPublished])
   @@index([isPublished])
+  @@index([isPublished, createdAt, id])
   @@index([status])
 }
 
@@ -107,6 +108,7 @@ model Model3D {
   createdAt   DateTime @default(now())
 
   @@index([createdAt])
+  @@index([createdAt, id])
 }
 
 // ============ TUTORS ============
@@ -144,7 +146,7 @@ model Course {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  @@index([isPublished])
+  @@index([isPublished, createdAt, id])
 }
 
 model CourseSection {

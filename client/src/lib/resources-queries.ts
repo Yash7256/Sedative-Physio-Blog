@@ -1,43 +1,67 @@
-import { useQuery } from "@tanstack/react-query"
+import { useInfiniteQuery } from "@tanstack/react-query"
 
 import { DEFAULT_QUERY_TIMEOUT_MS } from "./queryClient"
-import { fetchCourses, fetchModels, fetchNotes } from "./resources"
+import {
+  fetchCourses,
+  fetchModels,
+  fetchNotes,
+  type ResourcePage,
+  type ResourcePageOptions,
+} from "./resources"
 
 /**
- * Public catalogue keys. Keeping them stable and separate is what lets one
- * failed section keep its own error state without hiding the healthy ones.
+ * Public catalogue keys. The active tab and any server-side filter are part of
+ * each key, so switching filters can never render another tab's cached pages.
  */
 export const resourceKeys = {
-  courses: ["public", "resources", "courses"] as const,
-  notes: ["public", "resources", "notes"] as const,
-  models: ["public", "resources", "models"] as const,
+  courses: (filter: string | null = null) => ["public", "resources", "courses", { filter }] as const,
+  notes: (filter: string | null = null, category: string | null = null) =>
+    ["public", "resources", "notes", { filter, category }] as const,
+  models: (filter: string | null = null) => ["public", "resources", "models", { filter }] as const,
 }
 
 export interface ResourceListOptions {
   /** Only the selected section should hit the network. */
   enabled?: boolean
+  /** Active tab; included in the cache key. */
+  filter?: string | null
+  /** Optional server-side notes category filter; included in the cache key. */
+  category?: string | null
 }
 
-export function useCourseList({ enabled = true }: ResourceListOptions = {}) {
-  return useQuery({
-    queryKey: resourceKeys.courses,
-    queryFn: ({ signal }) => fetchCourses({ signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
+function useResourcePages<T>(
+  queryKey: readonly unknown[],
+  fetcher: (options: ResourcePageOptions) => Promise<ResourcePage<T>>,
+  { enabled = true }: ResourceListOptions,
+) {
+  return useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam, signal }) =>
+      fetcher({ cursor: pageParam, signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
+    initialPageParam: null as string | null,
+    // The server returns null once the lookahead row is exhausted.
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled,
   })
 }
 
-export function useNoteList({ enabled = true }: ResourceListOptions = {}) {
-  return useQuery({
-    queryKey: resourceKeys.notes,
-    queryFn: ({ signal }) => fetchNotes({ signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
-    enabled,
-  })
+export function useCourseList(options: ResourceListOptions = {}) {
+  return useResourcePages(resourceKeys.courses(options.filter ?? null), fetchCourses, options)
 }
 
-export function useModelList({ enabled = true }: ResourceListOptions = {}) {
-  return useQuery({
-    queryKey: resourceKeys.models,
-    queryFn: ({ signal }) => fetchModels({ signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
-    enabled,
-  })
+export function useNoteList(options: ResourceListOptions = {}) {
+  return useResourcePages(
+    resourceKeys.notes(options.filter ?? null, options.category ?? null),
+    (pageOptions) => fetchNotes({ ...pageOptions, category: options.category ?? undefined }),
+    options,
+  )
+}
+
+export function useModelList(options: ResourceListOptions = {}) {
+  return useResourcePages(resourceKeys.models(options.filter ?? null), fetchModels, options)
+}
+
+/** Flatten already-loaded pages for rendering; this never fetches anything. */
+export function flattenResourcePages<T>(data: { pages: ResourcePage<T>[] } | undefined): T[] {
+  return data?.pages.flatMap((page) => page.items) ?? []
 }

@@ -11,11 +11,17 @@ const hooks = vi.hoisted(() => ({
   useModelList: vi.fn(),
 }))
 
-vi.mock("@/lib/resources-queries", () => hooks)
+vi.mock("@/lib/resources-queries", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/resources-queries")>(),
+  ...hooks,
+}))
 
-function query<T>(data: T, overrides: Record<string, unknown> = {}) {
+function query<T>(items: T[] | undefined, overrides: Record<string, unknown> = {}) {
   return {
-    data,
+    data: items === undefined ? undefined : { pages: [{ items, nextCursor: null }], pageParams: [null] },
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
     isPending: false,
     isError: false,
     isFetching: false,
@@ -98,15 +104,15 @@ describe("URL-driven resource filters", () => {
     renderResources()
 
     expect(screen.getByTestId("url").textContent).toBe("?type=courses")
-    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false })
+    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true, filter: "courses" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
   })
 
   it("reads ?type=notes from the URL on first load", () => {
     renderResources("/resources?type=notes")
 
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true })
-    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes" })
+    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false, filter: "notes" })
     expect(screen.getAllByText("Note One")[0]).toBeInTheDocument()
     expect(screen.queryByText("Course One")).toBeNull()
   })
@@ -118,14 +124,15 @@ describe("URL-driven resource filters", () => {
     fireEvent.click(filterRegion().getByRole("button", { name: "Notes" }))
 
     expect(screen.getByTestId("url").textContent).toBe("?type=notes")
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false })
+    // The queried filter (and therefore the cache key) stays put until the debounce.
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
 
     act(() => { vi.advanceTimersByTime(199) })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
 
     act(() => { vi.advanceTimersByTime(1) })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true })
-    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes" })
+    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false, filter: "notes" })
   })
 
   it("ignores a filter that is abandoned before the debounce elapses", () => {
@@ -137,8 +144,8 @@ describe("URL-driven resource filters", () => {
     fireEvent.click(filters.getByRole("button", { name: "Courses" }))
     act(() => { vi.advanceTimersByTime(300) })
 
-    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false })
+    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true, filter: "courses" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
   })
 
   it("shows skeleton cards inside the selected section while it loads", () => {

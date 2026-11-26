@@ -4,6 +4,7 @@ import { listNotes, getDownload, getNoteFile } from "./service.js"
 import { getObjectUrl } from "./r2.js"
 import { handleError } from "../lib/errors.js"
 import { cacheControl, fileEtag } from "../lib/cache.js"
+import { parsePageRequest } from "../lib/pagination.js"
 
 export const notesRouter = Router()
 
@@ -11,8 +12,8 @@ export const notesRouter = Router()
 notesRouter.get("/", cacheControl({ browser: 60, cdn: 300, swr: 86400 }), async (req, res) => {
   try {
     const category = typeof req.query["category"] === "string" ? req.query["category"] : undefined
-    const notes = await listNotes(category)
-    res.status(200).json(notes)
+    const page = await listNotes(category, parsePageRequest(req.query))
+    res.status(200).json(page)
   } catch (err) {
     handleError(err, res)
   }

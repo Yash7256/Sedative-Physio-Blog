@@ -98,9 +98,32 @@ export const categories: { key: ResourceCategory | "all"; label: string }[] = [
 /** Signal and timeout options accepted by the public resource fetchers. */
 export type ResourceFetchOptions = Pick<ApiFetchInit, "signal" | "timeoutMs">
 
-/** Fetch the list of published notes from the backend. */
-export async function fetchNotes(options: ResourceFetchOptions = {}): Promise<NoteSummary[]> {
-  return apiJson<NoteSummary[]>("/api/notes", options)
+/** One cursor-paginated response. `nextCursor` is null on the final page. */
+export interface ResourcePage<T> {
+  items: T[]
+  nextCursor: string | null
+}
+
+/** Pagination and filter inputs, kept separate from the underlying fetch options. */
+export interface ResourcePageOptions extends ResourceFetchOptions {
+  cursor?: string | null
+  limit?: number
+  category?: string
+}
+
+/** Keep the opaque cursor in the query string; never pass it through as a fetch option. */
+function pagePath(path: string, { cursor, limit, category }: Omit<ResourcePageOptions, keyof ResourceFetchOptions>): string {
+  const params = new URLSearchParams()
+  if (category) params.set("category", category)
+  if (cursor) params.set("cursor", cursor)
+  if (limit !== undefined) params.set("limit", String(limit))
+  const query = params.toString()
+  return query ? `${path}?${query}` : path
+}
+
+/** Fetch a page of published notes from the backend. */
+export async function fetchNotes({ cursor, limit, category, ...options }: ResourcePageOptions = {}): Promise<ResourcePage<NoteSummary>> {
+  return apiJson<ResourcePage<NoteSummary>>(pagePath("/api/notes", { cursor, limit, category }), options)
 }
 
 /** Request a presigned download URL for a note's R2 file. */
@@ -123,14 +146,32 @@ export async function downloadNoteFile(id: string, fallbackName: string): Promis
   URL.revokeObjectURL(objectUrl)
 }
 
-/** Fetch the list of uploaded 3D models from the backend. */
-export async function fetchModels(options: ResourceFetchOptions = {}): Promise<ModelSummary[]> {
-  return apiJson<ModelSummary[]>("/api/models", options)
+/** Fetch a page of uploaded 3D models from the backend. */
+export async function fetchModels({ cursor, limit, ...options }: ResourcePageOptions = {}): Promise<ResourcePage<ModelSummary>> {
+  return apiJson<ResourcePage<ModelSummary>>(pagePath("/api/models", { cursor, limit }), options)
 }
 
-/** Fetch the list of published courses from the backend. */
-export async function fetchCourses(options: ResourceFetchOptions = {}): Promise<CourseSummary[]> {
-  return apiJson<CourseSummary[]>("/api/courses", options)
+/** Fetch a page of published courses from the backend. */
+export async function fetchCourses({ cursor, limit, ...options }: ResourcePageOptions = {}): Promise<ResourcePage<CourseSummary>> {
+  return apiJson<ResourcePage<CourseSummary>>(pagePath("/api/courses", { cursor, limit }), options)
+}
+
+/**
+ * Walk cursor pages to build a full catalogue. Only for callers that genuinely
+ * need every course (e.g. resolving enrollment ids) — the browse UI paginates.
+ */
+const MAX_CATALOGUE_PAGES = 100
+
+export async function fetchAllCourses(options: ResourceFetchOptions = {}): Promise<CourseSummary[]> {
+  const items: CourseSummary[] = []
+  let cursor: string | null = null
+  for (let page = 0; page < MAX_CATALOGUE_PAGES; page += 1) {
+    const result = await fetchCourses({ ...options, cursor })
+    items.push(...result.items)
+    if (!result.nextCursor || result.nextCursor === cursor) return items
+    cursor = result.nextCursor
+  }
+  throw new Error("Course catalogue pagination did not terminate")
 }
 
 /** Fetch a single course's details (syllabus + tutor) by slug. */

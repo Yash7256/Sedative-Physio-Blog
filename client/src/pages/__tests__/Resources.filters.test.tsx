@@ -11,11 +11,17 @@ const hooks = vi.hoisted(() => ({
   useModelList: vi.fn(),
 }))
 
-vi.mock("@/lib/resources-queries", () => hooks)
+vi.mock("@/lib/resources-queries", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/resources-queries")>(),
+  ...hooks,
+}))
 
-function query<T>(data: T, overrides: Record<string, unknown> = {}) {
+function query<T>(items: T[] | undefined, overrides: Record<string, unknown> = {}) {
   return {
-    data,
+    data: items === undefined ? undefined : { pages: [{ items, nextCursor: null }], pageParams: [null] },
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
     isPending: false,
     isError: false,
     isFetching: false,
@@ -104,9 +110,9 @@ describe("resource filter selection", () => {
   it("loads only courses on the first render", () => {
     renderResources()
 
-    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false })
-    expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false })
+    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true, filter: "courses" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
+    expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false, filter: "courses" })
   })
 
   it("enables only the notes query once the debounce elapses", () => {
@@ -116,9 +122,9 @@ describe("resource filter selection", () => {
 
     act(() => { vi.advanceTimersByTime(200) })
 
-    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true })
-    expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false })
+    expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false, filter: "notes" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes" })
+    expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false, filter: "notes" })
   })
 
   it("does not fetch models in production when 3D Models is selected", () => {
@@ -129,7 +135,7 @@ describe("resource filter selection", () => {
 
     act(() => { vi.advanceTimersByTime(200) })
 
-    expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false })
+    expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false, filter: "3d-models" })
     expect(screen.getByText(/coming soon to Sedative Physio/i)).toBeInTheDocument()
   })
 })

@@ -13,7 +13,7 @@ import {
   type Resource,
   type ResourceCategory,
 } from "../lib/resources"
-import { useCourseList, useModelList, useNoteList } from "../lib/resources-queries"
+import { flattenResourcePages, useCourseList, useModelList, useNoteList } from "../lib/resources-queries"
 
 const ModelViewerModal = lazy(() => import("../components/ModelViewerModal").then((m) => ({ default: m.ModelViewerModal })))
 
@@ -49,7 +49,14 @@ interface SectionStatus {
   isError: boolean
   isRefetchError: boolean
   isFetching: boolean
+  isFetchingNextPage: boolean
   hasData: boolean
+}
+
+interface LoadMoreStatus {
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  onLoadMore: () => void
 }
 
 type StatusMessage = { text: string; tone: "loading" | "error" | "stale" }
@@ -68,7 +75,8 @@ function sectionStatusMessage(status: SectionStatus | undefined): StatusMessage 
     return { text: `Could not refresh ${status.label}. Showing cached results.`, tone: "stale" }
   }
   if (status.isError || status.isRefetchError) return { text: `Could not load ${status.label}.`, tone: "error" }
-  if (status.isFetching) return { text: `Refreshing ${status.label}…`, tone: "loading" }
+  // A "Load more" click is already announced by the button; don't double it.
+  if (status.isFetching && !status.isFetchingNextPage) return { text: `Refreshing ${status.label}…`, tone: "loading" }
   return null
 }
 
@@ -114,21 +122,21 @@ export function Resources() {
     return () => window.clearTimeout(timer)
   }, [active, queriedFilter])
 
-  const courseQuery = useCourseList({ enabled: queriedFilter === "courses" })
-  const noteQuery = useNoteList({ enabled: queriedFilter === "notes" })
+  const courseQuery = useCourseList({ enabled: queriedFilter === "courses", filter: queriedFilter })
+  const noteQuery = useNoteList({ enabled: queriedFilter === "notes", filter: queriedFilter })
   // In production 3D models are a Coming Soon panel, so that filter never fetches.
-  const modelQuery = useModelList({ enabled: queriedFilter === "3d-models" && !isProd })
+  const modelQuery = useModelList({ enabled: queriedFilter === "3d-models" && !isProd, filter: queriedFilter })
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [preview, setPreview] = useState<PreviewState>(null)
 
-  const noteCards = useMemo<Card[]>(() => (noteQuery.data ?? []).flatMap((note) => {
+  const noteCards = useMemo<Card[]>(() => flattenResourcePages(noteQuery.data).flatMap((note) => {
     const resource = noteToResource(note)
     if (!resource) return []
     return [{ ...resource, kind: "note" as const, fileName: note.fileName, fileSize: note.fileSize }]
   }), [noteQuery.data])
 
-  const modelCards = useMemo<Card[]>(() => (modelQuery.data ?? []).map((model) => ({
+  const modelCards = useMemo<Card[]>(() => flattenResourcePages(modelQuery.data).map((model) => ({
     ...modelToResource(model),
     kind: "model" as const,
     fileName: model.fileName,
@@ -136,7 +144,7 @@ export function Resources() {
     url: model.jsDelivrUrl,
   })), [modelQuery.data])
 
-  const courseCards = useMemo<Card[]>(() => (courseQuery.data ?? []).map((course) => ({
+  const courseCards = useMemo<Card[]>(() => flattenResourcePages(courseQuery.data).map((course) => ({
     ...courseToResource(course),
     kind: "course" as const,
     fileName: "",
@@ -154,6 +162,7 @@ export function Resources() {
       isError: courseQuery.isError,
       isRefetchError: courseQuery.isRefetchError,
       isFetching: courseQuery.isFetching,
+      isFetchingNextPage: courseQuery.isFetchingNextPage,
       hasData: Boolean(courseQuery.data),
     },
     notes: {
@@ -162,6 +171,7 @@ export function Resources() {
       isError: noteQuery.isError,
       isRefetchError: noteQuery.isRefetchError,
       isFetching: noteQuery.isFetching,
+      isFetchingNextPage: noteQuery.isFetchingNextPage,
       hasData: Boolean(noteQuery.data),
     },
     "3d-models": {
@@ -170,7 +180,26 @@ export function Resources() {
       isError: modelQuery.isError,
       isRefetchError: modelQuery.isRefetchError,
       isFetching: modelQuery.isFetching,
+      isFetchingNextPage: modelQuery.isFetchingNextPage,
       hasData: Boolean(modelQuery.data),
+    },
+  }
+
+  const loadMore: Partial<Record<ResourceCategory | "podcast", LoadMoreStatus>> = {
+    courses: {
+      hasNextPage: courseQuery.hasNextPage,
+      isFetchingNextPage: courseQuery.isFetchingNextPage,
+      onLoadMore: () => { void courseQuery.fetchNextPage() },
+    },
+    notes: {
+      hasNextPage: noteQuery.hasNextPage,
+      isFetchingNextPage: noteQuery.isFetchingNextPage,
+      onLoadMore: () => { void noteQuery.fetchNextPage() },
+    },
+    "3d-models": {
+      hasNextPage: modelQuery.hasNextPage,
+      isFetchingNextPage: modelQuery.isFetchingNextPage,
+      onLoadMore: () => { void modelQuery.fetchNextPage() },
     },
   }
 
@@ -228,14 +257,21 @@ export function Resources() {
         const dynamic = section.key === "podcast" ? [] : cards.filter((card) => card.category === section.key)
         const status = statuses[section.key]
         const message = sectionStatusMessage(status)
+        const more = loadMore[section.key]
         const isFirstLoad = Boolean(status?.isPending && !status.hasData)
-        if (dynamic.length === 0 && !message) return null
+        if (dynamic.length === 0 && !message && !more?.hasNextPage) return null
 
         return <section key={section.key}>
           <div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2></div>
           {message && <p className={`mb-4 text-sm ${statusClass[message.tone]}`} role={message.tone === "loading" ? "status" : "alert"}>{message.text}</p>}
           {isFirstLoad && <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{Array.from({ length: SKELETON_CARDS }, (_, index) => <ResourceCardSkeleton key={index} />)}</div>}
           {dynamic.length > 0 && <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{dynamic.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div>}
+          {more?.hasNextPage && <div className="mt-8 flex justify-center">
+            <button type="button" onClick={more.onLoadMore} disabled={more.isFetchingNextPage} className="inline-flex items-center gap-2 rounded-full border border-black/20 px-6 py-2.5 text-sm font-medium transition-colors hover:border-black/50 disabled:cursor-not-allowed disabled:opacity-60">
+              {more.isFetchingNextPage && <Loader2 className="size-4 animate-spin" />}
+              {more.isFetchingNextPage ? "Loading more…" : "Load more"}
+            </button>
+          </div>}
         </section>
       })}</div>
       <section data-scroll-fade className="mt-16 overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-white sm:mt-24 sm:px-12 sm:py-14"><h2 data-reveal className="text-[clamp(2rem,4vw,4rem)] font-bold leading-none tracking-[-.04em]">Coming Soon</h2><p className="mt-4 max-w-[690px] text-sm leading-relaxed text-white/75">We’re continuously expanding our resource library. More tools and materials will be added soon to support your learning journey.</p><div className="mt-7 flex flex-wrap gap-2">{["Study Guides", "Clinical Protocols", "Video Tutorials", "Research Papers"].map((item) => <span key={item} className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/80">{item}</span>)}</div></section>

@@ -54,7 +54,7 @@ describe("fetchEnrolledCourses", () => {
   it("pairs enrollment ids with their course details", async () => {
     route({
       "/my-enrollments": ["c1", "c2"],
-      "/api/courses": [course("c1", "Anatomy"), course("c2", "Physiology"), course("c3", "Unrelated")],
+      "/api/courses": { items: [course("c1", "Anatomy"), course("c2", "Physiology"), course("c3", "Unrelated")], nextCursor: null },
     })
 
     const result = await fetchEnrolledCourses()
@@ -62,8 +62,27 @@ describe("fetchEnrolledCourses", () => {
     expect(result.map((r) => r.course.title)).toEqual(["Anatomy", "Physiology"])
   })
 
+  it("follows catalogue cursors when an enrollment sits on a later page", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes("/my-enrollments")) return Promise.resolve(jsonResponse(["c2"]))
+      if (url.includes("cursor=")) {
+        return Promise.resolve(jsonResponse({ items: [course("c2", "Physiology")], nextCursor: null }))
+      }
+      return Promise.resolve(jsonResponse({ items: [course("c1", "Anatomy")], nextCursor: "next-page" }))
+    })
+
+    const result = await fetchEnrolledCourses()
+
+    expect(result.map((r) => r.course.title)).toEqual(["Physiology"])
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      expect.stringContaining("/my-enrollments"),
+      expect.stringContaining("/api/courses"),
+      expect.stringContaining("cursor=next-page"),
+    ])
+  })
+
   it("drops an enrollment whose course is no longer published", async () => {
-    route({ "/my-enrollments": ["c1", "gone"], "/api/courses": [course("c1", "Anatomy")] })
+    route({ "/my-enrollments": ["c1", "gone"], "/api/courses": { items: [course("c1", "Anatomy")], nextCursor: null } })
 
     const result = await fetchEnrolledCourses()
 

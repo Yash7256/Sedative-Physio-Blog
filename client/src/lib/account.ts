@@ -1,5 +1,5 @@
 import { apiJson } from "./api"
-import { fetchCourses, type CourseSummary } from "./resources"
+import { fetchAllCourses, type CourseSummary } from "./resources"
 
 /**
  * The caller's own order history, as `GET /api/payments/my-orders` returns it.
@@ -45,7 +45,7 @@ export async function fetchEnrolledCourses(): Promise<EnrolledCourse[]> {
   const courseIds = await apiJson<string[]>("/api/payments/my-enrollments")
   if (courseIds.length === 0) return []
 
-  const courses = await fetchCourses()
+  const courses = await fetchAllCourses()
   const byId = new Map(courses.map((c) => [c.id, c]))
   return courseIds.flatMap((courseId) => {
     const course = byId.get(courseId)

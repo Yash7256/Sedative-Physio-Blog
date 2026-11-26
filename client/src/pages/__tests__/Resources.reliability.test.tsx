@@ -17,11 +17,17 @@ const hooks = vi.hoisted(() => ({
   useModelList: vi.fn(),
 }))
 
-vi.mock("@/lib/resources-queries", () => hooks)
+vi.mock("@/lib/resources-queries", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/resources-queries")>(),
+  ...hooks,
+}))
 
-function query<T>(data: T, overrides: Record<string, unknown> = {}) {
+function query<T>(items: T[] | undefined, overrides: Record<string, unknown> = {}) {
   return {
-    data,
+    data: items === undefined ? undefined : { pages: [{ items, nextCursor: null }], pageParams: [null] },
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
     isPending: false,
     isError: false,
     isFetching: false,
