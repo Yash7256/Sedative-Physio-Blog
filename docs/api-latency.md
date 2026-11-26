@@ -1,10 +1,21 @@
 # API latency — Sedative Physio
 
-**Status:** P14 observability baseline. This document will be expanded as later phases land.
+**Status:** P14–P18 implemented. Deployment verification for the edge layer is still a `MANUAL` gate.
 
 ## SLA definition
 
 The 1 ms target is a **server-side cache-hit target** measured from the `Server-Timing` response header. It is not an end-to-end internet round trip and it does not apply to cold database reads.
+
+The number to quote is the p99 of the `cache` segment on responses that contain no `load` segment.
+
+## Cache hierarchy
+
+From fastest to slowest:
+
+1. **React Query / browser cache** — no network request while the query is fresh (`staleTime: 60s`).
+2. **Vercel edge cache** — `x-vercel-cache: HIT`; no origin request.
+3. **Origin L1 cache** — `Server-Timing` contains only `cache`.
+4. **Database** — `Server-Timing` contains `cache` and `load`; outside the 1 ms target.
 
 ## Reading `Server-Timing`
 
@@ -23,14 +34,14 @@ Server-Timing: cache;dur=0.123;desc="catalog lookup", load;dur=4.567;desc="catal
 
 ## Percentiles to report
 
-Report p50 and p99 separately for:
+Report p50 and p95/p99 separately for each layer in the cache hierarchy. Never quote a single sample as the SLA.
 
-1. React Query / browser cache hit — no network request.
-2. Edge cache hit — `x-vercel-cache: HIT`.
-3. Origin L1 cache hit — `Server-Timing` contains only `cache`.
-4. Cold DB miss — `Server-Timing` contains `cache` and `load`.
-
-Never quote a single sample as the SLA.
+| Layer | Evidence | Current status |
+|---|---|---|
+| React Query / browser cache hit | No `/api/*` network entry in DevTools while fresh | Verified in local browser |
+| Edge cache hit | `x-vercel-cache: HIT` on the second identical request | `MANUAL` on preview deployment |
+| Origin L1 cache hit | `Server-Timing` contains only `cache` | p99 0.075 ms in local harness |
+| Cold DB miss | `Server-Timing` contains `cache` and `load` | Fill in after deployment |
 
 ## Pre-serialized cache entries
 
@@ -64,7 +75,60 @@ Catalog versions live in Redis so a purge can invalidate every API instance. Eac
 - After an admin purge, every instance converges within that 1-second window.
 - If Redis reads fail, public catalog reads keep serving their local cache instead of failing.
 - The purge route fails closed with 503 when the version store is unavailable.
-- CDN tags remain stable in this phase; edge entries are invalidated by tag.
+- CDN tags remain stable; edge entries are invalidated by tag.
+
+## `HUMAN` prerequisites
+
+Before the preview verification:
+
+- Confirm the Vercel project has edge caching enabled for these routes.
+- Confirm purge-by-tag is available for the project.
+- Confirm `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` exist in every runtime where catalog purge is expected.
+
+Do not send configuration values to an agent and do not rotate keys as part of this work.
+
+## `MANUAL` preview verification
+
+Use any authenticated-free catalog route, for example `/api/courses`. Record only headers and durations; never record cookies or tokens.
+
+1. **Edge miss**
+
+   Send the first request after deployment or after a purge. Expect:
+
+   - `x-vercel-cache: MISS`
+   - `Server-Timing` contains both `cache` and `load`
+   - `Cache-Control` contains `s-maxage=120`
+   - `Vercel-Cache-Tag` is present
+
+2. **Edge hit**
+
+   Send the same request again. Expect:
+
+   - `x-vercel-cache: HIT`
+   - `Server-Timing` contains only `cache`
+   - `ETag` is identical to the miss response
+
+3. **Conditional revalidation**
+
+   Send the same request with the stored `ETag` in `If-None-Match`. Expect 304, no body, and the same ETag.
+
+4. **Purge**
+
+   Using the existing admin-only `POST /api/cache/purge` flow with a real Clerk session:
+
+   - Send `{ "catalogs": ["courses"] }`.
+   - Expect 200 when Redis and the CDN purge both succeed.
+   - Expect fresh content on the next request.
+   - Allow the documented 1-second convergence window before asserting that no instance serves the pre-purge version.
+   - Expect 503 and no successful purge claim when the shared version store is unavailable.
+
+5. **Record final numbers**
+
+   Fill in the table above with the observed edge p50/p95/p99 and cold DB p50/p95/p99. Keep the origin L1 row separate from the edge row.
+
+## Rollback
+
+Revert the phase branch. No schema migration, generated Prisma file, or key rotation is involved. Reverting the Redis-version phase returns catalog invalidation to a single process; do not leave that state deployed with multiple API instances.
 
 ## What is deliberately outside this target
 
