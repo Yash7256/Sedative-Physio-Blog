@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -6,10 +6,10 @@ import { CartProvider } from "@/lib/cartContext"
 import { Resources } from "../Resources"
 
 /**
- * The old Resources page used one Promise.all for notes, models and courses.
- * That made the sections fail together: one bad endpoint hid otherwise healthy
- * content. These tests pin the new promise: each section is independent, and a
- * failed refetch must not erase data that was already loaded.
+ * The Resources page shows one filter at a time, and a section keeps its own
+ * loading/error state. These tests pin the promise that a failed course query
+ * cannot prevent the user from switching to healthy notes/models, and that a
+ * failed refetch does not erase cached data.
  */
 const hooks = vi.hoisted(() => ({
   useCourseList: vi.fn(),
@@ -81,24 +81,25 @@ beforeEach(() => {
 })
 
 describe("independent resource sections", () => {
-  it("shows notes and models when the course query fails", () => {
+  it("still shows notes when the course query fails", () => {
     hooks.useCourseList.mockReturnValue(query(undefined, { isError: true, isRefetchError: true }))
 
     renderResources()
 
     expect(screen.getByText(/could not load courses/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Notes" }))
     expect(screen.getAllByText("Note One")[0]).toBeInTheDocument()
-    expect(screen.getAllByText("Model One")[0]).toBeInTheDocument()
   })
 
-  it("shows courses and models when the note query fails", () => {
+  it("still shows courses when the note query fails", () => {
     hooks.useNoteList.mockReturnValue(query(undefined, { isError: true, isRefetchError: true }))
 
     renderResources()
 
+    fireEvent.click(screen.getByRole("button", { name: "Notes" }))
     expect(screen.getByText(/could not load notes/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Courses" }))
     expect(screen.getAllByText("Course One")[0]).toBeInTheDocument()
-    expect(screen.getAllByText("Model One")[0]).toBeInTheDocument()
   })
 
   it("keeps cached course data visible when a refetch fails", () => {
@@ -110,13 +111,13 @@ describe("independent resource sections", () => {
     expect(screen.getByText(/could not refresh courses/i)).toBeInTheDocument()
   })
 
-  it("shows a course loading state without hiding other sections", () => {
+  it("shows a course loading state and can still switch filters", () => {
     hooks.useCourseList.mockReturnValue(query(undefined, { isPending: true }))
 
     renderResources()
 
     expect(screen.getByText(/loading courses/i)).toBeInTheDocument()
-    expect(screen.getAllByText("Note One")[0]).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "3D Models" }))
     expect(screen.getAllByText("Model One")[0]).toBeInTheDocument()
   })
 })

@@ -13,23 +13,31 @@ export const resourceKeys = {
   models: ["public", "resources", "models"] as const,
 }
 
-export function useCourseList() {
+export interface ResourceListOptions {
+  /** Only the selected section should hit the network. */
+  enabled?: boolean
+}
+
+export function useCourseList({ enabled = true }: ResourceListOptions = {}) {
   return useQuery({
     queryKey: resourceKeys.courses,
     queryFn: ({ signal }) => fetchCourses({ signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
+    enabled,
   })
 }
 
-export function useNoteList() {
+export function useNoteList({ enabled = true }: ResourceListOptions = {}) {
   return useQuery({
     queryKey: resourceKeys.notes,
     queryFn: ({ signal }) => fetchNotes({ signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
+    enabled,
   })
 }
 
-export function useModelList() {
+export function useModelList({ enabled = true }: ResourceListOptions = {}) {
   return useQuery({
     queryKey: resourceKeys.models,
     queryFn: ({ signal }) => fetchModels({ signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
+    enabled,
   })
 }
