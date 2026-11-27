@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({ useCourseDetail: vi.fn() }))
 
@@ -33,6 +33,10 @@ function state(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   mocks.useCourseDetail.mockReset().mockReturnValue(state())
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 describe("course detail pricing", () => {
@@ -100,6 +104,21 @@ describe("course detail rendering safety", () => {
     expect((await screen.findAllByText("Priced Course")).length).toBeGreaterThan(0)
     expect(container.querySelector('img[src="https://tracker.example/pixel.png"]')).toBeNull()
     expect(container.querySelector('img[src="//tracker.example/avatar.png"]')).toBeNull()
+  })
+
+  it("renders the Cloudinary preview instead of a stored off-origin image", async () => {
+    vi.stubEnv("VITE_CLOUDINARY_CLOUD_NAME", "demo")
+    mocks.useCourseDetail.mockReturnValue(state({
+      data: { ...detail, thumbnail: "https://images.unsplash.com/photo-1?w=400" },
+    }))
+
+    render(<CourseDetailModal open onClose={vi.fn()} slug="priced-course" />)
+
+    const image = await screen.findByAltText("Priced Course")
+    expect(image).toHaveAttribute(
+      "src",
+      "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_fill,w_1200,h_675/courses/priced-course",
+    )
   })
 
   it("does not request detail data while closed", () => {

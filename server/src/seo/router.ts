@@ -1,6 +1,7 @@
 import { Router, type Response } from "express"
 
 import { getCourseBySlug } from "../courses/service.js"
+import { courseCloudinaryImage } from "../lib/cloudinary.js"
 import { courseDetailLimiter } from "../lib/rate-limit.js"
 import {
   allowInlineScripts,
@@ -54,12 +55,13 @@ export function createCoursePageRouter(
       }
 
       const origin = siteOrigin(env)
+      const cloudinaryImage = courseCloudinaryImage(course.slug, env)
       const page = buildSeoHtml({
         title: `${course.title} | ${SITE_NAME}`,
         description: course.shortDescription,
         canonical: origin ? `${origin}/courses/${encodeURIComponent(slug)}` : null,
-        image: safeSeoImage(course.thumbnail, origin),
-        jsonLd: serializeJsonLd(courseJsonLd(course, origin)),
+        image: cloudinaryImage ?? safeSeoImage(course.thumbnail, origin),
+        jsonLd: serializeJsonLd(courseJsonLd(course, origin, cloudinaryImage)),
       })
       res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600, max-age=0")
       sendHtml(res, 200, page)

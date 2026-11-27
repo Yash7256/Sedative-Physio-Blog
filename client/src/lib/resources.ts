@@ -1,5 +1,6 @@
 import { trackResourceFlow, statusBucketFromError } from "./analytics"
 import { ApiError, apiJson, type ApiFetchInit } from "./api"
+import { courseCloudinaryImage } from "./cloudinary"
 import { DEFAULT_QUERY_TIMEOUT_MS } from "./queryClient"
 
 export type ResourceCategory = "notes" | "3d-models" | "courses" | "journals"
@@ -136,6 +137,18 @@ export function isSafeCatalogImageUrl(value: string | null | undefined): boolean
   } catch {
     return false
   }
+}
+
+/**
+ * Cloudinary is the preferred course preview source. Without a configured
+ * cloud name this keeps the old same-origin fallback, and unsafe DB values are
+ * still dropped by isSafeCatalogImageUrl.
+ */
+export function coursePreviewImage(
+  course: Pick<CourseSummary, "slug" | "thumbnail">,
+): string | null {
+  return courseCloudinaryImage(course.slug)
+    ?? (isSafeCatalogImageUrl(course.thumbnail) ? course.thumbnail : null)
 }
 
 /** Keep the opaque cursor in the query string; never pass it through as a fetch option. */
@@ -339,7 +352,7 @@ export function courseToResource(course: CourseSummary): Resource {
     description: course.shortDescription ?? "",
     category: "courses",
     tag: course.level.charAt(0) + course.level.slice(1).toLowerCase(),
-    image: isSafeCatalogImageUrl(course.thumbnail) ? course.thumbnail ?? "" : "",
+    image: coursePreviewImage(course) ?? "",
     slug: course.slug,
   }
 }

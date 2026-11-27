@@ -21,10 +21,10 @@ const env = {
   NODE_ENV: "production",
 } as NodeJS.ProcessEnv
 
-function app() {
+function app(overrides: NodeJS.ProcessEnv = {}) {
   const instance = express()
   instance.use(noStore())
-  instance.use("/courses", createCoursePageRouter({ env }))
+  instance.use("/courses", createCoursePageRouter({ env: { ...env, ...overrides } }))
   return instance
 }
 
@@ -67,6 +67,24 @@ describe("server-rendered course SEO shell", () => {
     expect(html).toContain('<script type="module" src="/assets/main.js">')
     expect(html).toContain('<link rel="stylesheet" href="/assets/index.css">')
     expect(limiter).toHaveBeenCalledTimes(1)
+  })
+
+  it("uses a Cloudinary image for every SEO field even when the stored thumbnail is off-origin", async () => {
+    service.getCourseBySlug.mockResolvedValueOnce({
+      ...detail,
+      thumbnail: "//evil.example/tracker.png",
+    })
+
+    const res = await withServer(app({ CLOUDINARY_CLOUD_NAME: "demo" }),
+      (base) => fetch(`${base}/courses/clinical-reasoning`))
+    const html = await res.text()
+    const image = "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_fill,w_1200,h_675/courses/clinical-reasoning"
+
+    expect(res.status).toBe(200)
+    expect(html).toContain(`property="og:image" content="${image}"`)
+    expect(html).toContain(`name="twitter:image" content="${image}"`)
+    expect(html).toContain(`"image":"${image}"`)
+    expect(html).not.toContain("evil.example")
   })
 
   it("escapes catalog text and refuses an off-origin image", async () => {

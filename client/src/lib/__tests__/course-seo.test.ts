@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { applyCourseSeo } from "../course-seo"
 import type { CourseDetail } from "../resources"
@@ -26,6 +26,7 @@ function attr(selector: string, name: string): string | null {
 afterEach(() => {
   for (const node of document.querySelectorAll("[data-course-seo]")) node.remove()
   document.title = ""
+  vi.unstubAllEnvs()
 })
 
 describe("course SEO metadata", () => {
@@ -47,6 +48,22 @@ describe("course SEO metadata", () => {
     restore()
     expect(document.querySelectorAll("[data-course-seo]")).toHaveLength(0)
     expect(document.title).toBe("")
+  })
+
+  it("uses the Cloudinary social image when configured", () => {
+    vi.stubEnv("VITE_CLOUDINARY_CLOUD_NAME", "demo")
+    const restore = applyCourseSeo({
+      ...detail,
+      thumbnail: "https://images.unsplash.com/photo-1?w=400",
+    }, "https://sedative.test")
+
+    expect(attr('meta[data-course-seo="og:image"]', "content")).toBe(
+      "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_fill,w_1200,h_675/courses/clinical-reasoning",
+    )
+    expect(document.querySelector('script[data-course-seo="jsonld"]')?.textContent)
+      .toContain("res.cloudinary.com/demo")
+
+    restore()
   })
 
   it("escapes catalog text and ignores an off-origin image", () => {

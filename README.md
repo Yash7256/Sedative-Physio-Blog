@@ -6,6 +6,19 @@ New design in progress.
 
 Current plan, environment-variable list, human-only P0 runbook, and phase status: `implmentation/OPENCODE_IMPLEMENTATION_PLAN.md` and `docs/security.md`. Parts A/B of `implmentation/Auth.md` are historical context only.
 
+## Course preview images
+
+Course previews are delivered from Cloudinary using the public ID `courses/<slug>` by default. Upload each image under that public ID (or set the optional folder variables to match your Cloudinary folder). Only the public cloud name is needed; never put an API secret in these variables.
+
+| Variable | Scope | Description |
+|---|---|---|
+| `VITE_CLOUDINARY_CLOUD_NAME` | client build | Cloudinary cloud name used by cards, detail, cart and client SEO metadata |
+| `VITE_CLOUDINARY_COURSE_FOLDER` | client build | Optional public-ID folder; defaults to `courses`; segments may contain letters, digits, `_` and `-` |
+| `CLOUDINARY_CLOUD_NAME` | server runtime | Same cloud name, used by server-rendered SEO metadata |
+| `CLOUDINARY_COURSE_FOLDER` | server runtime | Optional folder matching the client value |
+
+When the cloud name is not configured, the existing same-origin `thumbnail` is used as a fallback. Unsafe or off-origin database values are still rejected. `res.cloudinary.com` is allowlisted in both the enforced Express CSP and the Vercel report-only CSP; no API key is sent to the browser.
+
 ## Razorpay Setup
 
 ### Environment Variables

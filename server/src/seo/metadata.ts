@@ -49,7 +49,11 @@ export function courseSeoPrice(paise: number): string {
   return rupees.toFixed(Number.isInteger(rupees) ? 0 : 2)
 }
 
-export function courseJsonLd(course: CourseDetail, origin: string | null) {
+export function courseJsonLd(
+  course: CourseDetail,
+  origin: string | null,
+  imageOverride?: string | null,
+) {
   const url = origin ? `${origin}/courses/${encodeURIComponent(course.slug)}` : undefined
   return {
     "@context": "https://schema.org",
@@ -57,7 +61,9 @@ export function courseJsonLd(course: CourseDetail, origin: string | null) {
     name: course.title,
     description: course.shortDescription ?? "",
     ...(url ? { url } : {}),
-    ...(course.thumbnail ? { image: safeSeoImage(course.thumbnail, origin) ?? undefined } : {}),
+    ...(course.thumbnail || imageOverride
+      ? { image: imageOverride ?? safeSeoImage(course.thumbnail, origin) ?? undefined }
+      : {}),
     provider: {
       "@type": "Organization",
       name: SITE_NAME,

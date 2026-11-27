@@ -32,6 +32,14 @@ describe("SmartImage WebP fallback", () => {
 
     expect(screen.getByAltText("Photo")).toHaveAttribute("src", "/photo.png")
   })
+
+  it("keeps Cloudinary delivery URLs direct instead of proxying them", () => {
+    const src = "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_fill,w_1200,h_675/courses/anatomy-batch"
+    const { container } = render(<SmartImage src={src} alt="Course" />)
+
+    expect(container.querySelector("source")).toBeNull()
+    expect(screen.getByAltText("Course")).toHaveAttribute("src", src)
+  })
 })
 
 describe("ThemeImage", () => {

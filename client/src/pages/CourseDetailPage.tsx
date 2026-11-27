@@ -6,6 +6,7 @@ import { useOptionalCart } from "@/lib/cartContext"
 import { applyCourseSeo } from "@/lib/course-seo"
 import {
   coursePricingLabel,
+  coursePreviewImage,
   isSafeCatalogImageUrl,
   type CourseDetail,
   type CourseLesson,
@@ -109,7 +110,7 @@ export function CourseDetailPage({ slug }: { slug: string }) {
     )
   }
 
-  const thumbnail = isSafeCatalogImageUrl(course.thumbnail) ? course.thumbnail : null
+  const thumbnail = coursePreviewImage(course)
   const tutorImage = course.tutor && isSafeCatalogImageUrl(course.tutor.image) ? course.tutor.image : null
   const lessonCount = course.sections.reduce((total, section) => total + section.lessons.length, 0)
   const duration = course.sections.reduce(
@@ -148,7 +149,7 @@ export function CourseDetailPage({ slug }: { slug: string }) {
                     slug: course.slug,
                     price: course.price,
                     isFree: course.isFree,
-                    thumbnail: course.thumbnail,
+                    thumbnail,
                     level: course.level,
                     language: course.language,
                   })}
