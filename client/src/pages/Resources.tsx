@@ -2,9 +2,9 @@ import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { Box, Check, Eye, Loader2, ShoppingCart, Sparkles } from "lucide-react"
 import { CourseDetailModal } from "../components/CourseDetailModal"
-import { NotePreviewModal } from "../components/NotePreviewModal"
 import { SmartImage } from "../components/SmartImage"
 import { ThemeImage } from "../components/ThemeImage"
+import { trackResourceFlow } from "../lib/analytics"
 import { useCart } from "../lib/cartContext"
 import {
   formatCoursePrice,
@@ -16,7 +16,8 @@ import {
 } from "../lib/resources"
 import { flattenResourcePages, useCourseList, useModelList, useNoteList } from "../lib/resources-queries"
 
-const ModelViewerModal = lazy(() => import("../components/ModelViewerModal").then((m) => ({ default: m.ModelViewerModal })))
+const LazyModelViewerModal = lazy(() => import("../components/ModelViewerModal").then((m) => ({ default: m.ModelViewerModal })))
+const LazyNotePreviewModal = lazy(() => import("../components/NotePreviewModal").then((m) => ({ default: m.NotePreviewModal })))
 
 interface Card extends Resource { kind: "note" | "model" | "course"; fileName: string | null; fileSize: number | null; url?: string; isFree?: boolean; price?: number }
 type PreviewState = { kind: "note"; id: string; title: string } | { kind: "model"; url: string; title: string } | { kind: "course"; slug: string; title: string } | null
@@ -149,6 +150,15 @@ export function Resources() {
     window.scrollTo(0, 0)
   }, [active])
 
+  // One view event per page visit, and one render event per loaded course page.
+  const viewTracked = useRef(false)
+  const renderedPageRef = useRef<unknown>(null)
+  useEffect(() => {
+    if (viewTracked.current || queriedFilter !== "courses") return
+    viewTracked.current = true
+    trackResourceFlow("resources_viewed", { filter: "courses" })
+  }, [queriedFilter])
+
   const courseQuery = useCourseList({ enabled: queriedFilter === "courses", filter: queriedFilter })
   const noteQuery = useNoteList({ enabled: queriedFilter === "notes", filter: queriedFilter, category: "notes" })
   // In production 3D models are a Coming Soon panel, so that filter never fetches.
@@ -176,6 +186,12 @@ export function Resources() {
     isFree: course.isFree,
     price: course.price,
   })), [courseQuery.data])
+
+  useEffect(() => {
+    if (!courseQuery.data || renderedPageRef.current === courseQuery.data) return
+    renderedPageRef.current = courseQuery.data
+    trackResourceFlow("course_cards_rendered", { count: Math.min(courseCards.length, 50) })
+  }, [courseQuery.data, courseCards.length])
 
   const cards = useMemo(() => [...courseCards, ...noteCards, ...modelCards], [courseCards, noteCards, modelCards])
 
@@ -214,6 +230,7 @@ export function Resources() {
 
   const runLoadMore = useCallback(async (key: ResourceCategory | "podcast", fetchNextPage: () => Promise<unknown>) => {
     setLoadMoreError((prev) => ({ ...prev, [key]: false }))
+    if (key === "courses") trackResourceFlow("courses_load_more_clicked")
     try {
       await fetchNextPage()
     } catch {
@@ -326,9 +343,13 @@ export function Resources() {
       })}</div>
       <section data-scroll-fade className="mt-16 overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-white sm:mt-24 sm:px-12 sm:py-14"><h2 data-reveal className="text-[clamp(2rem,4vw,4rem)] font-bold leading-none tracking-[-.04em]">Coming Soon</h2><p className="mt-4 max-w-[690px] text-sm leading-relaxed text-white/75">We’re continuously expanding our resource library. More tools and materials will be added soon to support your learning journey.</p><div className="mt-7 flex flex-wrap gap-2">{["Study Guides", "Clinical Protocols", "Video Tutorials", "Research Papers"].map((item) => <span key={item} className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/80">{item}</span>)}</div></section>
     </div>
-    <NotePreviewModal open={preview?.kind === "note"} onClose={closePreview} noteId={preview?.kind === "note" ? preview.id : null} noteTitle={preview?.kind === "note" ? preview.title : ""} />
-    <Suspense fallback={null}><ModelViewerModal open={preview?.kind === "model"} onClose={closePreview} modelUrl={preview?.kind === "model" ? preview.url : null} modelName={preview?.kind === "model" ? preview.title : ""} /></Suspense>
-    <CourseDetailModal open={preview?.kind === "course"} onClose={closePreview} slug={preview?.kind === "course" ? preview.slug : null} />
+    {preview?.kind === "note" && <Suspense fallback={null}>
+      <LazyNotePreviewModal open onClose={closePreview} noteId={preview.id} noteTitle={preview.title} />
+    </Suspense>}
+    {preview?.kind === "model" && <Suspense fallback={null}>
+      <LazyModelViewerModal open onClose={closePreview} modelUrl={preview.url} modelName={preview.title} />
+    </Suspense>}
+    {preview?.kind === "course" && <CourseDetailModal open onClose={closePreview} slug={preview.slug} />}
   </div>
 }
 

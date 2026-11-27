@@ -15,8 +15,15 @@ const apiMock = vi.hoisted(() => ({
 
 vi.mock("../api", () => apiMock)
 
+const analyticsMock = vi.hoisted(() => ({ trackResourceFlow: vi.fn() }))
+vi.mock("../analytics", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../analytics")>(),
+  trackResourceFlow: analyticsMock.trackResourceFlow,
+}))
+
 import { DEFAULT_QUERY_TIMEOUT_MS } from "../queryClient"
 import {
+  courseToResource,
   fetchCourseDetail,
   fetchCourses,
   fetchNotes,
@@ -43,6 +50,7 @@ const validDetail = {
 
 beforeEach(() => {
   apiMock.apiJson.mockReset().mockResolvedValue(validPage)
+  analyticsMock.trackResourceFlow.mockReset()
 })
 
 afterEach(() => {
@@ -74,6 +82,24 @@ describe("course image URL safety", () => {
     expect(isSafeCatalogImageUrl("javascript:alert(1)")).toBe(false)
     expect(isSafeCatalogImageUrl(null)).toBe(false)
   })
+
+  it("drops an unsafe thumbnail before it reaches a resource card", () => {
+    const course = {
+      id: "c1", title: "Course", slug: "course", shortDescription: null,
+      thumbnail: "https://tracker.example/pixel.png", level: "beginner", language: "English",
+      estimatedHours: null, price: 0, isFree: true,
+    }
+    expect(courseToResource(course).image).toBe("")
+  })
+
+  it("keeps a same-origin thumbnail on the resource card", () => {
+    const course = {
+      id: "c1", title: "Course", slug: "course", shortDescription: null,
+      thumbnail: "/mockup/course.png", level: "beginner", language: "English",
+      estimatedHours: null, price: 0, isFree: true,
+    }
+    expect(courseToResource(course).image).toBe("/mockup/course.png")
+  })
 })
 
 describe("catalog response validation", () => {
@@ -96,6 +122,33 @@ describe("catalog response validation", () => {
 
   it("accepts a well-formed page", async () => {
     await expect(fetchNotes()).resolves.toEqual(validPage)
+  })
+
+  it("tracks a course catalog request and its bounded result without PII", async () => {
+    apiMock.apiJson.mockResolvedValueOnce({ items: [{ id: "c1" }], nextCursor: null })
+
+    await expect(fetchCourses({ telemetry: true })).resolves.toEqual({ items: [{ id: "c1" }], nextCursor: null })
+    expect(analyticsMock.trackResourceFlow).toHaveBeenCalledWith("courses_catalog_requested")
+    expect(analyticsMock.trackResourceFlow).toHaveBeenCalledWith(
+      "courses_catalog_succeeded",
+      expect.objectContaining({ count: 1 }),
+    )
+  })
+
+  it("buckets a failed course catalog request without leaking the status detail", async () => {
+    apiMock.apiJson.mockRejectedValueOnce({ status: 503 })
+
+    await expect(fetchCourses({ telemetry: true })).rejects.toEqual({ status: 503 })
+    expect(analyticsMock.trackResourceFlow).toHaveBeenCalledWith(
+      "courses_catalog_failed",
+      expect.objectContaining({ statusBucket: "5xx" }),
+    )
+  })
+
+  it("does not emit telemetry for non-browse catalog lookups", async () => {
+    await fetchCourses()
+
+    expect(analyticsMock.trackResourceFlow).not.toHaveBeenCalled()
   })
 })
 

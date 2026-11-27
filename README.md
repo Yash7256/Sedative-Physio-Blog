@@ -56,7 +56,7 @@ The purge endpoint fails closed unless these are configured in the environment:
 | `VERCEL_PROJECT_ID` (or `VERCEL_PROJECT_NAME`) | Target Vercel project |
 | `VERCEL_TEAM_ID` | Optional team id when the project belongs to a team |
 
-Catalog versions are already shared in Upstash Redis; each API instance refreshes its local copy at most once per second, so a purge converges across instances. See `docs/security.md` for the required variables and `docs/api-latency.md` for staleness and timing details.
+Catalog versions are already shared in Upstash Redis; each API instance refreshes its local copy at most once per second, so a purge converges across instances. See `docs/security.md` for the required variables, `docs/api-latency.md` for staleness/timing and the cache-before-limiter contract, and `docs/resource-flow-analytics.md` for the anonymous resource-page event contract.
 
 ## Note files
 

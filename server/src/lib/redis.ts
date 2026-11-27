@@ -3,6 +3,7 @@ import { Redis } from "@upstash/redis"
 /** Fluent MULTI subset shared by the rate limiter and catalog versions. */
 export interface RedisMulti {
   incr(key: string): RedisMulti
+  incrby(key: string, amount: number): RedisMulti
   pttl(key: string): RedisMulti
   exec(): Promise<unknown[]>
 }
@@ -11,6 +12,7 @@ export interface RedisMulti {
 export interface RedisLike {
   get(key: string): Promise<string | null>
   incr(key: string): Promise<number>
+  incrby(key: string, amount: number): Promise<number>
   multi(): RedisMulti
   pexpire(key: string, ms: number): Promise<unknown>
   decr(key: string): Promise<unknown>

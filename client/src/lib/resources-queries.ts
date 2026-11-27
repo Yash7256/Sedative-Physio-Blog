@@ -53,7 +53,11 @@ function useResourcePages<T>(
 }
 
 export function useCourseList(options: ResourceListOptions = {}) {
-  return useResourcePages(resourceKeys.courses(options.filter ?? null), fetchCourses, options)
+  return useResourcePages(
+    resourceKeys.courses(options.filter ?? null),
+    (pageOptions) => fetchCourses({ ...pageOptions, telemetry: true }),
+    options,
+  )
 }
 
 export function useNoteList(options: ResourceListOptions = {}) {

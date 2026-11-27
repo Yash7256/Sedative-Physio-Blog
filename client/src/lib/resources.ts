@@ -1,3 +1,4 @@
+import { trackResourceFlow, statusBucketFromError } from "./analytics"
 import { ApiError, apiJson, type ApiFetchInit } from "./api"
 import { DEFAULT_QUERY_TIMEOUT_MS } from "./queryClient"
 
@@ -245,9 +246,32 @@ export async function fetchModels({ cursor, limit, ...options }: ResourcePageOpt
   return fetchResourcePage<ModelSummary>(pagePath("/api/models", { cursor, limit }), options)
 }
 
+export interface CoursePageOptions extends ResourcePageOptions {
+  /** Only the browse UI opts into product telemetry; catalog lookups stay silent. */
+  telemetry?: boolean
+}
+
 /** Fetch a page of published courses from the backend. */
-export async function fetchCourses({ cursor, limit, ...options }: ResourcePageOptions = {}): Promise<ResourcePage<CourseSummary>> {
-  return fetchResourcePage<CourseSummary>(pagePath("/api/courses", { cursor, limit }), options)
+export async function fetchCourses({ cursor, limit, telemetry = false, ...options }: CoursePageOptions = {}): Promise<ResourcePage<CourseSummary>> {
+  const path = pagePath("/api/courses", { cursor, limit })
+  if (!telemetry) return fetchResourcePage<CourseSummary>(path, options)
+
+  const startedAt = Date.now()
+  trackResourceFlow("courses_catalog_requested")
+  try {
+    const page = await fetchResourcePage<CourseSummary>(path, options)
+    trackResourceFlow("courses_catalog_succeeded", {
+      count: page.items.length,
+      durationMs: Date.now() - startedAt,
+    })
+    return page
+  } catch (err) {
+    trackResourceFlow("courses_catalog_failed", {
+      durationMs: Date.now() - startedAt,
+      statusBucket: statusBucketFromError(err),
+    })
+    throw err
+  }
 }
 
 /**
@@ -315,7 +339,7 @@ export function courseToResource(course: CourseSummary): Resource {
     description: course.shortDescription ?? "",
     category: "courses",
     tag: course.level.charAt(0) + course.level.slice(1).toLowerCase(),
-    image: course.thumbnail ?? "",
+    image: isSafeCatalogImageUrl(course.thumbnail) ? course.thumbnail ?? "" : "",
     slug: course.slug,
   }
 }

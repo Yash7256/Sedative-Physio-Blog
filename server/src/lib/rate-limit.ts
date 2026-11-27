@@ -125,8 +125,17 @@ export function createLimiter({
  * identifiers within its assigned /64 — and it silences the library's IPv6
  * key-generator validation warning.
  */
+function clientIpKey(req: Request): string {
+  return ipKeyGenerator(req.ip ?? "unknown")
+}
+
 export function catalogIpKey(req: Request): string {
-  return `catalog:${ipKeyGenerator(req.ip ?? "unknown")}`
+  return `catalog:${clientIpKey(req)}`
+}
+
+/** Analytics ingest is public but low-volume; it gets its own IP bucket. */
+export function analyticsIpKey(req: Request): string {
+  return `analytics:${clientIpKey(req)}`
 }
 
 export const catalogListLimiter = createLimiter({
@@ -144,4 +153,13 @@ export const courseDetailLimiter = createLimiter({
   limit: 120,
   keyGenerator: catalogIpKey,
   message: { error: "Too many course detail requests. Please try again later." },
+})
+
+/** Bounded public telemetry: 2 events/s/IP is ample for the resource page. */
+export const analyticsLimiter = createLimiter({
+  prefix: "analytics",
+  windowMs: 60 * 1000,
+  limit: 120,
+  keyGenerator: analyticsIpKey,
+  message: { error: "Too many analytics events. Please try again later." },
 })

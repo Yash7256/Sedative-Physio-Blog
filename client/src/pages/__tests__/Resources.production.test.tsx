@@ -11,6 +11,8 @@ const hooks = vi.hoisted(() => ({
   useModelList: vi.fn(),
   useCourseDetail: () => ({ data: undefined, isPending: false, error: null }),
 }))
+const analytics = vi.hoisted(() => ({ trackResourceFlow: vi.fn() }))
+vi.mock("@/lib/analytics", () => analytics)
 
 vi.mock("@/lib/resources-queries", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/resources-queries")>(),
@@ -81,6 +83,7 @@ function renderResources(initialEntry = "/resources", withOuterMain = false) {
 
 beforeEach(() => {
   document.documentElement.classList.remove("dark")
+  analytics.trackResourceFlow.mockReset()
   hooks.useCourseList.mockReset().mockReturnValue(query(courses))
   hooks.useNoteList.mockReset().mockReturnValue(query(notes))
   hooks.useModelList.mockReset().mockReturnValue(query([]))
@@ -212,5 +215,23 @@ describe("resource page accessibility and navigation", () => {
 
     expect(screen.getByTestId("url").textContent).not.toContain("preview=")
     expect(screen.queryByRole("dialog")).toBeNull()
+  })
+})
+
+describe("resource flow analytics", () => {
+  it("records the courses view and the rendered card count", () => {
+    renderResources()
+
+    expect(analytics.trackResourceFlow).toHaveBeenCalledWith("resources_viewed", { filter: "courses" })
+    expect(analytics.trackResourceFlow).toHaveBeenCalledWith("course_cards_rendered", { count: 2 })
+  })
+
+  it("records a courses Load more click", async () => {
+    hooks.useCourseList.mockReturnValue(query(courses, { hasNextPage: true }))
+    renderResources()
+
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /load more/i })) })
+
+    expect(analytics.trackResourceFlow).toHaveBeenCalledWith("courses_load_more_clicked")
   })
 })
