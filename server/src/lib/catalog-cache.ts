@@ -33,6 +33,8 @@ export interface CatalogCacheOptions {
   policy: CachePolicy
   /** Only these params join the key; everything else is ignored. */
   allowedParams?: readonly string[]
+  /** Isolates list and detail bodies while sharing the catalog version. */
+  pool?: string
 }
 
 export interface CatalogCacheFactoryOptions {
@@ -40,6 +42,7 @@ export interface CatalogCacheFactoryOptions {
   redis?: RedisLike
   env?: NodeJS.ProcessEnv
   versionTtlMs?: number
+  maxEntriesPerCatalog?: number
 }
 
 export interface CatalogCache {
@@ -101,11 +104,12 @@ function requestPath(req: { baseUrl?: string; path?: string }): string {
 
 function keyFor(
   catalog: CatalogName,
+  pool: string,
   version: number,
   req: { baseUrl?: string; path?: string; query: Record<string, unknown> },
   allowedParams: readonly string[],
 ): string {
-  return `${catalog}:v${version}:${requestPath(req)}:${JSON.stringify(normalizeParams(req.query, allowedParams))}`
+  return `${catalog}:${pool}:v${version}:${requestPath(req)}:${JSON.stringify(normalizeParams(req.query, allowedParams))}`
 }
 
 /**
@@ -121,12 +125,19 @@ export function createCatalogCache(
   options: CatalogCacheFactoryOptions = {},
 ): CatalogCache {
   const versionTtlMs = options.versionTtlMs ?? CATALOG_VERSION_REFRESH_MS
-  const store = new LRUCache<string, CacheEntry>({
-    max: CATALOG_CACHE_MAX_ENTRIES,
-    ttl: ttlMs,
-  })
+  const maxEntries = options.maxEntriesPerCatalog ?? CATALOG_CACHE_MAX_ENTRIES
+  const stores = new Map<string, LRUCache<string, CacheEntry>>()
+  const storeFor = (name: string): LRUCache<string, CacheEntry> => {
+    let store = stores.get(name)
+    if (!store) {
+      store = new LRUCache<string, CacheEntry>({ max: maxEntries, ttl: ttlMs })
+      stores.set(name, store)
+    }
+    return store
+  }
   const versions = new Map<CatalogName, number>(CATALOG_NAMES.map((name) => [name, 0]))
   const versionCheckedAt = new Map<CatalogName, number>()
+  const versionStoreDegraded = new Map<CatalogName, boolean>()
   const versionFlights = new Map<CatalogName, Promise<number>>()
   const inFlight = new Map<string, Promise<CacheEntry | null>>()
   let versionStore = options.redis
@@ -151,14 +162,22 @@ export function createCatalogCache(
 
     const flight = (async () => {
       const redisStore = resolveVersionStore()
-      if (redisStore) {
+      if (!redisStore) {
+        versionStoreDegraded.set(catalog, true)
+      } else {
         try {
           const raw = await redisStore.get(catalogVersionKey(catalog))
           const parsed = raw === null ? 0 : Number(raw)
-          if (Number.isSafeInteger(parsed) && parsed >= 0) versions.set(catalog, parsed)
+          if (Number.isSafeInteger(parsed) && parsed >= 0) {
+            versions.set(catalog, parsed)
+            versionStoreDegraded.set(catalog, false)
+          } else {
+            versionStoreDegraded.set(catalog, true)
+          }
         } catch {
           // Keep the last known version; a public read must not fail on Redis.
           // Log generically: store errors can contain connection details.
+          versionStoreDegraded.set(catalog, true)
           console.warn("Catalog version store read failed; using last known version.")
         }
       }
@@ -171,8 +190,9 @@ export function createCatalogCache(
   }
 
   const clearCatalogEntries = (names: readonly CatalogName[]): void => {
-    for (const key of store.keys()) {
-      if (names.some((name) => key.startsWith(`${name}:`))) store.delete(key)
+    for (const [storeName, store] of stores) {
+      if (!names.some((name) => storeName.startsWith(`${name}:`) || storeName === name)) continue
+      for (const key of store.keys()) store.delete(key)
     }
   }
 
@@ -238,6 +258,7 @@ export function createCatalogCache(
     req: Parameters<RequestHandler>[0],
     res: Parameters<RequestHandler>[1],
     catalog: CatalogName,
+    store: LRUCache<string, CacheEntry>,
     header: string,
     version: number,
     key: string,
@@ -275,8 +296,10 @@ export function createCatalogCache(
   }
 
   return {
-    middleware({ catalog, policy, allowedParams = [] }: CatalogCacheOptions): RequestHandler {
+    middleware({ catalog, policy, allowedParams = [], pool = "default" }: CatalogCacheOptions): RequestHandler {
       const header = policyHeader(policy)
+      const storeName = `${catalog}:${pool}`
+      const store = storeFor(storeName)
 
       return async (req, res, next) => {
         if (req.method !== "GET" && req.method !== "HEAD") return next()
@@ -284,9 +307,12 @@ export function createCatalogCache(
         const versionStartedAt = performance.now()
         await refreshVersion(catalog)
         const versionMs = performance.now() - versionStartedAt
+        if (versionStoreDegraded.get(catalog)) {
+          res.setHeader("X-Catalog-Version-Store", "local-fallback")
+        }
         const lookupStartedAt = performance.now()
         const version = versions.get(catalog) ?? 0
-        const key = keyFor(catalog, version, req, allowedParams)
+        const key = keyFor(catalog, pool, version, req, allowedParams)
         const hit = store.get(key)
         const lookupMs = performance.now() - lookupStartedAt
         if (hit) {
@@ -302,7 +328,7 @@ export function createCatalogCache(
           const waitStartedAt = performance.now()
           const fallThrough = (): void => {
             instrumentResponse(
-              req, res, catalog, header, version, key, lookupMs, versionMs,
+              req, res, catalog, store, header, version, key, lookupMs, versionMs,
               performance.now() - waitStartedAt, () => undefined,
             )
             next()
@@ -344,7 +370,7 @@ export function createCatalogCache(
         res.once("finish", () => settle(null))
 
         instrumentResponse(
-          req, res, catalog, header, version, key, lookupMs, versionMs, 0, settle,
+          req, res, catalog, store, header, version, key, lookupMs, versionMs, 0, settle,
         )
         next()
       }
@@ -365,7 +391,7 @@ export function createCatalogCache(
     },
 
     clear(): void {
-      store.clear()
+      for (const store of stores.values()) store.clear()
       inFlight.clear()
       versionFlights.clear()
       versionCheckedAt.clear()

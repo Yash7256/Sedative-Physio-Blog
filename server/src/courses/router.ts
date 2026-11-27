@@ -13,11 +13,16 @@ const listCache = catalogCache.middleware({
   catalog: "courses",
   policy: CATALOG_CACHE_POLICY,
   allowedParams: ["limit", "cursor"],
+  pool: "list",
 })
-const detailCache = catalogCache.middleware({ catalog: "courses", policy: CATALOG_CACHE_POLICY })
+const detailCache = catalogCache.middleware({
+  catalog: "courses",
+  policy: CATALOG_CACHE_POLICY,
+  pool: "detail",
+})
 
 // GET /api/courses — list published courses, cursor-paginated
-coursesRouter.get("/", catalogListLimiter, listCache, async (req, res) => {
+coursesRouter.get("/", listCache, catalogListLimiter, async (req, res) => {
   try {
     const page = await listCourses(parsePageRequest(req.query))
     res.status(200).json(page)
@@ -27,7 +32,7 @@ coursesRouter.get("/", catalogListLimiter, listCache, async (req, res) => {
 })
 
 // GET /api/courses/:slug — course details with syllabus and tutor
-coursesRouter.get("/:slug", courseDetailLimiter, detailCache, async (req, res) => {
+coursesRouter.get("/:slug", detailCache, courseDetailLimiter, async (req, res) => {
   try {
     const slugParam = req.params.slug
     const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam

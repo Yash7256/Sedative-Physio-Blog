@@ -2,6 +2,8 @@ import express from "express"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { encodeCursor } from "../../lib/pagination.js"
+
+const createdAt = new Date("2026-01-01T00:00:00.000Z")
 import { withServer } from "../../test/harness.js"
 
 const serviceMock = vi.hoisted(() => ({
@@ -36,9 +38,13 @@ describe("GET /api/courses pagination contract", () => {
 
   it("caps the limit and passes the decoded cursor to the service", async () => {
     await withServer(app(), (base) =>
-      fetch(`${base}/api/courses?limit=500&cursor=${encodeURIComponent(encodeCursor("c1"))}`))
+      fetch(`${base}/api/courses?limit=500&cursor=${encodeURIComponent(encodeCursor({ id: "c1", createdAt }))}`))
 
-    expect(serviceMock.listCourses).toHaveBeenCalledWith({ limit: 50, cursorId: "c1" })
+    expect(serviceMock.listCourses).toHaveBeenCalledWith({
+      limit: 50,
+      cursorId: "c1",
+      cursorCreatedAt: createdAt,
+    })
   })
 
   it("rejects a raw cursor with a JSON 400", async () => {

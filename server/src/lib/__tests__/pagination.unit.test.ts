@@ -10,6 +10,8 @@ import {
   parsePageRequest,
 } from "../pagination.js"
 
+const createdAt = new Date("2026-01-01T00:00:00.000Z")
+
 describe("catalog pagination", () => {
   describe("limit parsing", () => {
     it("defaults to 12 with no limit", () => {
@@ -31,28 +33,41 @@ describe("catalog pagination", () => {
   })
 
   describe("opaque cursor", () => {
-    it("round-trips the last item's id", () => {
-      const cursor = encodeCursor("course_123")
+    it("round-trips the last item's id and sort timestamp", () => {
+      const cursor = encodeCursor({ id: "course_123", createdAt })
       expect(cursor).not.toBe("course_123")
-      expect(decodeCursor(cursor)).toBe("course_123")
+      expect(decodeCursor(cursor)).toEqual({ id: "course_123", createdAt })
     })
 
-    it("rejects a raw id, malformed base64, and a payload without a string id", () => {
+    it("still accepts a legacy id-only cursor", () => {
+      expect(decodeCursor(encodeCursor("note_9"))).toEqual({ id: "note_9", createdAt: null })
+      expect(parsePageRequest({ cursor: encodeCursor("note_9") })).toEqual({
+        limit: 12,
+        cursorId: "note_9",
+      })
+    })
+
+    it("rejects raw ids, malformed base64, and malformed payloads", () => {
       expect(() => decodeCursor("course_123")).toThrow("Invalid cursor")
       expect(() => decodeCursor("!!!not-base64!!!")).toThrow("Invalid cursor")
       expect(() => decodeCursor(Buffer.from('{"id":7}').toString("base64url"))).toThrow("Invalid cursor")
+      expect(() => decodeCursor(Buffer.from(JSON.stringify({ id: "a" }).replace("}", ',"createdAt":7}')).toString("base64url"))).toThrow("Invalid cursor")
+      expect(() => decodeCursor(Buffer.from(JSON.stringify({ id: "a", createdAt: "yesterday" })).toString("base64url"))).toThrow("Invalid cursor")
       expect(() => decodeCursor("")).toThrow("Invalid cursor")
       expect(() => decodeCursor(123)).toThrow("Invalid cursor")
     })
 
     it("reads the cursor from the page request", () => {
-      const cursor = encodeCursor("note_9")
-      expect(parsePageRequest({ cursor })).toEqual({ limit: 12, cursorId: "note_9" })
+      const cursor = encodeCursor({ id: "note_9", createdAt })
+      expect(parsePageRequest({ cursor })).toEqual({
+        limit: 12,
+        cursorId: "note_9",
+        cursorCreatedAt: createdAt,
+      })
     })
   })
 
   it("builds a keyset that breaks createdAt ties by id", () => {
-    const createdAt = new Date("2026-01-01T00:00:00.000Z")
     expect(olderThan({ createdAt, id: "a" })).toEqual({
       OR: [
         { createdAt: { lt: createdAt } },
@@ -62,11 +77,15 @@ describe("catalog pagination", () => {
   })
 
   it("returns nextCursor null on the last page, and from the last kept item otherwise", () => {
-    const rows = [{ id: "a" }, { id: "b" }, { id: "c" }]
-    expect(pageResult(rows, 3)).toEqual({ items: rows, nextCursor: null })
+    const rows = [
+      { id: "a", createdAt },
+      { id: "b", createdAt },
+      { id: "c", createdAt },
+    ]
+    expect(pageResult(rows, 3)).toEqual({ items: [{ id: "a" }, { id: "b" }, { id: "c" }], nextCursor: null })
 
     const page = pageResult(rows, 2)
     expect(page.items).toEqual([{ id: "a" }, { id: "b" }])
-    expect(decodeCursor(page.nextCursor!)).toBe("b")
+    expect(decodeCursor(page.nextCursor!)).toEqual({ id: "b", createdAt })
   })
 })

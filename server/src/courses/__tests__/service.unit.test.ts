@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { BadRequestError, ConflictError } from "../../lib/errors.js"
+import { BadRequestError, ConflictError, ServiceUnavailableError } from "../../lib/errors.js"
 import { decodeCursor, DEFAULT_PAGE_SIZE } from "../../lib/pagination.js"
 
 const prismaMock = vi.hoisted(() => ({
@@ -20,6 +20,7 @@ import {
 const createdAt = new Date("2026-01-01T00:00:00.000Z")
 const rows = (count: number) => Array.from({ length: count }, (_, index) => ({
   id: `c${index + 1}`,
+  createdAt,
   isFree: true,
   price: 0,
 }))
@@ -41,19 +42,20 @@ describe("listCourses cursor pagination", () => {
       take: DEFAULT_PAGE_SIZE + 1,
     }))
     expect(page.items).toHaveLength(DEFAULT_PAGE_SIZE)
+    expect(page.items[0]).not.toHaveProperty("createdAt")
     expect(page.nextCursor).toBeNull()
   })
 
-  it("uses the cursor row's timestamp to break ties, and drops the lookahead item", async () => {
-    prismaMock.course.findFirst.mockResolvedValue({ createdAt })
+  it("uses a self-contained cursor without reading the cursor row again", async () => {
     prismaMock.course.findMany.mockResolvedValue(rows(DEFAULT_PAGE_SIZE + 1))
 
-    const page = await listCourses({ limit: DEFAULT_PAGE_SIZE, cursorId: "cursor-course" })
-
-    expect(prismaMock.course.findFirst).toHaveBeenCalledWith({
-      where: { id: "cursor-course", isPublished: true },
-      select: { createdAt: true },
+    const page = await listCourses({
+      limit: DEFAULT_PAGE_SIZE,
+      cursorId: "cursor-course",
+      cursorCreatedAt: createdAt,
     })
+
+    expect(prismaMock.course.findFirst).not.toHaveBeenCalled()
     expect(prismaMock.course.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         isPublished: true,
@@ -65,13 +67,36 @@ describe("listCourses cursor pagination", () => {
       take: DEFAULT_PAGE_SIZE + 1,
     }))
     expect(page.items).toHaveLength(DEFAULT_PAGE_SIZE)
-    expect(decodeCursor(page.nextCursor!)).toBe(`c${DEFAULT_PAGE_SIZE}`)
+    expect(decodeCursor(page.nextCursor!)).toEqual({ id: `c${DEFAULT_PAGE_SIZE}`, createdAt })
   })
 
-  it("rejects a cursor whose row is no longer published", async () => {
+  it("still resolves a legacy id-only cursor through its row", async () => {
+    prismaMock.course.findFirst.mockResolvedValue({ createdAt })
+    prismaMock.course.findMany.mockResolvedValue(rows(DEFAULT_PAGE_SIZE))
+
+    const page = await listCourses({ limit: DEFAULT_PAGE_SIZE, cursorId: "legacy-course" })
+
+    expect(prismaMock.course.findFirst).toHaveBeenCalledWith({
+      where: { id: "legacy-course", isPublished: true },
+      select: { createdAt: true },
+    })
+    expect(prismaMock.course.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        isPublished: true,
+        OR: [
+          { createdAt: { lt: createdAt } },
+          { createdAt, id: { lt: "legacy-course" } },
+        ],
+      },
+    }))
+    expect(page.items).toHaveLength(DEFAULT_PAGE_SIZE)
+  })
+
+  it("rejects a legacy cursor whose row is no longer published", async () => {
     prismaMock.course.findFirst.mockResolvedValue(null)
 
-    await expect(listCourses({ limit: 12, cursorId: "gone" })).rejects.toBeInstanceOf(BadRequestError)
+    await expect(listCourses({ limit: 12, cursorId: "gone" })).rejects
+      .toBeInstanceOf(BadRequestError)
     expect(prismaMock.course.findMany).not.toHaveBeenCalled()
   })
 
@@ -79,6 +104,23 @@ describe("listCourses cursor pagination", () => {
     prismaMock.course.findMany.mockResolvedValue([{ id: "bad", isFree: true, price: 500 }])
 
     await expect(listCourses({ limit: 12, cursorId: null })).rejects.toBeInstanceOf(ConflictError)
+  })
+
+  it("fails closed with a generic 503 when the DB read exceeds the deadline", async () => {
+    const original = process.env.CATALOG_DB_TIMEOUT_MS
+    process.env.CATALOG_DB_TIMEOUT_MS = "5"
+    try {
+      prismaMock.course.findMany.mockImplementation(() =>
+        new Promise((resolve) => setTimeout(() => resolve(rows(1)), 40)))
+
+      const error = await listCourses({ limit: 12, cursorId: null }).catch((err: unknown) => err)
+
+      expect(error).toBeInstanceOf(ServiceUnavailableError)
+      expect((error as Error).message).toBe("Catalog data is temporarily unavailable.")
+    } finally {
+      if (original === undefined) delete process.env.CATALOG_DB_TIMEOUT_MS
+      else process.env.CATALOG_DB_TIMEOUT_MS = original
+    }
   })
 })
 

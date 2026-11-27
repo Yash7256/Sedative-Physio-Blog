@@ -1,3 +1,4 @@
+import { withDeadline } from "../lib/deadline.js"
 import { BadRequestError } from "../lib/errors.js"
 import {
   DEFAULT_PAGE_SIZE,
@@ -20,16 +21,21 @@ export interface ModelSummary {
 export async function listModels(
   pageRequest: PageRequest = { limit: DEFAULT_PAGE_SIZE, cursorId: null },
 ): Promise<Page<ModelSummary>> {
-  const anchor = pageRequest.cursorId
-    ? await prisma.model3D.findFirst({
-        where: { id: pageRequest.cursorId },
-        select: { createdAt: true },
-      })
-    : null
-  if (pageRequest.cursorId && !anchor) throw new BadRequestError("Invalid cursor")
+  const cursorId = pageRequest.cursorId
+  let cursorCreatedAt = pageRequest.cursorCreatedAt ?? null
+  if (cursorId && !cursorCreatedAt) {
+    const anchor = await withDeadline(prisma.model3D.findFirst({
+      where: { id: cursorId },
+      select: { createdAt: true },
+    }))
+    if (!anchor) throw new BadRequestError("Invalid cursor")
+    cursorCreatedAt = anchor.createdAt
+  }
 
-  const rows = await prisma.model3D.findMany({
-    where: anchor ? olderThan({ createdAt: anchor.createdAt, id: pageRequest.cursorId! }) : {},
+  const rows = await withDeadline(prisma.model3D.findMany({
+    where: cursorId && cursorCreatedAt
+      ? olderThan({ createdAt: cursorCreatedAt, id: cursorId })
+      : {},
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: pageRequest.limit + 1,
     select: {
@@ -40,6 +46,7 @@ export async function listModels(
       jsDelivrUrl: true,
       createdAt: true,
     },
-  })
-  return pageResult(rows, pageRequest.limit)
+  }))
+  // Models expose createdAt in their public contract, unlike course/note rows.
+  return pageResult(rows, pageRequest.limit, (row) => row)
 }

@@ -85,7 +85,7 @@ function declaredSize(upstream: Response): number | null {
 }
 
 // GET /api/notes — list published notes (optionally filtered by ?category=)
-notesPublicRouter.get("/", catalogListLimiter, listCache, async (req, res) => {
+notesPublicRouter.get("/", listCache, catalogListLimiter, async (req, res) => {
   try {
     const category = typeof req.query["category"] === "string" ? req.query["category"] : undefined
     // Bounded so arbitrary category strings cannot mint unbounded cache keys.

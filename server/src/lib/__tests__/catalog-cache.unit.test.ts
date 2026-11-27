@@ -166,6 +166,25 @@ describe("catalog response cache", () => {
     })
   })
 
+  it("keeps an LRU pool per catalog so one catalog cannot evict another", async () => {
+    const noteLoader = vi.fn(async () => ({ items: [], nextCursor: null }))
+    const courseLoader = vi.fn(async () => ({ items: [{ id: "c1" }], nextCursor: null }))
+    const cache = createCatalogCache(60_000, { maxEntriesPerCatalog: 1 })
+
+    await withServer(buildApp(cache, "notes", noteLoader, ["category"]), async (base) => {
+      await fetch(`${base}/api/notes?category=a`)
+      await fetch(`${base}/api/notes?category=b`)
+      await fetch(`${base}/api/notes?category=a`)
+      expect(noteLoader).toHaveBeenCalledTimes(3)
+    })
+
+    await withServer(buildApp(cache, "courses", courseLoader), async (base) => {
+      await fetch(`${base}/api/courses`)
+      await fetch(`${base}/api/courses`)
+      expect(courseLoader).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it("makes every variant unreachable when a catalog version is bumped", async () => {
     const loader = vi.fn(async () => ({ items: [], nextCursor: null }))
     const cache = createCatalogCache()

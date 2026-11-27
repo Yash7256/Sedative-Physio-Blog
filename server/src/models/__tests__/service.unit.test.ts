@@ -11,7 +11,10 @@ import { decodeCursor, DEFAULT_PAGE_SIZE } from "../../lib/pagination.js"
 import { listModels } from "../service.js"
 
 const createdAt = new Date("2026-01-01T00:00:00.000Z")
-const rows = (count: number) => Array.from({ length: count }, (_, index) => ({ id: `m${index + 1}` }))
+const rows = (count: number) => Array.from({ length: count }, (_, index) => ({
+  id: `m${index + 1}`,
+  createdAt,
+}))
 
 beforeEach(() => {
   prismaMock.model3D.findMany.mockReset()
@@ -33,16 +36,16 @@ describe("listModels cursor pagination", () => {
     expect(page.nextCursor).toBeNull()
   })
 
-  it("uses the anchor timestamp and drops the lookahead row", async () => {
-    prismaMock.model3D.findFirst.mockResolvedValue({ createdAt })
+  it("uses a self-contained cursor without reading the cursor row again", async () => {
     prismaMock.model3D.findMany.mockResolvedValue(rows(DEFAULT_PAGE_SIZE + 1))
 
-    const page = await listModels({ limit: DEFAULT_PAGE_SIZE, cursorId: "cursor-model" })
-
-    expect(prismaMock.model3D.findFirst).toHaveBeenCalledWith({
-      where: { id: "cursor-model" },
-      select: { createdAt: true },
+    const page = await listModels({
+      limit: DEFAULT_PAGE_SIZE,
+      cursorId: "cursor-model",
+      cursorCreatedAt: createdAt,
     })
+
+    expect(prismaMock.model3D.findFirst).not.toHaveBeenCalled()
     expect(prismaMock.model3D.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         OR: [
@@ -52,10 +55,22 @@ describe("listModels cursor pagination", () => {
       },
       take: DEFAULT_PAGE_SIZE + 1,
     }))
-    expect(decodeCursor(page.nextCursor!)).toBe(`m${DEFAULT_PAGE_SIZE}`)
+    expect(decodeCursor(page.nextCursor!)).toEqual({ id: `m${DEFAULT_PAGE_SIZE}`, createdAt })
   })
 
-  it("rejects a cursor whose row no longer exists", async () => {
+  it("still resolves a legacy id-only cursor through its row", async () => {
+    prismaMock.model3D.findFirst.mockResolvedValue({ createdAt })
+    prismaMock.model3D.findMany.mockResolvedValue(rows(DEFAULT_PAGE_SIZE))
+
+    await listModels({ limit: DEFAULT_PAGE_SIZE, cursorId: "legacy-model" })
+
+    expect(prismaMock.model3D.findFirst).toHaveBeenCalledWith({
+      where: { id: "legacy-model" },
+      select: { createdAt: true },
+    })
+  })
+
+  it("rejects a legacy cursor whose row no longer exists", async () => {
     prismaMock.model3D.findFirst.mockResolvedValue(null)
 
     await expect(listModels({ limit: 12, cursorId: "gone" })).rejects.toBeInstanceOf(BadRequestError)

@@ -20,7 +20,10 @@ import { getNoteFile, listNotes } from "../service.js"
 
 const createdAt = new Date("2026-02-01T00:00:00.000Z")
 const updatedAt = new Date("2026-02-02T00:00:00.000Z")
-const rows = (count: number) => Array.from({ length: count }, (_, index) => ({ id: `n${index + 1}` }))
+const rows = (count: number) => Array.from({ length: count }, (_, index) => ({
+  id: `n${index + 1}`,
+  createdAt,
+}))
 
 beforeEach(() => {
   mocks.note.findFirst.mockReset()
@@ -45,16 +48,16 @@ describe("listNotes cursor pagination", () => {
     expect(page.nextCursor).toBeNull()
   })
 
-  it("uses the anchor timestamp and drops the lookahead row", async () => {
-    mocks.note.findFirst.mockResolvedValue({ createdAt })
+  it("uses a self-contained cursor without reading the cursor row again", async () => {
     mocks.note.findMany.mockResolvedValue(rows(DEFAULT_PAGE_SIZE + 1))
 
-    const page = await listNotes(undefined, { limit: DEFAULT_PAGE_SIZE, cursorId: "cursor-note" })
-
-    expect(mocks.note.findFirst).toHaveBeenCalledWith({
-      where: { id: "cursor-note", isPublished: true, status: "UPLOADED" },
-      select: { createdAt: true },
+    const page = await listNotes(undefined, {
+      limit: DEFAULT_PAGE_SIZE,
+      cursorId: "cursor-note",
+      cursorCreatedAt: createdAt,
     })
+
+    expect(mocks.note.findFirst).not.toHaveBeenCalled()
     expect(mocks.note.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         isPublished: true,
@@ -66,10 +69,22 @@ describe("listNotes cursor pagination", () => {
       },
       take: DEFAULT_PAGE_SIZE + 1,
     }))
-    expect(decodeCursor(page.nextCursor!)).toBe(`n${DEFAULT_PAGE_SIZE}`)
+    expect(decodeCursor(page.nextCursor!)).toEqual({ id: `n${DEFAULT_PAGE_SIZE}`, createdAt })
   })
 
-  it("refuses a cursor for an unpublished or unuploaded note", async () => {
+  it("still resolves a legacy id-only cursor through its row", async () => {
+    mocks.note.findFirst.mockResolvedValue({ createdAt })
+    mocks.note.findMany.mockResolvedValue(rows(DEFAULT_PAGE_SIZE))
+
+    await listNotes(undefined, { limit: DEFAULT_PAGE_SIZE, cursorId: "legacy-note" })
+
+    expect(mocks.note.findFirst).toHaveBeenCalledWith({
+      where: { id: "legacy-note", isPublished: true, status: "UPLOADED" },
+      select: { createdAt: true },
+    })
+  })
+
+  it("refuses a legacy cursor for an unpublished or unuploaded note", async () => {
     mocks.note.findFirst.mockResolvedValue(null)
 
     await expect(listNotes(undefined, { limit: 12, cursorId: "gone" })).rejects.toThrow("Invalid cursor")

@@ -1,4 +1,5 @@
 import { classifyCoursePricing } from "../lib/course-pricing.js"
+import { withDeadline } from "../lib/deadline.js"
 import { BadRequestError } from "../lib/errors.js"
 import {
   DEFAULT_PAGE_SIZE,
@@ -61,23 +62,29 @@ export const MAX_DETAIL_LESSONS_TOTAL = 200
 export async function listCourses(
   pageRequest: PageRequest = { limit: DEFAULT_PAGE_SIZE, cursorId: null },
 ): Promise<Page<CourseSummary>> {
-  const anchor = pageRequest.cursorId
-    ? await prisma.course.findFirst({
-        where: { id: pageRequest.cursorId, isPublished: true },
-        select: { createdAt: true },
-      })
-    : null
-  if (pageRequest.cursorId && !anchor) throw new BadRequestError("Invalid cursor")
+  const cursorId = pageRequest.cursorId
+  let cursorCreatedAt = pageRequest.cursorCreatedAt ?? null
+  if (cursorId && !cursorCreatedAt) {
+    const anchor = await withDeadline(prisma.course.findFirst({
+      where: { id: cursorId, isPublished: true },
+      select: { createdAt: true },
+    }))
+    if (!anchor) throw new BadRequestError("Invalid cursor")
+    cursorCreatedAt = anchor.createdAt
+  }
 
-  const rows = await prisma.course.findMany({
+  const rows = await withDeadline(prisma.course.findMany({
     where: {
       isPublished: true,
-      ...(anchor ? olderThan({ createdAt: anchor.createdAt, id: pageRequest.cursorId! }) : {}),
+      ...(cursorId && cursorCreatedAt
+        ? olderThan({ createdAt: cursorCreatedAt, id: cursorId })
+        : {}),
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: pageRequest.limit + 1,
     select: {
       id: true,
+      createdAt: true,
       title: true,
       slug: true,
       shortDescription: true,
@@ -88,13 +95,13 @@ export async function listCourses(
       price: true,
       isFree: true,
     },
-  })
+  }))
   for (const row of rows) classifyCoursePricing(row)
   return pageResult(rows, pageRequest.limit)
 }
 
 export async function getCourseBySlug(slug: string): Promise<CourseDetail | null> {
-  const course = await prisma.course.findFirst({
+  const course = await withDeadline(prisma.course.findFirst({
     where: { slug, isPublished: true },
     select: {
       id: true,
@@ -141,7 +148,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
         },
       },
     },
-  })
+  }))
   if (!course) return null
 
   classifyCoursePricing(course)

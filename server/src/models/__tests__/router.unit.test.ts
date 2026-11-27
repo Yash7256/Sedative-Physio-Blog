@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { encodeCursor } from "../../lib/pagination.js"
 import { withServer } from "../../test/harness.js"
 
+const createdAt = new Date("2026-01-01T00:00:00.000Z")
+
 const serviceMock = vi.hoisted(() => ({ listModels: vi.fn() }))
 
 vi.mock("../service.js", () => serviceMock)
@@ -31,8 +33,12 @@ describe("GET /api/models pagination contract", () => {
 
   it("decodes the opaque cursor", async () => {
     await withServer(app(), (base) =>
-      fetch(`${base}/api/models?cursor=${encodeURIComponent(encodeCursor("m1"))}`))
+      fetch(`${base}/api/models?cursor=${encodeURIComponent(encodeCursor({ id: "m1", createdAt }))}`))
 
-    expect(serviceMock.listModels).toHaveBeenCalledWith({ limit: 12, cursorId: "m1" })
+    expect(serviceMock.listModels).toHaveBeenCalledWith({
+      limit: 12,
+      cursorId: "m1",
+      cursorCreatedAt: createdAt,
+    })
   })
 })
