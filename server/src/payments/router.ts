@@ -61,12 +61,12 @@ const freeEnrollLimiter = createLimiter({
 })
 
 // GET /api/payments/config — returns Razorpay keyId
-paymentsRouter.get("/config", (_req, res) => {
+paymentsRouter.get("/config", (req, res) => {
   try {
     const config = getPaymentConfig()
     res.status(200).json(config)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
@@ -81,7 +81,7 @@ paymentsRouter.get("/my-enrollments", async (req, res) => {
     const courseIds = await getUserEnrollments(localUserId)
     res.status(200).json(courseIds)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
@@ -95,7 +95,7 @@ paymentsRouter.get("/my-orders", async (req, res) => {
     }
     res.status(200).json(await getUserOrders(localUserId))
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
@@ -126,7 +126,7 @@ paymentsRouter.post("/create-order", createOrderLimiter, async (req, res) => {
 
     res.status(200).json(order)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
@@ -150,7 +150,7 @@ paymentsRouter.post("/verify", verifyLimiter, async (req, res) => {
 
     res.status(200).json(result)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
@@ -172,7 +172,7 @@ paymentsRouter.post("/free-enroll", freeEnrollLimiter, async (req, res) => {
 
     res.status(200).json(result)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
@@ -193,6 +193,6 @@ paymentsRouter.post("/webhook", async (req, res) => {
 
     res.status(200).json(result)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })

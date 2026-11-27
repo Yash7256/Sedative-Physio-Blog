@@ -82,6 +82,21 @@ describe("resource infinite queries", () => {
     expect(result.current.hasNextPage).toBe(false)
   })
 
+  it("stops paginating when the server repeats a cursor", async () => {
+    const repeated = { items: [{ id: "c1" }], nextCursor: "cursor-repeat" }
+    mocks.fetchCourses.mockReset().mockResolvedValue(repeated)
+    const { result } = renderHook(() => useCourseList({ filter: "courses" }), { wrapper })
+
+    await waitFor(() => expect(result.current.data?.pages).toHaveLength(1))
+    expect(result.current.hasNextPage).toBe(true)
+
+    await act(async () => { await result.current.fetchNextPage() })
+
+    await waitFor(() => expect(result.current.data?.pages).toHaveLength(2))
+    expect(result.current.hasNextPage).toBe(false)
+    expect(mocks.fetchCourses).toHaveBeenCalledTimes(2)
+  })
+
   it("passes an AbortSignal into each fetcher", async () => {
     const { result } = renderHook(() => useCourseList({ filter: "courses" }), { wrapper })
 

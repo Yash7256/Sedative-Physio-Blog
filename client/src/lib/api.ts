@@ -138,7 +138,16 @@ export async function apiFetch(path: string, init: ApiFetchInit = {}): Promise<R
 /** Fetch and parse a JSON response. */
 export async function apiJson<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
   const res = await apiFetch(path, init)
-  return (await res.json()) as T
+  const contentType = res.headers.get("content-type") ?? ""
+  // A successful but non-JSON body is a server/proxy problem, not a caller
+  // mistake, so retries should be allowed. A malformed JSON body is a client
+  // parse failure and must stay non-retryable.
+  if (!/json/i.test(contentType)) throw new ApiError(502, "Unexpected JSON response")
+  try {
+    return (await res.json()) as T
+  } catch {
+    throw new ApiError(400, "Invalid JSON response")
+  }
 }
 
 async function readErrorMessage(res: Response): Promise<string> {

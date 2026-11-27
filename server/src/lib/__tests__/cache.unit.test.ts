@@ -152,4 +152,13 @@ describe("fileEtag", () => {
   it("treats a missing size as zero rather than throwing", () => {
     expect(fileEtag("notes/a.pdf", undefined)).toBe(fileEtag("notes/a.pdf", 0))
   })
+
+  it("changes with an updatedAt version even when key and size are unchanged", () => {
+    const first = new Date("2026-04-01T00:00:00.000Z")
+    const second = new Date("2026-04-02T00:00:00.000Z")
+
+    expect(fileEtag("notes/a.pdf", 10, first)).not.toBe(fileEtag("notes/a.pdf", 10, second))
+    expect(fileEtag("notes/a.pdf", 10, first)).toBe(fileEtag("notes/a.pdf", 10, first))
+    expect(fileEtag("notes/a.pdf", 10)).not.toBe(fileEtag("notes/a.pdf", 10, first))
+  })
 })

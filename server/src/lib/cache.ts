@@ -94,7 +94,18 @@ export function cacheControl(policy: CachePolicy): RequestHandler {
 const etagDigest = (input: string): string =>
   createHash("sha256").update(input).digest("hex").slice(0, 24)
 
-/** Stable ETag for a streamed object that maps 1:1 to a storage key. */
-export function fileEtag(key: string, size: number | null | undefined): string {
-  return `W/"${etagDigest(`${key}:${size ?? 0}`)}"`
+/**
+ * Stable ETag for a streamed object that maps 1:1 to a storage key. The
+ * optional version (typically the row's `updatedAt`) invalidates a same-size
+ * overwrite of the same key.
+ */
+export function fileEtag(
+  key: string,
+  size: number | null | undefined,
+  version?: string | number | Date,
+): string {
+  const suffix = version === undefined
+    ? ""
+    : version instanceof Date ? version.toISOString() : String(version)
+  return `W/"${etagDigest(`${key}:${size ?? 0}:${suffix}`)}"`
 }

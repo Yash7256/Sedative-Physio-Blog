@@ -1,5 +1,5 @@
-import type { NextFunction, RequestHandler } from "express"
-import rateLimit, { type Options, type Store } from "express-rate-limit"
+import type { NextFunction, Request, RequestHandler } from "express"
+import rateLimit, { ipKeyGenerator, type Options, type Store } from "express-rate-limit"
 
 import { getRedisClient, type RedisLike } from "./redis.js"
 
@@ -118,3 +118,21 @@ export function createLimiter({
     Promise.resolve(middleware(req, res, failClosedNext)).catch(failClosedNext)
   }
 }
+
+/**
+ * Shared limiter for every anonymous catalog list. ipKeyGenerator halves IPv6
+ * addresses so one household cannot escape the limit by rotating interface
+ * identifiers within its assigned /64 — and it silences the library's IPv6
+ * key-generator validation warning.
+ */
+export function catalogIpKey(req: Request): string {
+  return `catalog:${ipKeyGenerator(req.ip ?? "unknown")}`
+}
+
+export const catalogListLimiter = createLimiter({
+  prefix: "catalog-list",
+  windowMs: 60 * 1000,
+  limit: 300,
+  keyGenerator: catalogIpKey,
+  message: { error: "Too many catalog requests. Please try again later." },
+})

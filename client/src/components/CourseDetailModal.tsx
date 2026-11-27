@@ -16,6 +16,7 @@ import {
 import { SmartImage } from "./SmartImage"
 import {
   fetchCourseDetail,
+  formatCoursePrice,
   type CourseDetail as CourseDetailData,
   type CourseLesson,
   type CourseSection,
@@ -101,14 +102,16 @@ export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProp
     }
 
     let cancelled = false
+    const controller = new AbortController()
     setLoading(true)
     setError(null)
-    fetchCourseDetail(slug)
+    fetchCourseDetail(slug, { signal: controller.signal })
       .then((data) => !cancelled && setCourse(data))
       .catch((err) => !cancelled && setError(err instanceof Error ? err.message : "Could not load course"))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
+      controller.abort()
     }
   }, [open, slug])
 
@@ -196,7 +199,7 @@ export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProp
                         {course.isFree ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#22c55e] px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-white">Free</span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f59e0b] px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-white">₹{((course.price ?? 0) / 100).toFixed(0)}</span>
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f59e0b] px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-white">{formatCoursePrice(course.price)}</span>
                         )}
                       </div>
                       <h2 className="mt-4 max-w-[760px] text-[clamp(1.75rem,3vw,2.6rem)] font-bold leading-[1.02] tracking-[-.045em]">
@@ -290,7 +293,7 @@ export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProp
                         </div>
                         <div className="flex items-center justify-between py-2">
                           <dt className="text-[#717376]">Price</dt>
-                          <dd className="font-semibold">{course.isFree ? "Free" : `₹${((course.price ?? 0) / 100).toFixed(0)}`}</dd>
+                          <dd className="font-semibold">{formatCoursePrice(course.price)}</dd>
                         </div>
                       </dl>
                     </div>

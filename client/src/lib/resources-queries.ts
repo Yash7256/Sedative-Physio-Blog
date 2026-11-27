@@ -39,8 +39,13 @@ function useResourcePages<T>(
     queryFn: ({ pageParam, signal }) =>
       fetcher({ cursor: pageParam, signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
     initialPageParam: null as string | null,
-    // The server returns null once the lookahead row is exhausted.
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    // The server returns null once the lookahead row is exhausted. A repeated
+    // cursor is a broken page contract: stop instead of looping forever.
+    getNextPageParam: (lastPage, _pages, lastPageParam, allPageParams) => {
+      const next = lastPage.nextCursor
+      if (!next || next === lastPageParam || allPageParams.includes(next)) return undefined
+      return next
+    },
     enabled,
   })
 }

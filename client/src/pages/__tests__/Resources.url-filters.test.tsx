@@ -105,13 +105,13 @@ describe("URL-driven resource filters", () => {
 
     expect(screen.getByTestId("url").textContent).toBe("?type=courses")
     expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true, filter: "courses" })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses", category: "notes" })
   })
 
   it("reads ?type=notes from the URL on first load", () => {
     renderResources("/resources?type=notes")
 
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes", category: "notes" })
     expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false, filter: "notes" })
     expect(screen.getAllByText("Note One")[0]).toBeInTheDocument()
     expect(screen.queryByText("Course One")).toBeNull()
@@ -125,13 +125,13 @@ describe("URL-driven resource filters", () => {
 
     expect(screen.getByTestId("url").textContent).toBe("?type=notes")
     // The queried filter (and therefore the cache key) stays put until the debounce.
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses", category: "notes" })
 
     act(() => { vi.advanceTimersByTime(199) })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses", category: "notes" })
 
     act(() => { vi.advanceTimersByTime(1) })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes", category: "notes" })
     expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false, filter: "notes" })
   })
 
@@ -145,7 +145,7 @@ describe("URL-driven resource filters", () => {
     act(() => { vi.advanceTimersByTime(300) })
 
     expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true, filter: "courses" })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses", category: "notes" })
   })
 
   it("shows skeleton cards inside the selected section while it loads", () => {
@@ -155,7 +155,7 @@ describe("URL-driven resource filters", () => {
     const notesSection = screen.getByRole("heading", { name: "Notes" }).closest("section")
     expect(screen.getByText(/loading notes/i)).toBeInTheDocument()
     expect(notesSection).not.toBeNull()
-    expect(within(notesSection!).getAllByTestId("resource-card-skeleton").length).toBeGreaterThan(0)
+    expect(within(notesSection!).getAllByTestId("resource-card-skeleton")).toHaveLength(6)
     expect(screen.queryByText(/loading courses/i)).toBeNull()
     expect(screen.queryByRole("heading", { name: "Courses" })).toBeNull()
   })

@@ -8,6 +8,12 @@ import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
 import { afterEach } from "vitest"
 
+// A local .env file can set VITE_API_URL for the dev server, and Vitest loads
+// the same value. Tests assert same-origin paths, so make the value explicit
+// before any module (notably lib/api.ts) reads it at import time. Unlike
+// vi.stubEnv this survives tests that call vi.unstubAllEnvs().
+import.meta.env.VITE_API_URL = ""
+
 // jsdom 30 does not expose `localStorage` unless a non-opaque origin is
 // configured. Components read it in effects, so give the suite a tiny
 // in-memory implementation before any test module is imported.

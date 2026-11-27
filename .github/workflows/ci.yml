@@ -9,7 +9,7 @@ on:
 
 jobs:
   server:
-    name: server (typecheck, lint, test, audit)
+    name: server (typecheck, lint, test, audit, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -28,9 +28,11 @@ jobs:
         run: npm --prefix server test
       - name: Audit
         run: npm --prefix server audit --omit=dev --audit-level=high
+      - name: Build
+        run: npm --prefix server run build
 
   client:
-    name: client (lint, test)
+    name: client (lint, test, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -45,6 +47,8 @@ jobs:
         run: npm --prefix client run lint
       - name: Test
         run: npm --prefix client test
+      - name: Build
+        run: npm --prefix client run build
 
   deploy-deps:
     name: root/server dependency parity

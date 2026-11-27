@@ -1,10 +1,10 @@
 /**
- * Vercel builds api/index.ts with @vercel/node and installs only the ROOT
- * package.json into /var/task/node_modules. api/index.ts imports
- * ../server/src/app.js, so every bare import reachable from it must resolve
- * from the root node_modules — a dependency declared only in
- * server/package.json resolves locally but 500s in production with
- * ERR_MODULE_NOT_FOUND.
+ * Vercel builds the deployed server entrypoint server/src/index.ts (configured
+ * in vercel.json) with @vercel/node and installs only the ROOT package.json
+ * into /var/task/node_modules. The entrypoint imports ./app.js, so every bare
+ * import reachable from it must resolve from the root node_modules — a
+ * dependency declared only in server/package.json resolves locally but 500s
+ * in production with ERR_MODULE_NOT_FOUND.
  *
  * Run: node scripts/check-deploy-deps.mjs
  */
@@ -14,7 +14,7 @@ import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const ENTRY = join(ROOT, "api", "index.ts")
+const ENTRY = join(ROOT, "server", "src", "index.ts")
 
 const BUILTIN = /^node:/
 const BUILTIN_SET = new Set(builtinModules)
@@ -97,7 +97,7 @@ visit(ENTRY)
 
 if (missing.size === 0) {
   console.log(
-    `All ${declared.size} root-declared packages cover every external import reachable from api/index.ts (${seen.size} files walked).`,
+    `All ${declared.size} root-declared packages cover every external import reachable from server/src/index.ts (${seen.size} files walked).`,
   )
   process.exit(0)
 }

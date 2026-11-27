@@ -126,7 +126,7 @@ clerkWebhookRouter.post("/", perIp, globalCeiling, (req: Request, res: Response)
           : { received: true },
       )
     } catch (err) {
-      handleError(err, res)
+      handleError(err, res, req)
     }
   }),
 )

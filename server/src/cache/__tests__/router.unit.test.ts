@@ -148,6 +148,29 @@ describe("purgeVercelCache", () => {
     })
   })
 
+  it("targets the current Vercel environment", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    const credentials = {
+      VERCEL_ACCESS_TOKEN: "fake-token",
+      VERCEL_PROJECT_ID: "fake-project",
+    }
+
+    for (const [vercelEnv, target] of [
+      ["preview", "preview"],
+      ["production", "production"],
+      ["development", "production"],
+      [undefined, "production"],
+    ] as const) {
+      fetchImpl.mockClear()
+      await purgeVercelCache(
+        ["courses"],
+        { ...credentials, ...(vercelEnv ? { VERCEL_ENV: vercelEnv } : {}) },
+        fetchImpl as unknown as typeof fetch,
+      )
+      expect(JSON.parse(String(fetchImpl.mock.calls[0]![1].body)).target).toBe(target)
+    }
+  })
+
   it("fails closed without credentials", async () => {
     const fetchImpl = vi.fn()
 

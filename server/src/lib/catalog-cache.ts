@@ -158,6 +158,8 @@ export function createCatalogCache(
           if (Number.isSafeInteger(parsed) && parsed >= 0) versions.set(catalog, parsed)
         } catch {
           // Keep the last known version; a public read must not fail on Redis.
+          // Log generically: store errors can contain connection details.
+          console.warn("Catalog version store read failed; using last known version.")
         }
       }
       versionCheckedAt.set(catalog, Date.now())
@@ -211,9 +213,10 @@ export function createCatalogCache(
     catalog: CatalogName,
     header: string,
     lookupMs: number,
+    versionMs: number,
     loadMs?: number,
   ): void => {
-    res.setHeader("Server-Timing", serverTimingHeader(lookupMs, loadMs))
+    res.setHeader("Server-Timing", serverTimingHeader(lookupMs, loadMs, versionMs))
     res.setHeader("Cache-Control", header)
     res.setHeader("ETag", entry.etag)
     res.setHeader("Vercel-Cache-Tag", catalogCacheTag(catalog))
@@ -225,6 +228,52 @@ export function createCatalogCache(
     res.status(200).type("application/json").send(entry.serialized)
   }
 
+  /**
+   * Give a response that must run the route itself the same cache headers as a
+   * served cache entry. Used by the loading request and by waiters whose
+   * leader's result is unusable (disconnect or mid-flight version bump), so a
+   * fallback is never left with the global no-store header.
+   */
+  const instrumentResponse = (
+    req: Parameters<RequestHandler>[0],
+    res: Parameters<RequestHandler>[1],
+    catalog: CatalogName,
+    header: string,
+    version: number,
+    key: string,
+    lookupMs: number,
+    versionMs: number,
+    waitMs: number,
+    onSettled: (entry: CacheEntry | null) => void,
+  ): void => {
+    const startedAt = performance.now()
+    const json = res.json.bind(res)
+    res.json = ((body: unknown) => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        const serialized = JSON.stringify(body)
+        const entry: CacheEntry = { body, serialized, etag: etagForSerialized(serialized) }
+        // Never store a response that started before a version bump.
+        if (versions.get(catalog) === version) store.set(key, entry)
+        res.setHeader(
+          "Server-Timing",
+          serverTimingHeader(lookupMs, performance.now() - startedAt + waitMs, versionMs),
+        )
+        res.setHeader("Cache-Control", header)
+        res.setHeader("ETag", entry.etag)
+        res.setHeader("Vercel-Cache-Tag", catalogCacheTag(catalog))
+        onSettled(entry)
+        if (req.headers["if-none-match"] === entry.etag) {
+          res.status(304)
+          return res.end()
+        }
+        res.status(200).type("application/json").send(serialized)
+        return res
+      }
+      onSettled(null)
+      return json(body)
+    }) as typeof res.json
+  }
+
   return {
     middleware({ catalog, policy, allowedParams = [] }: CatalogCacheOptions): RequestHandler {
       const header = policyHeader(policy)
@@ -232,14 +281,16 @@ export function createCatalogCache(
       return async (req, res, next) => {
         if (req.method !== "GET" && req.method !== "HEAD") return next()
 
+        const versionStartedAt = performance.now()
         await refreshVersion(catalog)
+        const versionMs = performance.now() - versionStartedAt
         const lookupStartedAt = performance.now()
         const version = versions.get(catalog) ?? 0
         const key = keyFor(catalog, version, req, allowedParams)
         const hit = store.get(key)
         const lookupMs = performance.now() - lookupStartedAt
         if (hit) {
-          send(req, res, hit, catalog, header, lookupMs)
+          send(req, res, hit, catalog, header, lookupMs, versionMs)
           return
         }
 
@@ -249,19 +300,29 @@ export function createCatalogCache(
         const pending = inFlight.get(key)
         if (pending) {
           const waitStartedAt = performance.now()
+          const fallThrough = (): void => {
+            instrumentResponse(
+              req, res, catalog, header, version, key, lookupMs, versionMs,
+              performance.now() - waitStartedAt, () => undefined,
+            )
+            next()
+          }
           void pending.then(
             (entry) => {
               if (!entry || versions.get(catalog) !== version) {
-                next()
+                fallThrough()
                 return
               }
               try {
-                send(req, res, entry, catalog, header, lookupMs, performance.now() - waitStartedAt)
+                send(
+                  req, res, entry, catalog, header, lookupMs, versionMs,
+                  performance.now() - waitStartedAt,
+                )
               } catch {
                 if (!res.headersSent) next()
               }
             },
-            () => next(),
+            fallThrough,
           )
           return
         }
@@ -282,30 +343,9 @@ export function createCatalogCache(
         res.once("close", () => settle(null))
         res.once("finish", () => settle(null))
 
-        const loadStartedAt = performance.now()
-        const json = res.json.bind(res)
-        res.json = ((body: unknown) => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            const serialized = JSON.stringify(body)
-            const entry = { body, serialized, etag: etagForSerialized(serialized) }
-            // Never store a response that started before a version bump.
-            if (versions.get(catalog) === version) store.set(key, entry)
-            res.setHeader("Server-Timing", serverTimingHeader(lookupMs, performance.now() - loadStartedAt))
-            res.setHeader("Cache-Control", header)
-            res.setHeader("ETag", entry.etag)
-            res.setHeader("Vercel-Cache-Tag", catalogCacheTag(catalog))
-            settle(entry)
-            if (req.headers["if-none-match"] === entry.etag) {
-              res.status(304)
-              return res.end()
-            }
-            res.status(200).type("application/json").send(serialized)
-            return res
-          }
-          settle(null)
-          return json(body)
-        }) as typeof res.json
-
+        instrumentResponse(
+          req, res, catalog, header, version, key, lookupMs, versionMs, 0, settle,
+        )
         next()
       }
     },

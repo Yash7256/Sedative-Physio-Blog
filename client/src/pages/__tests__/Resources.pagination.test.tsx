@@ -94,6 +94,6 @@ describe("resource pagination controls", () => {
     const button = screen.getByRole("button", { name: /load more/i })
     const notesSection = screen.getByRole("heading", { name: "Notes" }).closest("section")
     expect(within(notesSection!).getByRole("button", { name: /load more/i })).toBe(button)
-    expect(hooks.useNoteList.mock.calls.at(-1)?.[0]).toEqual({ enabled: true, filter: "notes" })
+    expect(hooks.useNoteList.mock.calls.at(-1)?.[0]).toEqual({ enabled: true, filter: "notes", category: "notes" })
   })
 })

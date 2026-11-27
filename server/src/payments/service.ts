@@ -57,6 +57,19 @@ export function getPaymentConfig(): { keyId: string } {
   return { keyId }
 }
 
+/** Readiness probe: a cheap authenticated read, with no order side effects. */
+export async function paymentsReachable(env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
+  const keyId = env.RAZORPAY_KEY_ID
+  const keySecret = env.RAZORPAY_KEY_SECRET
+  if (!keyId || !keySecret || keyId.startsWith("rzp_test_...")) return false
+  try {
+    await new Razorpay({ key_id: keyId, key_secret: keySecret }).orders.all({ count: 1 })
+    return true
+  } catch {
+    return false
+  }
+}
+
 /**
  * A course is either free (explicitly flagged, price zero) or paid (not flagged,
  * positive price). Anything else is a configuration error, never a silent

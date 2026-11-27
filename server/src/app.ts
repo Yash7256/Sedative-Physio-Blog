@@ -13,23 +13,24 @@ import { paymentsRouter } from "./payments/router.js"
 import { imagesRouter } from "./images/router.js"
 import { cacheRouter } from "./cache/router.js"
 import { healthRouter } from "./routes/health.js"
-import { assertProductionConfig, getAuthorizedParties } from "./auth/config.js"
+import {
+  assertProductionConfig,
+  getAllowedOrigins,
+  getAuthorizedParties,
+  getClerkPublishableKey,
+} from "./auth/config.js"
 import { noStore } from "./lib/cache.js"
 import { errorHandler } from "./lib/errors.js"
 import { timingAllowOrigin } from "./lib/timing.js"
 
 /**
- * Allowed browser origins for CORS. Comma-separated env var, e.g.
- *   CORS_ALLOWED_ORIGINS=https://sedativephysio.example,http://localhost:5173
- *
+ * Allowed browser origins for CORS, normalized in auth/config so CORS,
+ * Timing-Allow-Origin and production validation cannot drift apart.
  * `credentials: true` is still required: Clerk's session cookies are HttpOnly
  * and must be sent cross-origin for `getToken()` and SSR session checks to
  * work.
  */
-const ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS ?? "http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean)
+const ALLOWED_ORIGINS = getAllowedOrigins()
 
 export function createApp() {
   assertProductionConfig()
@@ -80,7 +81,10 @@ export function createApp() {
   // the result to `req.auth` on every request. It does not reject anonymous
   // callers — that distinction is drawn later, by `requireAuth` for protected
   // routes and by `req.auth?.userId` checks for optional-auth routes.
-  app.use(clerkMiddleware({ authorizedParties: getAuthorizedParties() }))
+  app.use(clerkMiddleware({
+    authorizedParties: getAuthorizedParties(),
+    publishableKey: getClerkPublishableKey(),
+  }))
 
   app.use("/api/auth", authRouter)
   app.use("/api/notes", notesRouter)

@@ -24,6 +24,17 @@ interface MeshUserData {
 
 type MouseCoords = { x: number; y: number }
 
+/** The 3D viewer fetches the URL itself, so only http(s) locations are safe to open. */
+function isHttpUrl(value: string | null): boolean {
+  if (!value) return false
+  try {
+    const url = new URL(value)
+    return url.protocol === "http:" || url.protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
 interface TypedViewer {
   GetCamera: () => OV.Camera
   SetCamera: (camera: OV.Camera) => void
@@ -85,7 +96,13 @@ export function ModelViewerModal({ open, onClose, modelUrl, modelName }: ModelVi
 
   /* ── Initialise + load model once the mount has real dimensions ── */
   useEffect(() => {
-    if (!open || !modelUrl || loadedRef.current) return
+    if (!open || !modelUrl) return
+    if (!isHttpUrl(modelUrl)) {
+      setError("Invalid 3D model URL.")
+      setLoading(false)
+      return
+    }
+    if (loadedRef.current) return
 
     const mount = mountRef.current
     if (!mount) return

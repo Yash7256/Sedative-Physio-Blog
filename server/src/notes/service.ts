@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma.js"
-import { BadRequestError, NotFoundError } from "../lib/errors.js"
+import { BadRequestError, NotFoundError, ServiceUnavailableError } from "../lib/errors.js"
 import {
   DEFAULT_PAGE_SIZE,
   olderThan,
@@ -7,7 +7,6 @@ import {
   type Page,
   type PageRequest,
 } from "../lib/pagination.js"
-import { ValidationError } from "./errors.js"
 import { getObjectUrl, r2Configured } from "./r2.js"
 
 export interface NoteSummary {
@@ -31,6 +30,16 @@ export interface NoteFile {
   fileName: string
   fileKey: string
   fileSize: number | null
+  updatedAt: Date
+}
+
+/** Only published notes whose upload actually completed are served. */
+const VISIBLE_NOTE = { isPublished: true, status: "UPLOADED" } as const
+
+function assertStorageConfigured(): void {
+  if (!r2Configured()) {
+    throw new ServiceUnavailableError("Storage is temporarily unavailable.")
+  }
 }
 
 export async function listNotes(
@@ -41,7 +50,7 @@ export async function listNotes(
     ? await prisma.note.findFirst({
         where: {
           id: pageRequest.cursorId,
-          isPublished: true,
+          ...VISIBLE_NOTE,
           ...(category ? { category } : {}),
         },
         select: { createdAt: true },
@@ -51,7 +60,7 @@ export async function listNotes(
 
   const rows = await prisma.note.findMany({
     where: {
-      isPublished: true,
+      ...VISIBLE_NOTE,
       ...(category ? { category } : {}),
       ...(anchor ? olderThan({ createdAt: anchor.createdAt, id: pageRequest.cursorId! }) : {}),
     },
@@ -74,31 +83,30 @@ export async function listNotes(
 
 export async function getDownload(id: string): Promise<NoteDownload> {
   const note = await prisma.note.findFirst({
-    where: { id, isPublished: true },
+    where: { id, ...VISIBLE_NOTE },
     select: { fileKey: true, fileName: true },
   })
   if (!note) throw new NotFoundError("Note not found")
-  if (!r2Configured()) {
-    throw new ValidationError("R2 storage is not configured")
-  }
-  if (!note.fileKey) {
-    throw new ValidationError("Note file has not been uploaded yet")
-  }
+  assertStorageConfigured()
+  if (!note.fileKey) throw new NotFoundError("Note file not found")
+
   const url = await getObjectUrl(note.fileKey)
   return { fileName: note.fileName ?? "note", url }
 }
 
 export async function getNoteFile(id: string): Promise<NoteFile> {
   const note = await prisma.note.findFirst({
-    where: { id, isPublished: true },
-    select: { fileKey: true, fileName: true, fileSize: true },
+    where: { id, ...VISIBLE_NOTE },
+    select: { fileKey: true, fileName: true, fileSize: true, updatedAt: true },
   })
   if (!note) throw new NotFoundError("Note not found")
-  if (!r2Configured()) {
-    throw new ValidationError("R2 storage is not configured")
+  assertStorageConfigured()
+  if (!note.fileKey) throw new NotFoundError("Note file not found")
+
+  return {
+    fileName: note.fileName ?? "note.pdf",
+    fileKey: note.fileKey,
+    fileSize: note.fileSize,
+    updatedAt: note.updatedAt,
   }
-  if (!note.fileKey) {
-    throw new ValidationError("Note file has not been uploaded yet")
-  }
-  return { fileName: note.fileName ?? "note.pdf", fileKey: note.fileKey, fileSize: note.fileSize }
 }

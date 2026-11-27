@@ -1,6 +1,6 @@
 # API latency — Sedative Physio
 
-**Status:** P14–P18 implemented. Deployment verification for the edge layer is still a `MANUAL` gate.
+**Status:** P14–P18 implemented. Production SLA measurement remains a human step; this document records no production p50/p95/p99 values.
 
 ## SLA definition
 
@@ -17,6 +17,18 @@ From fastest to slowest:
 3. **Origin L1 cache** — `Server-Timing` contains only `cache`.
 4. **Database** — `Server-Timing` contains `cache` and `load`; outside the 1 ms target.
 
+## Worst-case catalog staleness
+
+Public catalogs use `s-maxage=120` plus `stale-while-revalidate=120`. Without a
+purge, an edge cache can serve content up to **240 seconds (4 minutes)** after
+the underlying row changes: 120 seconds fresh, then up to another 120 seconds
+served stale while revalidating. Browsers can reuse their copy for up to
+`max-age=60`, and each API instance keeps an origin L1 entry for up to 60
+seconds while refreshing the shared version at most once per second. A
+successful `POST /api/cache/purge` invalidates the edge tags and bumps the
+shared version, but responses already cached by a browser or in flight may
+still be stale until their own TTLs expire.
+
 ## Reading `Server-Timing`
 
 Every catalog response carries one header:
@@ -25,10 +37,14 @@ Every catalog response carries one header:
 Server-Timing: cache;dur=0.123;desc="catalog lookup", load;dur=4.567;desc="catalog load"
 ```
 
-- `cache` is always present. It measures version lookup and LRU lookup.
+- `cache` is always present. It measures the catalog version lookup/refresh (including the Upstash Redis GET when the 1-second local copy expires) and the LRU lookup.
 - `load` is present only when the request had to produce a body, or waited for another request to produce it.
 - A cache hit has only `cache`. A cache miss has both segments.
 - A conditional `If-None-Match` request that returns 304 uses the same shape as a hit.
+
+Because `cache` includes version refresh, a response with only `cache` is not
+necessarily a pure in-process lookup; include refresh samples when reporting
+the p99.
 
 `Timing-Allow-Origin` is set to the configured `CORS_ALLOWED_ORIGINS` list so browser DevTools can expose these timings for cross-origin API calls. The request's `Origin` header is never echoed.
 
@@ -39,9 +55,9 @@ Report p50 and p95/p99 separately for each layer in the cache hierarchy. Never q
 | Layer | Evidence | Current status |
 |---|---|---|
 | React Query / browser cache hit | No `/api/*` network entry in DevTools while fresh | Verified in local browser |
-| Edge cache hit | `x-vercel-cache: HIT` on the second identical request | `MANUAL` on preview deployment |
+| Edge cache hit | `x-vercel-cache: HIT` on the second identical request | Human measurement pending |
 | Origin L1 cache hit | `Server-Timing` contains only `cache` | p99 0.075 ms in local harness |
-| Cold DB miss | `Server-Timing` contains `cache` and `load` | Fill in after deployment |
+| Cold DB miss | `Server-Timing` contains `cache` and `load` | Human measurement pending |
 
 ## Pre-serialized cache entries
 
@@ -82,12 +98,12 @@ Catalog versions live in Redis so a purge can invalidate every API instance. Eac
 Before the preview verification:
 
 - Confirm the Vercel project has edge caching enabled for these routes.
-- Confirm purge-by-tag is available for the project.
+- Confirm purge-by-tag is available for the project and for Preview deployments.
 - Confirm `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` exist in every runtime where catalog purge is expected.
 
 Do not send configuration values to an agent and do not rotate keys as part of this work.
 
-## `MANUAL` preview verification
+## Preview verification (human step)
 
 Use any authenticated-free catalog route, for example `/api/courses`. Record only headers and durations; never record cookies or tokens.
 
@@ -121,10 +137,13 @@ Use any authenticated-free catalog route, for example `/api/courses`. Record onl
    - Expect fresh content on the next request.
    - Allow the documented 1-second convergence window before asserting that no instance serves the pre-purge version.
    - Expect 503 and no successful purge claim when the shared version store is unavailable.
+   - The purge target follows `VERCEL_ENV`: `production` in Production and
+     `preview` in Preview, so this Preview check does not purge Production
+     edge entries.
 
-5. **Record final numbers**
+5. **Record results outside this document**
 
-   Fill in the table above with the observed edge p50/p95/p99 and cold DB p50/p95/p99. Keep the origin L1 row separate from the edge row.
+   Keep the origin L1 row separate from the edge row. Production SLA measurement remains a human step; do not add production p50/p95/p99 values to this file without a real production measurement.
 
 ## Rollback
 

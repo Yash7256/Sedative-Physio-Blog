@@ -28,6 +28,10 @@ function buildApp(
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+function segments(header: string | null): string[] {
+  return (header ?? "").split(",").map((part) => part.trim().split(";")[0] ?? "")
+}
+
 describe("catalog response cache", () => {
   it("serves a hit from memory and keeps the short revalidation window", async () => {
     const loader = vi.fn(async () => ({ items: [{ id: "c1" }], nextCursor: null }))
@@ -111,6 +115,41 @@ describe("catalog response cache", () => {
         responses.map((res) => res.json() as Promise<{ items: Array<{ id: string }> }>),
       )
       expect(bodies.every((body) => body.items[0]?.id === "c1")).toBe(true)
+    })
+  })
+
+  it("keeps cache headers for an in-flight waiter when a version bump lands", async () => {
+    let release!: () => void
+    let first = true
+    const body = { items: [{ id: "c1" }], nextCursor: null }
+    const loader = vi.fn(async () => {
+      if (first) {
+        first = false
+        await new Promise<void>((resolve) => {
+          release = resolve
+        })
+      }
+      return body
+    })
+    const cache = createCatalogCache()
+    const app = buildApp(cache, "courses", loader)
+
+    await withServer(app, async (base) => {
+      const leader = fetch(`${base}/api/courses?limit=12`)
+      await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(1))
+
+      const waiter = fetch(`${base}/api/courses?limit=12`)
+      cache.bump("courses")
+      release()
+
+      const res = await waiter
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual(body)
+      expect(res.headers.get("cache-control")).toBe(CATALOG_HEADER)
+      expect(res.headers.get("etag")).toMatch(/^W\//)
+      expect(res.headers.get("vercel-cache-tag")).toBe("catalog-courses")
+      expect(segments(res.headers.get("server-timing"))).toEqual(["version", "cache", "load"])
+      await leader
     })
   })
 

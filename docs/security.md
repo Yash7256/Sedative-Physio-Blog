@@ -4,7 +4,7 @@ This is the operational companion to `implmentation/OPENCODE_IMPLEMENTATION_PLAN
 
 ## Phase status
 
-All work below is **local**. Nothing has been pushed, merged, deployed, or applied to Clerk, Vercel, Razorpay, Upstash, or GitHub settings by the agent.
+All code changes below are **local commits/worktree state**: nothing has been pushed, merged, or applied to Clerk, Vercel, Razorpay, Upstash, or GitHub settings by the agent. A P9 **preview** deployment was created for build verification; it was not promoted to Production.
 
 | Phase | Branch | CODE state | Human/deploy gate |
 |---|---|---|---|
@@ -16,7 +16,8 @@ All work below is **local**. Nothing has been pushed, merged, deployed, or appli
 | P5 | `sec/p5-images` (`6f935245`) | Complete | Review `IMAGE_PROXY_ALLOWED_HOSTS` before deploy. |
 | P6 | `sec/p6-headers` (`994c7bf2`) | Complete | Review the report-only CSP with the real Clerk Frontend API host. |
 | P7 | `sec/p7-deps` (`beccca91`) | Complete | Root-only dev advisories documented below. |
-| P8 | `sec/p8-final` (this change) | Complete locally | Deploy only after P0 and the earlier deploy gates. |
+| P8 | `sec/p8-final` | Complete | Deploy only after P0 and the earlier deploy gates. |
+| P9 | `sec/p9-resources` (this change) | Complete locally | Preview deployed for build verification, not promoted; CI builds, deployed-entrypoint dependency check and docs only; no external settings touched. |
 
 ## Expected-fail test accounting
 
@@ -39,6 +40,7 @@ Never commit values. Set these in Vercel for the appropriate environment, or in 
 | `PORT` | Local server port; not needed on Vercel. |
 | `CORS_ALLOWED_ORIGINS` | Exact browser origins allowed by CORS; also the fallback authorized-party list. |
 | `CLERK_AUTHORIZED_PARTIES` | Exact origins Clerk may accept session tokens from; preferred over the CORS fallback. |
+| `CLERK_PUBLISHABLE_KEY` | Clerk publishable key for the API runtime; when absent it may fall back to `VITE_CLERK_PUBLISHABLE_KEY`. Never put a secret key in a `VITE_` variable. |
 | `CLERK_SECRET_KEY` | Clerk Backend API client credential. |
 | `CLERK_WEBHOOK_SECRET` | Verifies Clerk webhook signatures. |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Shared rate-limit store. Required in production unless `RATE_LIMIT_ALLOW_MEMORY=1` is an explicit local/dev override. |
@@ -46,14 +48,43 @@ Never commit values. Set these in Vercel for the appropriate environment, or in 
 | `IMAGE_PROXY_ALLOWED_HOSTS` | Comma-separated image hosts; defaults to `i.ibb.co,images.unsplash.com` when unset. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Razorpay client and webhook signature verification. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `CONTACT_EMAIL` | Contact-form SMTP delivery. |
-| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT` | Note-file storage. `R2_ENDPOINT` is optional when `R2_ACCOUNT_ID` is set. |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT` | Required to read note files from R2. `R2_ENDPOINT` is optional when `R2_ACCOUNT_ID` is set; the bucket name defaults when omitted. |
+| `NOTE_FILE_MAX_BYTES`, `NOTE_FILE_TIMEOUT_MS` | Optional caps for note streaming (defaults: 25 MiB and 30 s). |
 
 ### Client
 
 | Variable | Purpose |
 |---|---|
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk frontend publishable key. |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk frontend publishable key; may also be used as the fallback for `CLERK_PUBLISHABLE_KEY`. |
 | `VITE_API_URL` | API base URL; empty means same-origin. |
+
+### Note files and catalog cache
+
+- `GET /api/notes` is a public, cached catalog. Note files are not public:
+  `GET /api/notes/:id/download` and `GET /api/notes/:id/file` require a Clerk
+  session, and file reads require the R2 variables above. The client downloads
+  through the same-origin `GET /api/notes/:id/file?download=1` endpoint rather
+  than asking the browser to fetch R2 directly. File responses are
+  `no-store, private` with no ETag or 304, so every request re-authenticates.
+  `GET /api/health/ready` probes the database (`SELECT 1`), Redis, R2 and
+  Razorpay with a 1 s deadline and reports boolean dependency state; it never
+  includes connection strings, error messages or credential values.
+- `POST /api/cache/purge` requires a Clerk session whose user id is listed in
+  `CACHE_ADMIN_USER_IDS` and fails closed when the purge configuration or the
+  shared version store is unavailable. It invalidates the CDN tags before
+  bumping the shared catalog versions.
+
+| Variable | Purpose |
+|---|---|
+| `CACHE_ADMIN_USER_IDS` | Comma-separated Clerk user ids allowed to purge catalogs. |
+| `VERCEL_ACCESS_TOKEN` (or `VERCEL_TOKEN`) | Token with permission to invalidate the project's edge cache. |
+| `VERCEL_PROJECT_ID` (or `VERCEL_PROJECT_NAME`) | Target Vercel project. |
+| `VERCEL_TEAM_ID` | Optional team id when the project belongs to a team. |
+
+The purge target follows `VERCEL_ENV`: `production` by default and `preview`
+for Preview deployments, so a Preview purge does not invalidate Production
+edge entries. Unauthenticated callers get 401, unlisted Clerk users get 403,
+and missing configuration or an unavailable store gets 503.
 
 ### Local development / seeding only
 
@@ -91,8 +122,8 @@ The agent did **not** perform any of these steps:
 ```bash
 npm run check:deploy
 npm run test:deps
-npm --prefix server run typecheck && npm --prefix server run lint && npm --prefix server test
-npm --prefix client run lint && npm --prefix client test
+npm --prefix server run typecheck && npm --prefix server run lint && npm --prefix server test && npm --prefix server run build
+npm --prefix client run lint && npm --prefix client test && npm --prefix client run build
 npm --prefix server audit --omit=dev --audit-level=high
 Get-ChildItem -Recurse server/src -Filter *.test.ts | Select-String 'it\.fails'
 ```

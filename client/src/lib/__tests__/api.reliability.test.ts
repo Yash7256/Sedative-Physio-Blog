@@ -62,3 +62,40 @@ describe("request cancellation", () => {
     await expect(apiFetch("/api/courses", { timeoutMs: 5 })).rejects.toThrow(/timed out/i)
   })
 })
+
+describe("apiJson response parsing", () => {
+  it("rejects a non-JSON success response with a retryable 502", async () => {
+    fetchMock.mockResolvedValue(new Response("<html>not json</html>", {
+      status: 200,
+      headers: { "content-type": "text/html" },
+    }))
+
+    const err = (await apiJson("/api/courses").catch((e: unknown) => e)) as ApiError
+
+    expect(err).toBeInstanceOf(ApiError)
+    expect(err.status).toBe(502)
+    expect(isRetryableApiError(err)).toBe(true)
+  })
+
+  it("keeps a TypeError thrown by fetch retryable", async () => {
+    fetchMock.mockRejectedValue(new TypeError("network down"))
+
+    const err = await apiJson("/api/courses").catch((e: unknown) => e)
+
+    expect(err).toBeInstanceOf(TypeError)
+    expect(isRetryableApiError(err)).toBe(true)
+  })
+
+  it("does not retry a TypeError caused by parsing the client-side body", async () => {
+    fetchMock.mockResolvedValue(new Response("{broken", {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }))
+
+    const err = await apiJson("/api/courses").catch((e: unknown) => e)
+
+    expect(err).not.toBeInstanceOf(TypeError)
+    expect((err as Error).message).toMatch(/invalid json response/i)
+    expect(isRetryableApiError(err)).toBe(false)
+  })
+})
