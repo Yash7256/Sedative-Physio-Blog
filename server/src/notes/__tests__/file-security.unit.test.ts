@@ -3,14 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { fileEtag } from "../../lib/cache.js"
 import { NotFoundError, ServiceUnavailableError } from "../../lib/errors.js"
-import { anonymous, asUser, fakeAuth, withServer } from "../../test/harness.js"
+import { withServer } from "../../test/harness.js"
 
 const realFetch = globalThis.fetch
 const updatedAt = new Date("2026-03-01T12:00:00.000Z")
 
 const mocks = vi.hoisted(() => ({
   listNotes: vi.fn(async () => ({ items: [], nextCursor: null })),
-  getDownload: vi.fn(async () => ({ fileName: "a.pdf", url: "https://example.test/a.pdf" })),
   getNoteFile: vi.fn(),
   getObjectUrl: vi.fn(async () => "https://example.test/a.pdf"),
 }))
@@ -18,17 +17,16 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../service.js", () => mocks)
 vi.mock("../r2.js", () => ({ getObjectUrl: mocks.getObjectUrl, r2Configured: () => true }))
 
-import { notesRouter } from "../router.js"
+import { notesPublicRouter } from "../router.js"
 
-function app(session: typeof anonymous | ReturnType<typeof asUser>) {
+function app() {
   const instance = express()
   instance.set("etag", false)
   instance.use((_req, res, next) => {
     res.setHeader("Cache-Control", "no-store, private")
     next()
   })
-  fakeAuth(instance, session)
-  instance.use("/api/notes", notesRouter)
+  instance.use("/api/notes", notesPublicRouter)
   return instance
 }
 
@@ -44,7 +42,6 @@ function noteFile(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   mocks.listNotes.mockClear()
-  mocks.getDownload.mockClear()
   mocks.getNoteFile.mockReset().mockResolvedValue(noteFile())
   mocks.getObjectUrl.mockClear()
   vi.stubGlobal("fetch", vi.fn(async () => new Response("%PDF", {
@@ -57,31 +54,25 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe("note file authentication", () => {
-  it("requires a Clerk session for download and file routes", async () => {
-    await withServer(app(anonymous), async (base) => {
-      expect((await realFetch(`${base}/api/notes/n1/download`)).status).toBe(401)
-      expect((await realFetch(`${base}/api/notes/n1/file`)).status).toBe(401)
-    })
-    expect(mocks.getDownload).not.toHaveBeenCalled()
-    expect(mocks.getNoteFile).not.toHaveBeenCalled()
-  })
+describe("note file access", () => {
+  it("serves an anonymous caller the PDF and no longer exposes a download route", async () => {
+    await withServer(app(), async (base) => {
+      const file = await realFetch(`${base}/api/notes/n1/file`)
+      expect(file.status).toBe(200)
+      expect(await file.text()).toBe("%PDF")
 
-  it("serves a signed-in caller a download URL", async () => {
-    await withServer(app(asUser("user_student")), async (base) => {
-      const res = await realFetch(`${base}/api/notes/n1/download`)
-      expect(res.status).toBe(200)
-      expect(await res.json()).toEqual({ fileName: "a.pdf", url: "https://example.test/a.pdf" })
+      const download = await realFetch(`${base}/api/notes/n1/download`)
+      expect(download.status).toBe(404)
     })
-    expect(mocks.getDownload).toHaveBeenCalledWith("n1")
+    expect(mocks.getNoteFile).toHaveBeenCalledWith("n1")
   })
 })
 
 describe("note file streaming", () => {
-  it("never treats a conditional request for an authenticated file as cacheable", async () => {
+  it("never treats a conditional request for a public file as cacheable", async () => {
     const etag = fileEtag("notes/a.pdf", 42, updatedAt)
 
-    await withServer(app(asUser()), async (base) => {
+    await withServer(app(), async (base) => {
       const res = await realFetch(`${base}/api/notes/n1/file`, {
         headers: { "If-None-Match": etag },
       })
@@ -94,9 +85,9 @@ describe("note file streaming", () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(1)
   })
 
-  it("keeps authenticated file responses uncacheable after the upstream succeeds", async () => {
-    await withServer(app(asUser()), async (base) => {
-      const res = await realFetch(`${base}/api/notes/n1/file?download=1`)
+  it("keeps public file responses uncacheable and always inline after the upstream succeeds", async () => {
+    await withServer(app(), async (base) => {
+      const res = await realFetch(`${base}/api/notes/n1/file`)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe("%PDF")
       expect(res.headers.get("content-type")).toBe("application/pdf")
@@ -104,7 +95,7 @@ describe("note file streaming", () => {
       expect(res.headers.get("etag")).toBeNull()
       expect(res.headers.get("content-length")).toBe("4")
       expect(res.headers.get("content-disposition")).toBe(
-        'attachment; filename="a.pdf"; filename*=UTF-8\'\'a.pdf',
+        'inline; filename="a.pdf"; filename*=UTF-8\'\'a.pdf',
       )
     })
 
@@ -117,11 +108,11 @@ describe("note file streaming", () => {
       fileName: '../../evil "quoted";\r\nX-Injected: 1.pdf',
     }))
 
-    await withServer(app(asUser()), async (base) => {
-      const res = await realFetch(`${base}/api/notes/n1/file?download=1`)
+    await withServer(app(), async (base) => {
+      const res = await realFetch(`${base}/api/notes/n1/file`)
       const disposition = res.headers.get("content-disposition") ?? ""
       expect(res.status).toBe(200)
-      expect(disposition.startsWith('attachment; filename="')).toBe(true)
+      expect(disposition.startsWith('inline; filename="')).toBe(true)
       expect(disposition).toContain("filename*=UTF-8''")
       expect(disposition.match(/;/g)).toHaveLength(2)
       expect(disposition).not.toMatch(/(\.\.\/|:|\r|\n)/)
@@ -131,8 +122,8 @@ describe("note file streaming", () => {
   it("percent-encodes RFC 6266 reserved characters in filename*", async () => {
     mocks.getNoteFile.mockResolvedValueOnce(noteFile({ fileName: "a*b(c)'d.pdf" }))
 
-    await withServer(app(asUser()), async (base) => {
-      const res = await realFetch(`${base}/api/notes/n1/file?download=1`)
+    await withServer(app(), async (base) => {
+      const res = await realFetch(`${base}/api/notes/n1/file`)
       const disposition = res.headers.get("content-disposition") ?? ""
       const extended = disposition.split("filename*=UTF-8''")[1] ?? ""
       expect(res.status).toBe(200)
@@ -143,7 +134,7 @@ describe("note file streaming", () => {
   it("returns 503 for missing storage config and 404 for a missing note", async () => {
     mocks.getNoteFile.mockRejectedValueOnce(new ServiceUnavailableError())
 
-    await withServer(app(asUser()), async (base) => {
+    await withServer(app(), async (base) => {
       const unavailable = await realFetch(`${base}/api/notes/n1/file`)
       expect(unavailable.status).toBe(503)
       expect(unavailable.headers.get("cache-control")).toContain("no-store")
@@ -157,7 +148,7 @@ describe("note file streaming", () => {
   })
 
   it("maps an upstream 404 to a 404 and other failures to 502 without cache headers", async () => {
-    await withServer(app(asUser()), async (base) => {
+    await withServer(app(), async (base) => {
       vi.mocked(globalThis.fetch).mockResolvedValueOnce(new Response(null, { status: 404 }))
       const missing = await realFetch(`${base}/api/notes/n1/file`)
       expect(missing.status).toBe(404)
@@ -175,7 +166,7 @@ describe("note file streaming", () => {
   it("refuses an oversized response from either the database or Content-Length", async () => {
     mocks.getNoteFile.mockResolvedValueOnce(noteFile({ fileSize: 26 * 1024 * 1024 }))
 
-    await withServer(app(asUser()), async (base) => {
+    await withServer(app(), async (base) => {
       const fromDb = await realFetch(`${base}/api/notes/n1/file`)
       expect(fromDb.status).toBe(413)
       expect(globalThis.fetch).not.toHaveBeenCalled()
@@ -204,7 +195,7 @@ describe("note file streaming", () => {
     ))
 
     try {
-      await withServer(app(asUser()), async (base) => {
+      await withServer(app(), async (base) => {
         const res = await realFetch(`${base}/api/notes/n1/file`)
         expect(res.status).toBe(413)
         expect(res.headers.get("cache-control")).toContain("no-store")
@@ -235,7 +226,7 @@ describe("note file streaming", () => {
       return new Response(body, { status: 200 })
     })
 
-    await withServer(app(asUser()), async (base) => {
+    await withServer(app(), async (base) => {
       const client = new AbortController()
       const res = await realFetch(`${base}/api/notes/n1/file`, { signal: client.signal })
       expect(res.status).toBe(200)
@@ -259,7 +250,7 @@ describe("note file streaming", () => {
       .mockResolvedValueOnce(new Response(broken, { status: 200 }))
       .mockResolvedValueOnce(new Response("%PDF", { status: 200 }))
 
-    await withServer(app(asUser()), async (base) => {
+    await withServer(app(), async (base) => {
       await realFetch(`${base}/api/notes/n1/file`).catch(() => undefined)
       await vi.waitFor(async () => {
         const healthy = await realFetch(`${base}/api/notes/n1/file`)
@@ -290,7 +281,7 @@ describe("note file streaming", () => {
     })
 
     try {
-      await withServer(app(asUser()), async (base) => {
+      await withServer(app(), async (base) => {
         await realFetch(`${base}/api/notes/n1/file`).catch(() => undefined)
         await vi.waitFor(() => expect(upstreamSignal?.aborted).toBe(true))
       })

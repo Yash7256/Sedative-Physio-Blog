@@ -189,7 +189,7 @@ validator is a contradiction — intermediaries key on the ETag.
 | `GET /api/notes` | same |
 | `GET /api/models` | same |
 | `GET /api/images/*` | `public, max-age=31536000, immutable` (content-addressed by the re-encoded bytes) |
-| `GET /api/notes/:id/file` | `public, max-age=86400, stale-while-revalidate=604800` (immutable once uploaded) |
+| `GET /api/notes/:id/file` | not opted in: stays `no-store, private`, inline, with no ETag or 304 |
 
 Use `cacheControl({ browser, cdn, swr })` for JSON routes; it sets the policy
 only on 2xx, so an error from a cached route still inherits `no-store` and never

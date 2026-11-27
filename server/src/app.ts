@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser"
 import { clerkMiddleware } from "@clerk/express"
 
 import { authRouter } from "./auth/router.js"
-import { notesPublicRouter, notesRouter } from "./notes/router.js"
+import { notesPublicRouter } from "./notes/router.js"
 import { modelsRouter } from "./models/router.js"
 import { coursesRouter } from "./courses/router.js"
 import { contactRouter } from "./contact/router.js"
@@ -60,8 +60,8 @@ export function createApp() {
 
   // Caching is denied by default and granted per route. Mounted before every
   // router so a response is uncacheable unless something explicitly opts in —
-  // see lib/cache.ts. The routes that opt in (courses, notes, models, images,
-  // note files) set their own Cache-Control, which replaces this value.
+  // see lib/cache.ts. The routes that opt in (courses, notes, models, images)
+  // set their own Cache-Control, which replaces this value.
   app.use(noStore())
   app.use(timingAllowOrigin(ALLOWED_ORIGINS))
 
@@ -70,9 +70,8 @@ export function createApp() {
   // the same reason tells you nothing about whether the app is otherwise up.
   app.use("/api/health", healthRouter)
 
-  // Public catalog reads are safe before Clerk: they are anonymous by design and
-  // their cache headers make them the only routes that can answer in ~1 ms.
-  // Only list/detail handlers are mounted here; note files stay behind Clerk.
+  // Public catalog reads and note previews are anonymous by design and mounted
+  // before Clerk so an auth configuration change cannot gate them.
   app.use("/api/courses", coursesRouter)
   app.use("/api/models", modelsRouter)
   app.use("/api/notes", notesPublicRouter)
@@ -87,7 +86,6 @@ export function createApp() {
   }))
 
   app.use("/api/auth", authRouter)
-  app.use("/api/notes", notesRouter)
   app.use("/api/contact", contactRouter)
   app.use("/api/payments", paymentsRouter)
   app.use("/api/images", imagesRouter)

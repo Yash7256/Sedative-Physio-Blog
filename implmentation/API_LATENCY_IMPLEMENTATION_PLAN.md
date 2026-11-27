@@ -206,6 +206,9 @@ npm run check:deploy
 
 ### Design
 
+> Superseded by the later public-preview change: `GET /api/notes/:id/file` is now
+> mounted with the public catalog and the download route has been removed.
+
 - Mount only these public reads before `clerkMiddleware`:
   - `GET /api/courses` and `GET /api/courses/:slug`
   - `GET /api/models`

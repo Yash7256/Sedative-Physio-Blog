@@ -34,10 +34,9 @@ beforeEach(() => {
 describe("resource card rendering", () => {
   it("skips re-rendering when its props are unchanged", () => {
     const onOpen = vi.fn()
-    const onDownload = vi.fn()
     const element = (
       <MemoryRouter>
-        <LiveCard card={card} downloadingId={null} onOpen={onOpen} onDownload={onDownload} />
+        <LiveCard card={card} onOpen={onOpen} />
       </MemoryRouter>
     )
 

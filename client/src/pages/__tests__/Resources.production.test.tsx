@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { ApiError } from "@/lib/api"
 import { CartProvider } from "@/lib/cartContext"
 import { Resources } from "../Resources"
 
@@ -10,7 +9,6 @@ const hooks = vi.hoisted(() => ({
   useCourseList: vi.fn(),
   useNoteList: vi.fn(),
   useModelList: vi.fn(),
-  downloadNoteFile: vi.fn(),
 }))
 
 vi.mock("@/lib/resources-queries", async (importOriginal) => ({
@@ -18,11 +16,6 @@ vi.mock("@/lib/resources-queries", async (importOriginal) => ({
   useCourseList: hooks.useCourseList,
   useNoteList: hooks.useNoteList,
   useModelList: hooks.useModelList,
-}))
-
-vi.mock("@/lib/resources", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/lib/resources")>(),
-  downloadNoteFile: hooks.downloadNoteFile,
 }))
 
 vi.mock("@/components/CourseDetailModal", () => ({
@@ -90,7 +83,6 @@ beforeEach(() => {
   hooks.useCourseList.mockReset().mockReturnValue(query(courses))
   hooks.useNoteList.mockReset().mockReturnValue(query(notes))
   hooks.useModelList.mockReset().mockReturnValue(query([]))
-  hooks.downloadNoteFile.mockReset().mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -154,22 +146,11 @@ describe("resource section states", () => {
     expect(screen.queryByText(/loading models/i)).toBeNull()
   })
 
-  it("treats a non-401 download failure with the existing generic message", async () => {
-    hooks.downloadNoteFile.mockRejectedValueOnce(new Error("offline"))
-
+  it("does not offer a download button on note cards", () => {
     renderResources("/resources?type=notes")
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Download Note One" })) })
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Could not start the download. Please try again.")
-  })
-
-  it("asks the user to sign in when a note download is unauthorized", async () => {
-    hooks.downloadNoteFile.mockRejectedValueOnce(new ApiError(401, "Unauthorized"))
-
-    renderResources("/resources?type=notes")
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Download Note One" })) })
-
-    expect(screen.getByRole("alert")).toHaveTextContent("Sign in to download notes.")
+    expect(screen.getByRole("heading", { name: "Note One" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Download Note One" })).toBeNull()
   })
 })
 

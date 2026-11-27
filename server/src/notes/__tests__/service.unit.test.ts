@@ -16,7 +16,7 @@ vi.mock("../r2.js", () => ({
 
 import { ServiceUnavailableError } from "../../lib/errors.js"
 import { NotFoundError } from "../../lib/errors.js"
-import { getDownload, getNoteFile, listNotes } from "../service.js"
+import { getNoteFile, listNotes } from "../service.js"
 
 const createdAt = new Date("2026-02-01T00:00:00.000Z")
 const updatedAt = new Date("2026-02-02T00:00:00.000Z")
@@ -78,19 +78,6 @@ describe("listNotes cursor pagination", () => {
 })
 
 describe("note file lookups", () => {
-  it("requires a published, uploaded note for a download URL", async () => {
-    mocks.note.findFirst.mockResolvedValue({ fileKey: "notes/a.pdf", fileName: "a.pdf" })
-
-    await expect(getDownload("n1")).resolves.toEqual({
-      fileName: "a.pdf",
-      url: "https://example.test/note.pdf",
-    })
-    expect(mocks.note.findFirst).toHaveBeenCalledWith({
-      where: { id: "n1", isPublished: true, status: "UPLOADED" },
-      select: { fileKey: true, fileName: true },
-    })
-  })
-
   it("selects updatedAt so an overwrite invalidates the file ETag", async () => {
     mocks.note.findFirst.mockResolvedValue({
       fileKey: "notes/a.pdf",
@@ -115,23 +102,17 @@ describe("note file lookups", () => {
     mocks.r2Configured.mockReturnValue(false)
     mocks.note.findFirst.mockResolvedValue({ fileKey: "notes/a.pdf", fileName: "a.pdf" })
 
-    for (const result of await Promise.allSettled([getDownload("n1"), getNoteFile("n1")])) {
-      expect(result.status).toBe("rejected")
-      const error = (result as PromiseRejectedResult).reason
-      expect(error).toBeInstanceOf(ServiceUnavailableError)
-      expect((error as ServiceUnavailableError).statusCode).toBe(503)
-      expect((error as Error).message).not.toMatch(/R2_|\.env/)
-    }
+    const error = await getNoteFile("n1").catch((err: unknown) => err)
+    expect(error).toBeInstanceOf(ServiceUnavailableError)
+    expect((error as ServiceUnavailableError).statusCode).toBe(503)
+    expect((error as Error).message).not.toMatch(/R2_|\.env/)
   })
 
   it("returns 404 for a note with no uploaded file", async () => {
     mocks.note.findFirst.mockResolvedValue({ fileKey: null, fileName: null, fileSize: null, updatedAt })
 
-    for (const result of await Promise.allSettled([getDownload("n1"), getNoteFile("n1")])) {
-      expect(result.status).toBe("rejected")
-      const error = (result as PromiseRejectedResult).reason
-      expect(error).toBeInstanceOf(NotFoundError)
-      expect((error as NotFoundError).statusCode).toBe(404)
-    }
+    const error = await getNoteFile("n1").catch((err: unknown) => err)
+    expect(error).toBeInstanceOf(NotFoundError)
+    expect((error as NotFoundError).statusCode).toBe(404)
   })
 })

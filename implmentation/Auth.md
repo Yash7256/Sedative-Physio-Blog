@@ -131,7 +131,7 @@ Secrets exposed in git history (not in code): old Supabase service-role key, Ver
 | `/api/auth/me` | GET | `requireAuth` | self | none | JIT hits Clerk API per call (F-08) |
 | `/api/auth/me` | PATCH | `requireAuth` | self (name, college) | none | Clerk-API amplification (F-08) |
 | `/api/auth/webhooks/clerk` | POST | svix signature | n/a | 300/min/IP + 3000/min global (memory) | per-instance (F-08) |
-| `/api/notes`, `/:id/download`, `/:id/file` | GET | none | `isPublished` only | none | by design: free notes |
+| `/api/notes`, `/:id/file` | GET | none | `isPublished` only | catalog list and per-IP file limits | by design: public previews; download route removed |
 | `/api/courses`, `/:slug` | GET | none | `isPublished` | none | metadata only, OK |
 | `/api/models` | GET | none | none | CDN cache | |
 | **`/api/models/upload`** | POST | `requireAuth` | **none (any user)** | none | **F-01** |

@@ -60,7 +60,7 @@ Catalog versions are already shared in Upstash Redis; each API instance refreshe
 
 ## Note files
 
-`GET /api/notes` is a public, cached catalog. Note files are not: `GET /api/notes/:id/download` and `GET /api/notes/:id/file` require a Clerk session, and file reads require the R2 configuration listed in `docs/security.md`. The client downloads through the same-origin `GET /api/notes/:id/file?download=1` endpoint, so the browser never needs direct R2 access.
+`GET /api/notes` is a public, cached catalog, and note previews are public too: `GET /api/notes/:id/file` streams the PDF inline without a Clerk session. File reads require the R2 configuration listed in `docs/security.md`; the browser never needs direct R2 access. There is no download endpoint or download button — opening a note previews it in the app.
 
 ## Deploy verification
 

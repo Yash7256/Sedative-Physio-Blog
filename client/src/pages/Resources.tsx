@@ -1,14 +1,12 @@
 import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { Box, Check, Download, Eye, Loader2, ShoppingCart, Sparkles } from "lucide-react"
+import { Box, Check, Eye, Loader2, ShoppingCart, Sparkles } from "lucide-react"
 import { CourseDetailModal } from "../components/CourseDetailModal"
 import { NotePreviewModal } from "../components/NotePreviewModal"
 import { SmartImage } from "../components/SmartImage"
 import { ThemeImage } from "../components/ThemeImage"
-import { ApiError } from "../lib/api"
 import { useCart } from "../lib/cartContext"
 import {
-  downloadNoteFile,
   formatCoursePrice,
   modelToResource,
   noteToResource,
@@ -122,8 +120,6 @@ export function Resources() {
   // click that is quickly reversed never triggers a request for the abandoned tab.
   const [queriedFilter, setQueriedFilter] = useState<ResourceFilter>(active)
   const [loadMoreError, setLoadMoreError] = useState<Partial<Record<ResourceCategory | "podcast", boolean>>>({})
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
-  const [downloadError, setDownloadError] = useState<string | null>(null)
   const preview = useMemo(() => previewFromParams(searchParams), [searchParams])
 
   useEffect(() => {
@@ -243,21 +239,6 @@ export function Resources() {
     },
   }
 
-  const handleDownload = useCallback(async (id: string) => {
-    setDownloadingId(id)
-    setDownloadError(null)
-    try {
-      const card = noteCards.find((item) => item.id === id)
-      await downloadNoteFile(id, card?.fileName || card?.title || "note")
-    } catch (err) {
-      setDownloadError(err instanceof ApiError && err.isUnauthorized
-        ? "Sign in to download notes."
-        : "Could not start the download. Please try again.")
-    } finally {
-      setDownloadingId(null)
-    }
-  }, [noteCards])
-
   const openPreview = useCallback((card: Card) => {
     const value = card.kind === "note" ? card.id : card.kind === "model" ? card.url : card.slug
     if (!value) return
@@ -309,7 +290,6 @@ export function Resources() {
           ))}
         </div>
       </section>
-      {downloadError && <p className="py-5 text-center text-sm text-[#8b4b42]" role="alert">{downloadError}</p>}
       <div className="mt-10 space-y-14 sm:mt-14 sm:space-y-18">{visibleSections.map((section) => {
         const comingSoon = isProd && section.key === "3d-models"
         if (comingSoon) {
@@ -335,7 +315,7 @@ export function Resources() {
           {message && <p className={`mb-4 text-sm ${statusClass[message.tone]}`} role={message.tone === "loading" ? "status" : "alert"} aria-live={message.tone === "loading" ? "polite" : "assertive"}>{message.text}</p>}
           {loadMoreFailed && <p className="mb-4 text-sm text-[#8b4b42]" role="alert" aria-live="assertive">Could not load more {status?.label ?? "results"}.</p>}
           {showSkeleton && <div data-testid="resource-grid" aria-busy="true" className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{Array.from({ length: SKELETON_CARDS }, (_, index) => <ResourceCardSkeleton key={index} />)}</div>}
-          {!showSkeleton && dynamic.length > 0 && <div data-testid="resource-grid" aria-busy="false" className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{dynamic.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div>}
+          {!showSkeleton && dynamic.length > 0 && <div data-testid="resource-grid" aria-busy="false" className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{dynamic.map((card) => <LiveCard key={card.id} card={card} onOpen={openPreview} />)}</div>}
           {more?.hasNextPage && <div className="mt-8 flex justify-center">
             <button type="button" onClick={() => { void more.onLoadMore() }} disabled={more.isFetchingNextPage} className="inline-flex items-center gap-2 rounded-full border border-black/20 px-6 py-2.5 text-sm font-medium transition-colors hover:border-black/50 disabled:cursor-not-allowed disabled:opacity-60">
               {more.isFetchingNextPage && <Loader2 className="size-4 animate-spin" />}
@@ -354,18 +334,13 @@ export function Resources() {
 
 export const LiveCard = memo(function LiveCard({
   card,
-  downloadingId,
   onOpen,
-  onDownload,
 }: {
   card: Card
-  downloadingId: string | null
   onOpen: (card: Card) => void
-  onDownload: (id: string) => void
 }) {
   const { addItem, isInCart } = useCart()
   const navigate = useNavigate()
-  const isDownloading = downloadingId === card.id
   const isCourse = card.kind === "course"
   const inCart = isInCart(card.id)
 
@@ -431,11 +406,6 @@ export const LiveCard = memo(function LiveCard({
             </>
           )}
         </div>
-        {card.kind === "note" && (
-          <button type="button" onClick={() => onDownload(card.id)} disabled={isDownloading} aria-label={`Download ${card.title}`} className="grid size-7 shrink-0 place-items-center rounded-full border border-black/15 transition-colors hover:bg-black hover:text-white disabled:opacity-50">
-            {isDownloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-          </button>
-        )}
       </div>
       <div className={`mt-3 grid gap-2 ${isCourse ? "sm:grid-cols-2" : "grid-cols-1"}`}>
         <button type="button" onClick={() => onOpen(card)} aria-label={`View details for ${card.title}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/15 bg-transparent px-2 py-2 text-[11px] font-medium text-[#111214] transition-colors hover:bg-black hover:text-white sm:px-3 sm:text-xs">

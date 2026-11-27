@@ -60,12 +60,12 @@ Never commit values. Set these in Vercel for the appropriate environment, or in 
 
 ### Note files and catalog cache
 
-- `GET /api/notes` is a public, cached catalog. Note files are not public:
-  `GET /api/notes/:id/download` and `GET /api/notes/:id/file` require a Clerk
-  session, and file reads require the R2 variables above. The client downloads
-  through the same-origin `GET /api/notes/:id/file?download=1` endpoint rather
-  than asking the browser to fetch R2 directly. File responses are
-  `no-store, private` with no ETag or 304, so every request re-authenticates.
+- `GET /api/notes` is a public, cached catalog, and `GET /api/notes/:id/file`
+  streams a published note's PDF inline without a Clerk session. File reads
+  require the R2 variables above; the browser never fetches R2 directly. The
+  download endpoint and download UI have been removed. File responses are
+  `no-store, private` with no ETag or 304, so each preview is fetched fresh;
+  the route is rate-limited per IP.
   `GET /api/health/ready` probes the database (`SELECT 1`), Redis, R2 and
   Razorpay with a 1 s deadline and reports boolean dependency state; it never
   includes connection strings, error messages or credential values.

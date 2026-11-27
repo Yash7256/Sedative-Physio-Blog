@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Dialog } from "radix-ui"
-import { Download, Loader2, Minus, Plus, X } from "lucide-react"
+import { Loader2, Minus, Plus, X } from "lucide-react"
 import {
   getDocument,
   GlobalWorkerOptions,
@@ -8,8 +8,6 @@ import {
   type PDFPageProxy,
 } from "pdfjs-dist"
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url"
-import { ApiError } from "../lib/api"
-import { downloadNoteFile } from "../lib/resources"
 
 GlobalWorkerOptions.workerSrc = workerUrl
 
@@ -202,17 +200,6 @@ export function NotePreviewModal({ open, onClose, noteId, noteTitle }: NotePrevi
     setCurrentPage((prev) => (prev === best ? prev : best))
   }, [])
 
-  const handleDownload = async () => {
-    if (!noteId) return
-    try {
-      await downloadNoteFile(noteId, noteTitle)
-    } catch (err) {
-      setError(err instanceof ApiError && err.isUnauthorized
-        ? "Sign in to download notes."
-        : "Could not start the download. Please try again.")
-    }
-  }
-
   const numPages = pages.length
 
   return (
@@ -231,10 +218,6 @@ export function NotePreviewModal({ open, onClose, noteId, noteTitle }: NotePrevi
               )}
             </Dialog.Title>
             <div className="flex shrink-0 items-center gap-1">
-              <IconButton label="Download note" onClick={() => void handleDownload()} disabled={numPages === 0}>
-                <Download className="size-4" />
-              </IconButton>
-              <span className="mx-1 h-4 w-px bg-black/10" />
               <IconButton label="Zoom out" onClick={() => zoomStep(-0.1)} disabled={numPages === 0}>
                 <Minus className="size-4" />
               </IconButton>
