@@ -86,7 +86,7 @@ const navItems: Array<{ icon: React.ReactNode; label: string; id: SectionId }> =
  * about in-app notifications, so it cannot be delegated either.
  */
 const UNAVAILABLE: Partial<Record<SectionId, string>> = {
-  notes: "This app does not track which notes you have downloaded yet.",
+  notes: "This app does not track which notes you have opened yet.",
   models: "This app does not track which models you have viewed yet.",
   podcasts: "There is no podcast library to track yet.",
   addresses: "Addresses are not stored for your account.",

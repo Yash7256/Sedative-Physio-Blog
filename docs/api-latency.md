@@ -81,8 +81,9 @@ Sedative Physio mounts anonymous catalog reads before Clerk:
 - `GET /api/courses` and `GET /api/courses/:slug`
 - `GET /api/models`
 - `GET /api/notes`
+- `GET /api/notes/:id/file` (public but intentionally uncached)
 
-Note files, downloads, contact, payments, images, auth, and cache purge stay behind Clerk. This keeps the measured fast path free of session verification without weakening any protected route.
+Note previews are public too, but stay uncached. Contact, payments, images, auth, and cache purge stay behind Clerk. There is no download route. This keeps the measured fast path free of session verification without weakening any protected route.
 
 ## Shared catalog versions
 

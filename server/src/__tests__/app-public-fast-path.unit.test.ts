@@ -82,6 +82,10 @@ describe("public catalog fast path", () => {
       const res = await fetch(`${base}/api/notes/n1/file`)
       expect(res.status).toBe(404)
       expect(mocks.clerkCalls).not.toHaveBeenCalled()
+
+      const download = await fetch(`${base}/api/notes/n1/download`)
+      expect(download.status).toBe(404)
+      expect(await download.json()).toEqual({ error: "Not found" })
     })
   })
 

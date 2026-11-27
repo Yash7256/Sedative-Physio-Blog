@@ -206,19 +206,19 @@ npm run check:deploy
 
 ### Design
 
-> Superseded by the later public-preview change: `GET /api/notes/:id/file` is now
-> mounted with the public catalog and the download route has been removed.
+> Updated by the later public-preview change: `GET /api/notes/:id/file` is now
+> mounted with the public catalog and the download route has been removed. The
+> bullets below describe the current boundary.
 
-- Mount only these public reads before `clerkMiddleware`:
+- Mount these public reads before `clerkMiddleware`:
   - `GET /api/courses` and `GET /api/courses/:slug`
   - `GET /api/models`
-  - `GET /api/notes` (list only)
+  - `GET /api/notes` (list)
+  - `GET /api/notes/:id/file` (uncached preview)
   - `/api/health` stays where it is
 - Keep after `clerkMiddleware`:
-  - `GET /api/notes/:id/download`
-  - `GET /api/notes/:id/file`
   - `/api/auth`, `/api/contact`, `/api/payments`, `/api/images`, `/api/cache/purge`
-- Split `notesRouter` rather than moving the whole router. This prevents a future auth requirement on downloads/files from silently becoming public.
+- The public notes router holds only the list and file preview; there is no download route to protect.
 - `helmet`, `cors`, `cookieParser`, `express.json`, and `noStore()` still run before every route.
 
 ### Tasks, in this order
@@ -226,16 +226,16 @@ npm run check:deploy
 1. **Test first** with the existing `withServer` harness and a fake Clerk middleware that increments a counter:
    - `GET /api/courses`, `GET /api/models`, `GET /api/notes` do not invoke the fake Clerk.
    - Those responses still carry the catalog `Cache-Control`, `ETag`, and `Vercel-Cache-Tag` headers.
-   - `/api/notes/:id/download` and `/api/cache/purge` still invoke Clerk and still require the same auth as before.
+   - `/api/notes/:id/file` does not invoke Clerk and `/api/cache/purge` still invokes Clerk and requires the same auth as before.
    - Unknown `/api/*` routes still return 404 with `no-store`.
-2. Split the notes list route into a small public router; leave download/file on the protected router.
+2. Split the notes list and file preview into a small public router; the download route no longer exists.
 3. Reorder the mounts in `app.ts`.
 4. Run the `auth-reviewer` subagent on the diff even though this is a performance phase; middleware order is auth-adjacent.
 
 ### Acceptance
 
 - Public catalog list/detail requests never call Clerk.
-- No protected route changes its auth behaviour.
+- No remaining protected route changes its auth behaviour.
 - No custom auth code is introduced.
 - Cache headers and `noStore` defaults are unchanged.
 
