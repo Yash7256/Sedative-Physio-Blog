@@ -15,6 +15,10 @@ describe("catalog DB deadline", () => {
     expect(CATALOG_DB_TIMEOUT_MS).toBeGreaterThan(0)
   })
 
+  it("allows cold catalog loads while staying below the client query timeout", () => {
+    expect(CATALOG_DB_TIMEOUT_MS).toBe(5_000)
+  })
+
   it("maps a slow query to a generic 503 without echoing the cause", async () => {
     const slow = delay(40).then(() => "row")
     const error = await withDeadline(slow, 5).catch((err: unknown) => err)

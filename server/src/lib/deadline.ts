@@ -1,6 +1,10 @@
 import { ServiceUnavailableError } from "./errors.js"
 
-export const CATALOG_DB_TIMEOUT_MS = 2_000
+/**
+ * Above the measured cold relation-load range but below the client's 10s
+ * query timeout, so a cold miss can finish instead of becoming a 503.
+ */
+export const CATALOG_DB_TIMEOUT_MS = 5_000
 
 /** A bad override must not silently turn a safety timeout into zero or Infinity. */
 export function catalogDbTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {

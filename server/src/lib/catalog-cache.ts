@@ -3,7 +3,7 @@ import { performance } from "node:perf_hooks"
 import type { RequestHandler } from "express"
 import { LRUCache } from "lru-cache"
 
-import type { CachePolicy } from "./cache.js"
+import { NO_STORE, type CachePolicy } from "./cache.js"
 import { MAX_PAGE_SIZE } from "./pagination.js"
 import { getRedisClient, type RedisLike } from "./redis.js"
 import { serverTimingHeader } from "./timing.js"
@@ -26,6 +26,8 @@ interface CacheEntry {
   /** Serialized once on fill so a cache hit does not stringify the body again. */
   serialized: string
   etag: string
+  /** Set only for an expired entry served after a failed refresh. */
+  stale?: true
 }
 
 export interface CatalogCacheOptions {
@@ -130,7 +132,14 @@ export function createCatalogCache(
   const storeFor = (name: string): LRUCache<string, CacheEntry> => {
     let store = stores.get(name)
     if (!store) {
-      store = new LRUCache<string, CacheEntry>({ max: maxEntries, ttl: ttlMs })
+      // Keep an expired value until eviction so a failed refresh can fall back
+      // to it. `get()` still treats it as a miss; only the error path opts in.
+      store = new LRUCache<string, CacheEntry>({
+        max: maxEntries,
+        ttl: ttlMs,
+        ttlAutopurge: false,
+        noDeleteOnStaleGet: true,
+      })
       stores.set(name, store)
     }
     return store
@@ -237,13 +246,19 @@ export function createCatalogCache(
     loadMs?: number,
   ): void => {
     res.setHeader("Server-Timing", serverTimingHeader(lookupMs, loadMs, versionMs))
-    res.setHeader("Cache-Control", header)
     res.setHeader("ETag", entry.etag)
-    res.setHeader("Vercel-Cache-Tag", catalogCacheTag(catalog))
-    if (req.headers["if-none-match"] === entry.etag) {
-      res.status(304)
-      res.end()
-      return
+    if (entry.stale) {
+      // A degraded body must not become a fresh edge or browser entry.
+      res.setHeader("Cache-Control", NO_STORE)
+      res.setHeader("X-Catalog-Stale", "fallback")
+    } else {
+      res.setHeader("Cache-Control", header)
+      res.setHeader("Vercel-Cache-Tag", catalogCacheTag(catalog))
+      if (req.headers["if-none-match"] === entry.etag) {
+        res.status(304)
+        res.end()
+        return
+      }
     }
     res.status(200).type("application/json").send(entry.serialized)
   }
@@ -289,6 +304,18 @@ export function createCatalogCache(
         }
         res.status(200).type("application/json").send(serialized)
         return res
+      }
+      if (res.statusCode >= 500 && res.statusCode < 600) {
+        const stale = store.get(key, { allowStale: true })
+        if (stale && versions.get(catalog) === version && !res.headersSent) {
+          const fallback: CacheEntry = { ...stale, stale: true }
+          send(
+            req, res, fallback, catalog, header, lookupMs, versionMs,
+            performance.now() - startedAt + waitMs,
+          )
+          onSettled(fallback)
+          return res
+        }
       }
       onSettled(null)
       return json(body)

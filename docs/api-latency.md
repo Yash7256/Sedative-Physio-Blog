@@ -29,6 +29,21 @@ successful `POST /api/cache/purge` invalidates the edge tags and bumps the
 shared version, but responses already cached by a browser or in flight may
 still be stale until their own TTLs expire.
 
+A failed refresh with no usable version-purged entry falls back to the last
+good body for that key. Those responses carry `X-Catalog-Stale: fallback` and
+`Cache-Control: no-store, private`, so a degraded body is never re-cached at
+the edge or in the browser. A genuine 4xx result, including a missing course,
+is never replaced by a stale body.
+
+## Cold DB deadline
+
+Public catalog reads race the database against a 5 second server-side deadline.
+It is above the measured cold relation-load range but below the client's 10
+second query timeout. If a refresh exceeds it and a last good entry exists, the
+origin returns that entry with `X-Catalog-Stale: fallback`; otherwise it returns
+the generic `503 "Catalog data is temporarily unavailable."` without leaking a
+driver message.
+
 ## Reading `Server-Timing`
 
 Every catalog response carries one header:
