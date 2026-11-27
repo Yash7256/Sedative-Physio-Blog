@@ -7,12 +7,15 @@ const mocks = vi.hoisted(() => ({
   fetchCourses: vi.fn(),
   fetchNotes: vi.fn(),
   fetchModels: vi.fn(),
+  fetchCourseDetail: vi.fn(),
 }))
 
 vi.mock("../resources", () => mocks)
 
+import { shouldRetryQuery } from "../queryClient"
 import {
   resourceKeys,
+  useCourseDetail,
   useCourseList,
   useModelList,
   useNoteList,
@@ -22,6 +25,21 @@ const firstCourses = { items: [{ id: "c1" }], nextCursor: "cursor-2" }
 const lastCourses = { items: [{ id: "c2" }], nextCursor: null }
 const notes = { items: [{ id: "n1" }], nextCursor: null }
 const models = { items: [{ id: "m1" }], nextCursor: null }
+const detail = {
+  id: "c1",
+  title: "Course",
+  slug: "course",
+  shortDescription: null,
+  thumbnail: null,
+  level: "Beginner",
+  language: "English",
+  estimatedHours: null,
+  price: 0,
+  isFree: true,
+  highlights: [],
+  sections: [],
+  tutor: null,
+}
 
 let queryClient: QueryClient
 
@@ -30,10 +48,11 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 beforeEach(() => {
-  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   mocks.fetchCourses.mockReset().mockResolvedValue(firstCourses)
   mocks.fetchNotes.mockReset().mockResolvedValue(notes)
   mocks.fetchModels.mockReset().mockResolvedValue(models)
+  mocks.fetchCourseDetail.mockReset().mockResolvedValue(detail)
 })
 
 describe("resource infinite queries", () => {
@@ -139,5 +158,59 @@ describe("resource infinite queries", () => {
     })
 
     expect(mocks.fetchCourses).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("course detail query", () => {
+  it("caches and deduplicates the same slug across consumers", async () => {
+    const { result, unmount } = renderHook(
+      () => ({
+        first: useCourseDetail("course"),
+        second: useCourseDetail("course"),
+      }),
+      { wrapper },
+    )
+
+    await waitFor(() => {
+      expect(result.current.first.data).toEqual(detail)
+      expect(result.current.second.data).toEqual(detail)
+    })
+    expect(mocks.fetchCourseDetail).toHaveBeenCalledTimes(1)
+    expect(queryClient.getQueryCache().getAll().map((query) => query.queryKey))
+      .toContainEqual(resourceKeys.courseDetail("course"))
+
+    unmount()
+    renderHook(() => useCourseDetail("course"), { wrapper })
+    await waitFor(() => expect(mocks.fetchCourseDetail).toHaveBeenCalledTimes(1))
+  })
+
+  it("passes an AbortSignal and aborts when the consumer unmounts", async () => {
+    let signal: AbortSignal | undefined
+    mocks.fetchCourseDetail.mockImplementation((_slug: string, options: { signal?: AbortSignal }) => {
+      signal = options.signal
+      return new Promise(() => undefined)
+    })
+
+    const { unmount } = renderHook(() => useCourseDetail("course"), { wrapper })
+    await waitFor(() => expect(signal).toBeDefined())
+    unmount()
+
+    expect(signal?.aborted).toBe(true)
+  })
+
+  it("does not retry a missing course", async () => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: shouldRetryQuery } } })
+    mocks.fetchCourseDetail.mockRejectedValue(new Error("Course not found"))
+
+    const { result } = renderHook(() => useCourseDetail("missing"), { wrapper })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(mocks.fetchCourseDetail).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not fetch without a slug", () => {
+    renderHook(() => useCourseDetail(null), { wrapper })
+
+    expect(mocks.fetchCourseDetail).not.toHaveBeenCalled()
   })
 })

@@ -15,11 +15,12 @@ import { Cart } from "../Cart"
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
-const { mockCreateOrder, mockVerifyPayment, mockPayWithRazorpay, mockEnrollFreeCourses } = vi.hoisted(() => ({
+const { mockCreateOrder, mockVerifyPayment, mockPayWithRazorpay, mockEnrollFreeCourses, mockUseCourseDetail } = vi.hoisted(() => ({
   mockCreateOrder: vi.fn(),
   mockVerifyPayment: vi.fn(),
   mockPayWithRazorpay: vi.fn(),
   mockEnrollFreeCourses: vi.fn(),
+  mockUseCourseDetail: vi.fn(),
 }))
 
 vi.mock("@/lib/payments", () => ({
@@ -88,11 +89,11 @@ vi.mock("@/components/SmartImage", () => ({
 }))
 
 vi.mock("@/lib/resources", () => ({
-  fetchCourseDetail: vi.fn().mockResolvedValue({
-    sections: [], highlights: [], tutor: null, level: "Beginner", language: "English",
-    estimatedHours: 0, price: 0, isFree: true, id: "c1", title: "Course", slug: "course",
-    shortDescription: null, thumbnail: null,
-  }),
+  formatPrice: (price: number, isFree: boolean) => isFree || price === 0 ? "Free" : `₹${(price / 100).toFixed(2)}`,
+}))
+
+vi.mock("@/lib/resources-queries", () => ({
+  useCourseDetail: mockUseCourseDetail,
 }))
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -130,6 +131,15 @@ beforeEach(() => {
   // empty-state alert is never exercised.
   cartState.clearCart = vi.fn(() => { cartState.items = [] })
   cartState.removeItem = vi.fn()
+  mockUseCourseDetail.mockReturnValue({
+    data: {
+      sections: [], highlights: [], tutor: null, level: "Beginner", language: "English",
+      estimatedHours: 0, price: 0, isFree: true, id: "c1", title: "Course", slug: "course",
+      shortDescription: null, thumbnail: null,
+    },
+    isPending: false,
+    error: null,
+  })
 })
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -189,5 +199,19 @@ describe("handleCheckout — free-enroll failure after successful payment", () =
     // Cart is NOT cleared — user can retry
     expect(cartState.clearCart).not.toHaveBeenCalled()
     expect(screen.queryByTestId("success-modal")).not.toBeInTheDocument()
+  })
+})
+
+describe("cart course details", () => {
+  it("uses the shared course detail query only while details are expanded", async () => {
+    cartState.items = [makeFreeItem(), makePaidItem()]
+    cartState.total = 49900
+
+    renderCart()
+    expect(mockUseCourseDetail).toHaveBeenCalledWith("free-course", false)
+
+    await userEvent.click(screen.getAllByRole("button", { name: /show details/i })[0]!)
+
+    await waitFor(() => expect(mockUseCourseDetail).toHaveBeenCalledWith("free-course", true))
   })
 })

@@ -119,6 +119,24 @@ export function formatCoursePrice(paise: number | undefined): string {
   return `₹${rupees.toFixed(Number.isInteger(rupees) ? 0 : 2)}`
 }
 
+/** One label for every free/paid surface, so badges and rows cannot disagree. */
+export function coursePricingLabel(course: Pick<CourseSummary, "isFree" | "price">): string {
+  return course.isFree ? "Free" : formatCoursePrice(course.price)
+}
+
+/** Catalog images must be same-origin; never turn a DB string into a tracker. */
+export function isSafeCatalogImageUrl(value: string | null | undefined): boolean {
+  if (!value || typeof value !== "string") return false
+  if (/^\/(?!\/|\\).*/.test(value)) return true
+  try {
+    const url = new URL(value)
+    return (url.protocol === "http:" || url.protocol === "https:") &&
+      !!globalThis.location && url.origin === globalThis.location.origin
+  } catch {
+    return false
+  }
+}
+
 /** Keep the opaque cursor in the query string; never pass it through as a fetch option. */
 function pagePath(path: string, { cursor, limit, category }: Omit<ResourcePageOptions, keyof ResourceFetchOptions>): string {
   const params = new URLSearchParams()
@@ -136,6 +154,81 @@ function assertResourcePage<T>(body: unknown): ResourcePage<T> {
     throw new ApiError(502, "Unexpected catalog response")
   }
   return page as ResourcePage<T>
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string"
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value)
+}
+
+/**
+ * Course detail arrives from a public cache, so a bad shape must become a
+ * retryable error before it reaches `.map()` and `.length` in the UI.
+ */
+export function assertCourseDetail(body: unknown): CourseDetail {
+  const detail = body
+  if (!isRecord(detail) ||
+      typeof detail.id !== "string" || detail.id.length === 0 ||
+      typeof detail.title !== "string" ||
+      typeof detail.slug !== "string" ||
+      !isNullableString(detail.shortDescription) ||
+      !isNullableString(detail.thumbnail) ||
+      typeof detail.level !== "string" ||
+      typeof detail.language !== "string" ||
+      !(detail.estimatedHours === null || isNumber(detail.estimatedHours)) ||
+      !isNumber(detail.price) || !Number.isSafeInteger(detail.price) || detail.price < 0 ||
+      typeof detail.isFree !== "boolean" ||
+      !Array.isArray(detail.highlights) || !detail.highlights.every((item) => typeof item === "string") ||
+      !Array.isArray(detail.sections) ||
+      !(detail.tutor === null || isRecord(detail.tutor))) {
+    throw new ApiError(502, "Unexpected course response")
+  }
+
+  if ((detail.isFree && detail.price !== 0) || (!detail.isFree && detail.price <= 0)) {
+    throw new ApiError(502, "Unexpected course response")
+  }
+
+  const tutor = detail.tutor
+  if (tutor && (
+    typeof tutor.id !== "string" ||
+    typeof tutor.name !== "string" ||
+    !isNullableString(tutor.designation) ||
+    !isNullableString(tutor.image) ||
+    !isNullableString(tutor.bio)
+  )) {
+    throw new ApiError(502, "Unexpected course response")
+  }
+
+  for (const section of detail.sections as unknown[]) {
+    if (!isRecord(section) ||
+        typeof section.id !== "string" ||
+        typeof section.title !== "string" ||
+        !isNullableString(section.description) ||
+        !isNumber(section.order) ||
+        !Array.isArray(section.lessons)) {
+      throw new ApiError(502, "Unexpected course response")
+    }
+    for (const lesson of section.lessons as unknown[]) {
+      if (!isRecord(lesson) ||
+          typeof lesson.id !== "string" ||
+          typeof lesson.title !== "string" ||
+          typeof lesson.slug !== "string" ||
+          typeof lesson.type !== "string" || lesson.type.length === 0 ||
+          !(lesson.duration === null || isNumber(lesson.duration)) ||
+          typeof lesson.isPreview !== "boolean") {
+        throw new ApiError(502, "Unexpected course response")
+      }
+    }
+  }
+
+  return detail as unknown as CourseDetail
 }
 
 async function fetchResourcePage<T>(path: string, options: ResourceFetchOptions): Promise<ResourcePage<T>> {
@@ -178,10 +271,10 @@ export async function fetchAllCourses(options: ResourceFetchOptions = {}): Promi
 /** Fetch a single course's details (syllabus + tutor) by slug. */
 export async function fetchCourseDetail(slug: string, options: ResourceFetchOptions = {}): Promise<CourseDetail> {
   try {
-    return await apiJson<CourseDetail>(`/api/courses/${encodeURIComponent(slug)}`, {
+    return assertCourseDetail(await apiJson<unknown>(`/api/courses/${encodeURIComponent(slug)}`, {
       timeoutMs: DEFAULT_QUERY_TIMEOUT_MS,
       ...options,
-    })
+    }))
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) throw new Error("Course not found")
     throw err

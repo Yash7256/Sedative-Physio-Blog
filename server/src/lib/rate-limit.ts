@@ -136,3 +136,12 @@ export const catalogListLimiter = createLimiter({
   keyGenerator: catalogIpKey,
   message: { error: "Too many catalog requests. Please try again later." },
 })
+
+/** Detail pages are larger than list pages, so they get a tighter budget. */
+export const courseDetailLimiter = createLimiter({
+  prefix: "course-detail",
+  windowMs: 60 * 1000,
+  limit: 120,
+  keyGenerator: catalogIpKey,
+  message: { error: "Too many course detail requests. Please try again later." },
+})

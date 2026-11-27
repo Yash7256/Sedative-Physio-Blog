@@ -1,3 +1,4 @@
+import { classifyCoursePricing } from "../lib/course-pricing.js"
 import { BadRequestError } from "../lib/errors.js"
 import {
   DEFAULT_PAGE_SIZE,
@@ -52,6 +53,11 @@ export interface TutorSummary {
   bio: string | null
 }
 
+/** Bounds for the public detail payload; full lesson content stays authenticated. */
+export const MAX_DETAIL_SECTIONS = 20
+export const MAX_DETAIL_LESSONS_PER_SECTION = 50
+export const MAX_DETAIL_LESSONS_TOTAL = 200
+
 export async function listCourses(
   pageRequest: PageRequest = { limit: DEFAULT_PAGE_SIZE, cursorId: null },
 ): Promise<Page<CourseSummary>> {
@@ -83,11 +89,12 @@ export async function listCourses(
       isFree: true,
     },
   })
+  for (const row of rows) classifyCoursePricing(row)
   return pageResult(rows, pageRequest.limit)
 }
 
 export async function getCourseBySlug(slug: string): Promise<CourseDetail | null> {
-  return prisma.course.findFirst({
+  const course = await prisma.course.findFirst({
     where: { slug, isPublished: true },
     select: {
       id: true,
@@ -112,6 +119,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
       },
       sections: {
         orderBy: { order: "asc" },
+        take: MAX_DETAIL_SECTIONS,
         select: {
           id: true,
           title: true,
@@ -120,6 +128,7 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
           lessons: {
             where: { isPublished: true },
             orderBy: { order: "asc" },
+            take: MAX_DETAIL_LESSONS_PER_SECTION,
             select: {
               id: true,
               title: true,
@@ -133,4 +142,15 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
       },
     },
   })
+  if (!course) return null
+
+  classifyCoursePricing(course)
+
+  let remaining = MAX_DETAIL_LESSONS_TOTAL
+  const sections = course.sections.slice(0, MAX_DETAIL_SECTIONS).map((section) => {
+    const lessons = section.lessons.slice(0, remaining)
+    remaining -= lessons.length
+    return { ...section, lessons }
+  })
+  return { ...course, sections }
 }

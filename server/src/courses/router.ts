@@ -1,7 +1,7 @@
 import { Router } from "express"
 import { getCourseBySlug, listCourses } from "./service.js"
 import { handleError } from "../lib/errors.js"
-import { catalogListLimiter } from "../lib/rate-limit.js"
+import { catalogListLimiter, courseDetailLimiter } from "../lib/rate-limit.js"
 import { CATALOG_CACHE_POLICY, catalogCache } from "../lib/catalog-cache.js"
 import { parsePageRequest } from "../lib/pagination.js"
 
@@ -27,7 +27,7 @@ coursesRouter.get("/", catalogListLimiter, listCache, async (req, res) => {
 })
 
 // GET /api/courses/:slug — course details with syllabus and tutor
-coursesRouter.get("/:slug", detailCache, async (req, res) => {
+coursesRouter.get("/:slug", courseDetailLimiter, detailCache, async (req, res) => {
   try {
     const slugParam = req.params.slug
     const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam

@@ -18,6 +18,7 @@ vi.doMock("../rate-limit.js", () => ({
   catalogListLimiter: (_req: unknown, res: { status: (code: number) => { json: (body: unknown) => void } }) => {
     res.status(429).json({ error: "limited" })
   },
+  courseDetailLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
   createLimiter: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
 }))
 

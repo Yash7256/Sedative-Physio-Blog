@@ -1,7 +1,8 @@
-import { useInfiniteQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 
 import { DEFAULT_QUERY_TIMEOUT_MS } from "./queryClient"
 import {
+  fetchCourseDetail,
   fetchCourses,
   fetchModels,
   fetchNotes,
@@ -18,6 +19,7 @@ export const resourceKeys = {
   notes: (filter: string | null = null, category: string | null = null) =>
     ["public", "resources", "notes", { filter, category }] as const,
   models: (filter: string | null = null) => ["public", "resources", "models", { filter }] as const,
+  courseDetail: (slug: string) => ["public", "resources", "course", "detail", slug] as const,
 }
 
 export interface ResourceListOptions {
@@ -64,6 +66,15 @@ export function useNoteList(options: ResourceListOptions = {}) {
 
 export function useModelList(options: ResourceListOptions = {}) {
   return useResourcePages(resourceKeys.models(options.filter ?? null), fetchModels, options)
+}
+
+/** Shared public course detail cache for the modal, cart and future detail pages. */
+export function useCourseDetail(slug: string | null, enabled = true) {
+  return useQuery({
+    queryKey: resourceKeys.courseDetail(slug ?? ""),
+    queryFn: ({ signal }) => fetchCourseDetail(slug!, { signal, timeoutMs: DEFAULT_QUERY_TIMEOUT_MS }),
+    enabled: Boolean(slug) && enabled,
+  })
 }
 
 /** Flatten already-loaded pages for rendering; this never fetches anything. */

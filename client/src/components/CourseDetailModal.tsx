@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { Dialog } from "radix-ui"
 import {
   BarChart3,
@@ -15,13 +15,13 @@ import {
 } from "lucide-react"
 import { SmartImage } from "./SmartImage"
 import {
-  fetchCourseDetail,
-  formatCoursePrice,
-  type CourseDetail as CourseDetailData,
+  coursePricingLabel,
+  isSafeCatalogImageUrl,
   type CourseLesson,
   type CourseSection,
   type LessonType,
 } from "../lib/resources"
+import { useCourseDetail } from "../lib/resources-queries"
 
 interface CourseDetailModalProps {
   open: boolean
@@ -64,7 +64,7 @@ function SyllabusSection({ section, index }: { section: CourseSection; index: nu
       </div>
       <ul className="divide-y divide-black/5">
         {section.lessons.map((lesson: CourseLesson) => {
-          const Icon = lessonIcon[lesson.type]
+          const Icon = lessonIcon[lesson.type] ?? BookOpen
           return (
             <li key={lesson.id} className="flex items-center gap-3 px-5 py-3 sm:px-6">
               <Icon className="size-4 shrink-0 text-[#8a8b8e]" />
@@ -75,7 +75,7 @@ function SyllabusSection({ section, index }: { section: CourseSection; index: nu
                 </span>
               )}
               <span className="hidden shrink-0 text-[11px] uppercase tracking-wider text-[#a0a1a3] min-[420px]:inline">
-                {lessonTypeLabel[lesson.type]}
+                {lessonTypeLabel[lesson.type] ?? "Lesson"}
               </span>
               {lesson.duration && (
                 <span className="shrink-0 text-xs tabular-nums text-[#8a8b8e]">{formatDuration(lesson.duration)}</span>
@@ -89,31 +89,16 @@ function SyllabusSection({ section, index }: { section: CourseSection; index: nu
 }
 
 export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProps) {
-  const [course, setCourse] = useState<CourseDetailData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { data: course, isPending: loading, error } = useCourseDetail(open ? slug : null, open)
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open || !slug) {
-      setCourse(null)
-      setError(null)
-      return undefined
-    }
-
-    let cancelled = false
-    const controller = new AbortController()
-    setLoading(true)
-    setError(null)
-    fetchCourseDetail(slug, { signal: controller.signal })
-      .then((data) => !cancelled && setCourse(data))
-      .catch((err) => !cancelled && setError(err instanceof Error ? err.message : "Could not load course"))
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
-  }, [open, slug])
+  const errorMessage = error
+    ? error instanceof Error ? error.message : "Could not load course"
+    : null
+  const pricingLabel = course ? coursePricingLabel(course) : null
+  const thumbnail = course && isSafeCatalogImageUrl(course.thumbnail) ? course.thumbnail : null
+  const tutorImage = course?.tutor && isSafeCatalogImageUrl(course.tutor.image)
+    ? course.tutor.image
+    : null
 
   useEffect(() => {
     if (!open) return undefined
@@ -176,9 +161,9 @@ export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProp
               </div>
             )}
 
-            {!loading && (error || !course) && (
+            {!loading && (errorMessage || !course) && (
               <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
-                <p className="text-sm text-[#8b4b42]">{error ?? "Course not found"}</p>
+                <p className="text-sm text-[#8b4b42]">{errorMessage ?? "Course not found"}</p>
               </div>
             )}
 
@@ -187,20 +172,18 @@ export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProp
                 {/* ── Hero ── */}
                 <section className="mt-6 overflow-hidden rounded-[20px] bg-[#111214] text-white">
                   <div className="relative">
-                    {course.thumbnail && (
-                      <SmartImage src={course.thumbnail} alt={course.title} className="h-48 w-full object-cover opacity-70 sm:h-64" />
+                    {thumbnail && (
+                      <SmartImage src={thumbnail} alt={course.title} className="h-48 w-full object-cover opacity-70 sm:h-64" />
                     )}
-                    <div className={`absolute inset-0 bg-gradient-to-t ${course.thumbnail ? "from-[#111214] via-[#111214]/55 to-transparent" : "hidden"}`} />
+                    <div className={`absolute inset-0 bg-gradient-to-t ${thumbnail ? "from-[#111214] via-[#111214]/55 to-transparent" : "hidden"}`} />
                     <div className="relative z-10 -mt-8 px-6 pb-7 sm:-mt-12 sm:px-9 sm:pb-9">
                       <div className="flex flex-wrap gap-2">
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-white/90">
                           <GraduationCap className="size-3.5" /> Course
                         </span>
-                        {course.isFree ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#22c55e] px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-white">Free</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f59e0b] px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-white">{formatCoursePrice(course.price)}</span>
-                        )}
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-white ${course.isFree ? "bg-[#22c55e]" : "bg-[#f59e0b]"}`}>
+                          {pricingLabel}
+                        </span>
                       </div>
                       <h2 className="mt-4 max-w-[760px] text-[clamp(1.75rem,3vw,2.6rem)] font-bold leading-[1.02] tracking-[-.045em]">
                         {course.title}
@@ -251,8 +234,8 @@ export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProp
                         <div className="px-5 py-4">
                           <h4 className="text-[11px] font-bold uppercase tracking-[.18em] text-[#8a8b8e]">Your Instructor</h4>
                           <div className="mt-4 flex items-center gap-3">
-                            {course.tutor.image ? (
-                              <SmartImage src={course.tutor.image} alt={course.tutor.name} className="size-14 rounded-full object-cover" />
+                            {tutorImage ? (
+                              <SmartImage src={tutorImage} alt={course.tutor.name} className="size-14 rounded-full object-cover" />
                             ) : (
                               <span className="grid size-14 place-items-center rounded-full bg-[#e5e5e3] text-lg font-semibold text-[#77797b]">
                                 {course.tutor.name.charAt(0)}
@@ -293,7 +276,7 @@ export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProp
                         </div>
                         <div className="flex items-center justify-between py-2">
                           <dt className="text-[#717376]">Price</dt>
-                          <dd className="font-semibold">{formatCoursePrice(course.price)}</dd>
+                          <dd className="font-semibold">{pricingLabel}</dd>
                         </div>
                       </dl>
                     </div>
