@@ -35,37 +35,33 @@ describe("resource flow analytics normalization", () => {
 })
 
 describe("trackResourceFlow", () => {
-  it("sends an allowlisted event through sendBeacon without credentials", async () => {
+  it("uses a credential-free keepalive fetch and never uses sendBeacon", async () => {
     const beacon = vi.fn(() => true)
     Object.defineProperty(navigator, "sendBeacon", { configurable: true, value: beacon })
-    const fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
-
-    trackResourceFlow("courses_catalog_failed", { statusBucket: "5xx", durationMs: 1234 })
-
-    expect(beacon).toHaveBeenCalledTimes(1)
-    const [url, body] = beacon.mock.calls[0] as unknown as [string, Blob]
-    expect(url).toBe("/api/analytics")
-    expect(JSON.parse(await body.text())).toEqual({
-      event: "courses_catalog_failed",
-      statusBucket: "5xx",
-      durationMs: 1234,
-    })
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  it("falls back to a credential-free keepalive fetch", () => {
-    Reflect.deleteProperty(navigator, "sendBeacon")
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal("fetch", fetchMock)
 
     trackResourceFlow("resources_viewed", { filter: "courses" })
 
+    expect(beacon).not.toHaveBeenCalled()
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/analytics",
-      expect.objectContaining({ method: "POST", credentials: "omit", keepalive: true }),
+      expect.objectContaining({
+        method: "POST",
+        credentials: "omit",
+        keepalive: true,
+        headers: { "content-type": "application/json" },
+      }),
     )
     const init = fetchMock.mock.calls[0]![1] as RequestInit
     expect(JSON.parse(String(init.body))).toEqual({ event: "resources_viewed", filter: "courses" })
+  })
+
+  it("swallows a failed send so telemetry cannot break the page", async () => {
+    Reflect.deleteProperty(navigator, "sendBeacon")
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")))
+
+    expect(() => trackResourceFlow("courses_load_more_clicked")).not.toThrow()
+    await Promise.resolve()
   })
 })

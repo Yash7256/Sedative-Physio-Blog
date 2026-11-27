@@ -17,7 +17,7 @@ Scope: the anonymous path **Resources page → `GET /api/courses` → rendered c
 
 ## Transport
 
-`client/src/lib/analytics.ts` sends a flat JSON body to `POST /api/analytics` with `navigator.sendBeacon`, falling back to a credential-free `keepalive` fetch. `credentials: "omit"` keeps Clerk cookies off the analytics request. Telemetry failures are swallowed and cannot break the catalog render.
+`client/src/lib/analytics.ts` sends a flat JSON body to `POST /api/analytics` with a credential-free `keepalive` fetch. `credentials: "omit"` keeps Clerk cookies off the analytics request. `sendBeacon` is deliberately not used because its spec initializes beacon requests with cookies included. Telemetry failures are swallowed and cannot break the catalog render.
 
 The server validates the event name and field types before recording, returns `204` on success, `400` on an unknown event or unsafe bucket, and `429` when the public 120/minute-per-IP analytics limiter is exhausted. Requests are mounted before Clerk and never read `req.auth`.
 

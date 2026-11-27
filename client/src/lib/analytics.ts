@@ -2,9 +2,9 @@
  * Minimal first-party product telemetry for the public resource flow.
  *
  * Only allowlisted event names and bounded numeric/categorical fields leave the
- * browser. No URL, user id, course id, header or cookie is ever included, and
- * the request deliberately omits credentials so analytics cannot ride on a
- * Clerk session.
+ * browser. No URL, user id, course id, header or cookie is ever included. The
+ * request uses `credentials: "omit"` and deliberately avoids sendBeacon, whose
+ * spec initializes requests with cookies included.
  */
 
 export const RESOURCE_FLOW_EVENTS = [
@@ -81,11 +81,6 @@ export function trackResourceFlow(event: ResourceFlowEvent, payload: ResourceFlo
   if (!normalized) return
 
   const body = JSON.stringify(normalized)
-  if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-    navigator.sendBeacon("/api/analytics", new Blob([body], { type: "application/json" }))
-    return
-  }
-
   if (typeof fetch !== "function") return
   void fetch("/api/analytics", {
     method: "POST",
