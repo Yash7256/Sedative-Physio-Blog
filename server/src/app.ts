@@ -4,6 +4,7 @@ import helmet from "helmet"
 import cookieParser from "cookie-parser"
 import { clerkMiddleware } from "@clerk/express"
 
+import { analyticsRouter } from "./analytics/router.js"
 import { authRouter } from "./auth/router.js"
 import { notesPublicRouter } from "./notes/router.js"
 import { modelsRouter } from "./models/router.js"
@@ -76,6 +77,9 @@ export function createApp() {
   app.use("/api/courses", coursesRouter)
   app.use("/api/models", modelsRouter)
   app.use("/api/notes", notesPublicRouter)
+  // Anonymous, allowlisted product telemetry. It stays ahead of Clerk and
+  // never reads the session cookie.
+  app.use("/api/analytics", analyticsRouter)
 
   // Canonical public course URLs carry their metadata in the first HTML
   // response; anonymous by design, so this stays ahead of Clerk as well.

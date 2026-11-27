@@ -185,7 +185,7 @@ validator is a contradiction — intermediaries key on the ETag.
 
 | Route | Policy |
 |---|---|
-| `GET /api/courses` | `public, s-maxage=300, max-age=60, stale-while-revalidate=86400` |
+| `GET /api/courses` | `public, s-maxage=120, max-age=60, stale-while-revalidate=120` |
 | `GET /api/notes` | same |
 | `GET /api/models` | same |
 | `GET /api/images/*` | `public, max-age=31536000, immutable` (content-addressed by the re-encoded bytes) |

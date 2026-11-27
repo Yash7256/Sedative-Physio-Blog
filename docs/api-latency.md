@@ -48,6 +48,20 @@ the p99.
 
 `Timing-Allow-Origin` is set to the configured `CORS_ALLOWED_ORIGINS` list so browser DevTools can expose these timings for cross-origin API calls. The request's `Origin` header is never echoed.
 
+## Cache hits and the public limiter
+
+`coursesRouter` deliberately places `listCache` before `catalogListLimiter`. A
+served cache hit therefore does **not** spend the 300/minute-per-IP catalog
+quota; the limiter governs cache misses only. Cheap hits are absorbed by React
+Query freshness, the edge cache and Vercel platform controls rather than by the
+origin limiter.
+
+This order is locked by
+`server/src/lib/__tests__/catalog-cache-limiter-order.unit.test.ts`. Do not
+move the limiter ahead of the cache without changing that contract first. If a
+hard per-IP cap on every request becomes a requirement, treat it as a new phase,
+not a drive-by middleware edit.
+
 ## Percentiles to report
 
 Report p50 and p95/p99 separately for each layer in the cache hierarchy. Never quote a single sample as the SLA.
