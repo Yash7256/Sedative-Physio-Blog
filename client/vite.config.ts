@@ -13,6 +13,16 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // The Express SEO shell has no access to the client build manifest (the two
+  // are separate Vercel services), so its entry points need stable names.
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/main.js",
+        assetFileNames: "assets/[name][extname]",
+      },
+    },
+  },
   server: {
     allowedHosts: ['issues-vault-garlic-versions.trycloudflare.com'],
     proxy: {
