@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { NotFoundError } from "../lib/errors.js"
 import { withServer } from "../test/harness.js"
 
 const mocks = vi.hoisted(() => ({
@@ -8,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   getCourseBySlug: vi.fn(async () => ({ id: "c1", slug: "intro" })),
   listModels: vi.fn(async () => ({ items: [], nextCursor: null })),
   listNotes: vi.fn(async () => ({ items: [], nextCursor: null })),
-  getDownload: vi.fn(async () => ({ fileName: "note.pdf", url: "https://example.test/note.pdf" })),
   getNoteFile: vi.fn(async () => ({
     fileName: "note.pdf",
     fileKey: "notes/note.pdf",
@@ -41,7 +41,6 @@ vi.doMock("../models/service.js", () => ({
 
 vi.doMock("../notes/service.js", () => ({
   listNotes: mocks.listNotes,
-  getDownload: mocks.getDownload,
   getNoteFile: mocks.getNoteFile,
 }))
 
@@ -60,7 +59,6 @@ beforeEach(async () => {
   mocks.getCourseBySlug.mockClear()
   mocks.listModels.mockClear()
   mocks.listNotes.mockClear()
-  mocks.getDownload.mockClear()
   mocks.getNoteFile.mockClear()
   const appModule = await import("../app.js")
   createApp = appModule.createApp
@@ -77,12 +75,22 @@ describe("public catalog fast path", () => {
     })
   })
 
-  it("still invokes Clerk for note files and admin routes", async () => {
-    await withServer(createApp(), async (base) => {
-      const download = await fetch(`${base}/api/notes/n1/download`)
-      expect(download.status).toBe(401)
-      expect(mocks.getDownload).not.toHaveBeenCalled()
+  it("serves note previews without invoking Clerk", async () => {
+    mocks.getNoteFile.mockRejectedValueOnce(new NotFoundError("Note not found"))
 
+    await withServer(createApp(), async (base) => {
+      const res = await fetch(`${base}/api/notes/n1/file`)
+      expect(res.status).toBe(404)
+      expect(mocks.clerkCalls).not.toHaveBeenCalled()
+
+      const download = await fetch(`${base}/api/notes/n1/download`)
+      expect(download.status).toBe(404)
+      expect(await download.json()).toEqual({ error: "Not found" })
+    })
+  })
+
+  it("still invokes Clerk for admin routes", async () => {
+    await withServer(createApp(), async (base) => {
       const purge = await fetch(`${base}/api/cache/purge`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -90,7 +98,7 @@ describe("public catalog fast path", () => {
       })
       expect(purge.status).toBe(401)
 
-      expect(mocks.clerkCalls).toHaveBeenCalledTimes(2)
+      expect(mocks.clerkCalls).toHaveBeenCalledTimes(1)
     })
   })
 

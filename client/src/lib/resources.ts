@@ -1,4 +1,4 @@
-import { ApiError, apiFetch, apiJson, type ApiFetchInit } from "./api"
+import { ApiError, apiJson, type ApiFetchInit } from "./api"
 import { DEFAULT_QUERY_TIMEOUT_MS } from "./queryClient"
 
 export type ResourceCategory = "notes" | "3d-models" | "courses" | "journals"
@@ -145,32 +145,6 @@ async function fetchResourcePage<T>(path: string, options: ResourceFetchOptions)
 /** Fetch a page of published notes from the backend. */
 export async function fetchNotes({ cursor, limit, category, ...options }: ResourcePageOptions = {}): Promise<ResourcePage<NoteSummary>> {
   return fetchResourcePage<NoteSummary>(pagePath("/api/notes", { cursor, limit, category }), options)
-}
-
-/** Request a presigned download URL for a note's R2 file. */
-export async function fetchNoteDownload(id: string, options: ResourceFetchOptions = {}): Promise<{ fileName: string; url: string }> {
-  return apiJson<{ fileName: string; url: string }>(`/api/notes/${encodeURIComponent(id)}/download`, {
-    timeoutMs: DEFAULT_QUERY_TIMEOUT_MS,
-    ...options,
-  })
-}
-
-/** Trigger a browser download of the note PDF as a same-origin attachment. */
-export async function downloadNoteFile(id: string, fallbackName: string, options: ResourceFetchOptions = {}): Promise<void> {
-  const safeName = fallbackName.trim().endsWith(".pdf") ? fallbackName.trim() : `${fallbackName.trim()}.pdf`
-  const res = await apiFetch(`/api/notes/${encodeURIComponent(id)}/file?download=1`, {
-    timeoutMs: DEFAULT_QUERY_TIMEOUT_MS,
-    ...options,
-  })
-  const blob = await res.blob()
-  const objectUrl = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = objectUrl
-  a.download = safeName
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(objectUrl)
 }
 
 /** Fetch a page of uploaded 3D models from the backend. */

@@ -1,8 +1,7 @@
 import { Readable, Transform } from "node:stream"
 import { Router, type Request } from "express"
+import { ipKeyGenerator } from "express-rate-limit"
 
-import { requireAuth } from "../auth/middleware/require-auth.js"
-import { readAuthUserId } from "../lib/clerk.js"
 import { NO_STORE } from "../lib/cache.js"
 import { CATALOG_CACHE_POLICY, catalogCache } from "../lib/catalog-cache.js"
 import {
@@ -14,14 +13,11 @@ import {
 } from "../lib/errors.js"
 import { parsePageRequest } from "../lib/pagination.js"
 import { catalogListLimiter, createLimiter } from "../lib/rate-limit.js"
-import { listNotes, getDownload, getNoteFile } from "./service.js"
+import { listNotes, getNoteFile } from "./service.js"
 import { getObjectUrl } from "./r2.js"
 
-/** Public catalog list. Mounted before Clerk so a cached list stays on the fast path. */
+/** Public catalog and note preview routes. Mounted before Clerk. */
 export const notesPublicRouter = Router()
-
-/** Note file routes. Kept behind Clerk so an auth change cannot make them public by accident. */
-export const notesRouter = Router()
 
 export const MAX_NOTE_FILE_BYTES = 25 * 1024 * 1024
 const MINUTE_MS = 60 * 1000
@@ -32,9 +28,9 @@ const listCache = catalogCache.middleware({
   allowedParams: ["category", "limit", "cursor"],
 })
 
-/** File routes run after requireAuth, so a user key never falls back to a raw IP. */
-function noteUserKey(req: Request): string {
-  return `note-user:${readAuthUserId(req) ?? "unknown"}`
+/** Public file previews are limited per IP, with IPv6 addresses halved to a /64. */
+function noteFileIpKey(req: Request): string {
+  return `note-file:${ipKeyGenerator(req.ip ?? "unknown")}`
 }
 
 function noteId(req: Request): string {
@@ -43,19 +39,11 @@ function noteId(req: Request): string {
   return id
 }
 
-const downloadLimiter = createLimiter({
-  prefix: "note-download",
-  windowMs: MINUTE_MS,
-  limit: 30,
-  keyGenerator: noteUserKey,
-  failClosed: true,
-})
-
 const fileLimiter = createLimiter({
   prefix: "note-file",
   windowMs: MINUTE_MS,
   limit: 60,
-  keyGenerator: noteUserKey,
+  keyGenerator: noteFileIpKey,
   failClosed: true,
 })
 
@@ -112,21 +100,9 @@ notesPublicRouter.get("/", catalogListLimiter, listCache, async (req, res) => {
   }
 })
 
-// GET /api/notes/:id/download — return a presigned download URL for the note file
-notesRouter.get("/:id/download", requireAuth, downloadLimiter, async (req, res) => {
-  try {
-    const result = await getDownload(noteId(req))
-    res.status(200).json(result)
-  } catch (err) {
-    handleError(err, res, req)
-  }
-})
-
 // GET /api/notes/:id/file — stream the note's PDF (same-origin so the client PDF viewer can read it)
-// ?download=1 forces an attachment download instead of inline preview.
-// Authenticated files are never cacheable: no ETag, no 304, and an explicit
-// no-store header on success. Every request must pass Clerk again.
-notesRouter.get("/:id/file", requireAuth, fileLimiter, async (req, res) => {
+// Files are public previews: no login gate, no attachment mode, and no ETag/304.
+notesPublicRouter.get("/:id/file", fileLimiter, async (req, res) => {
   let timeout: ReturnType<typeof setTimeout> | undefined
   try {
     const note = await getNoteFile(noteId(req))
@@ -164,10 +140,9 @@ notesRouter.get("/:id/file", requireAuth, fileLimiter, async (req, res) => {
       throw new PayloadTooLargeError("Note file is too large.")
     }
 
-    const disposition = req.query["download"] === "1" ? "attachment" : "inline"
     res.setHeader("Cache-Control", NO_STORE)
     res.setHeader("Content-Type", "application/pdf")
-    res.setHeader("Content-Disposition", noteContentDisposition(disposition, note.fileName))
+    res.setHeader("Content-Disposition", noteContentDisposition("inline", note.fileName))
     if (declared !== null) res.setHeader("Content-Length", String(declared))
 
     const stream = Readable.fromWeb(upstream.body as never)
@@ -236,9 +211,4 @@ notesRouter.get("/:id/file", requireAuth, fileLimiter, async (req, res) => {
     if (timeout) clearTimeout(timeout)
     handleError(err, res, req)
   }
-})
-
-// Any other note sub-path → 404 via generic catch-all below
-notesRouter.use("/:id", (_req, res) => {
-  res.status(404).json({ error: "Not found" })
 })

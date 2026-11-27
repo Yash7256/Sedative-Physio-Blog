@@ -6,18 +6,16 @@ import { withServer } from "../../test/harness.js"
 
 const serviceMock = vi.hoisted(() => ({
   listNotes: vi.fn(),
-  getDownload: vi.fn(),
   getNoteFile: vi.fn(),
 }))
 
 vi.mock("../service.js", () => serviceMock)
 
-import { notesPublicRouter, notesRouter } from "../router.js"
+import { notesPublicRouter } from "../router.js"
 
 function app() {
   const instance = express()
   instance.use("/api/notes", notesPublicRouter)
-  instance.use("/api/notes", notesRouter)
   return instance
 }
 

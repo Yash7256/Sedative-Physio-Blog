@@ -7,7 +7,7 @@ import {
   type Page,
   type PageRequest,
 } from "../lib/pagination.js"
-import { getObjectUrl, r2Configured } from "./r2.js"
+import { r2Configured } from "./r2.js"
 
 export interface NoteSummary {
   id: string
@@ -19,11 +19,6 @@ export interface NoteSummary {
   imageDark: string | null
   fileName: string | null
   fileSize: number | null
-}
-
-export interface NoteDownload {
-  fileName: string
-  url: string
 }
 
 export interface NoteFile {
@@ -79,19 +74,6 @@ export async function listNotes(
     },
   })
   return pageResult(rows, pageRequest.limit)
-}
-
-export async function getDownload(id: string): Promise<NoteDownload> {
-  const note = await prisma.note.findFirst({
-    where: { id, ...VISIBLE_NOTE },
-    select: { fileKey: true, fileName: true },
-  })
-  if (!note) throw new NotFoundError("Note not found")
-  assertStorageConfigured()
-  if (!note.fileKey) throw new NotFoundError("Note file not found")
-
-  const url = await getObjectUrl(note.fileKey)
-  return { fileName: note.fileName ?? "note", url }
 }
 
 export async function getNoteFile(id: string): Promise<NoteFile> {
