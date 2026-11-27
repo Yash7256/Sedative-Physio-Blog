@@ -30,7 +30,7 @@ describe("SPA security headers", () => {
       "frame-ancestors 'none'",
       "script-src 'self'",
       "'sha256-1zTADRzCc1CacVK11mCP3vaaNO/uzKGdoLT+VY6zqHg='",
-      "worker-src blob:",
+      "worker-src 'self' blob:",
       "style-src 'self' 'unsafe-inline' https://*.clerk.com https://api.fontshare.com https://fonts.googleapis.com",
       "font-src 'self' data: https://cdn.fontshare.com https://fonts.gstatic.com",
       "img-src 'self' data: https://i.ibb.co https://images.unsplash.com",
