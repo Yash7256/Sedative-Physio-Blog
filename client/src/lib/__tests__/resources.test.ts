@@ -21,9 +21,25 @@ import {
   fetchCourses,
   fetchNotes,
   formatCoursePrice,
+  isSafeCatalogImageUrl,
 } from "../resources"
 
 const validPage = { items: [{ id: "x" }], nextCursor: null }
+const validDetail = {
+  id: "c1",
+  title: "Course",
+  slug: "course",
+  shortDescription: null,
+  thumbnail: null,
+  level: "Beginner",
+  language: "English",
+  estimatedHours: null,
+  price: 0,
+  isFree: true,
+  highlights: [],
+  sections: [],
+  tutor: null,
+}
 
 beforeEach(() => {
   apiMock.apiJson.mockReset().mockResolvedValue(validPage)
@@ -43,6 +59,20 @@ describe("shared course price formatting", () => {
   it("treats zero and missing prices as free", () => {
     expect(formatCoursePrice(0)).toBe("Free")
     expect(formatCoursePrice(undefined)).toBe("Free")
+  })
+})
+
+describe("course image URL safety", () => {
+  it("allows same-origin paths and absolute URLs", () => {
+    expect(isSafeCatalogImageUrl("/images/course.png")).toBe(true)
+    expect(isSafeCatalogImageUrl(`${window.location.origin}/images/course.png`)).toBe(true)
+  })
+
+  it("refuses protocol-relative, external and malformed URLs", () => {
+    expect(isSafeCatalogImageUrl("//tracker.example/pixel.png")).toBe(false)
+    expect(isSafeCatalogImageUrl("https://tracker.example/pixel.png")).toBe(false)
+    expect(isSafeCatalogImageUrl("javascript:alert(1)")).toBe(false)
+    expect(isSafeCatalogImageUrl(null)).toBe(false)
   })
 })
 
@@ -69,10 +99,36 @@ describe("catalog response validation", () => {
   })
 })
 
+describe("course detail response validation", () => {
+  it.each([
+    { ...validDetail, sections: "not-an-array" },
+    { ...validDetail, highlights: [1, 2] },
+    {
+      ...validDetail,
+      sections: [{ id: "s1", title: "Section", description: null, order: 0, lessons: [{ id: "l1", title: "Lesson", slug: "l", type: "VIDEO", duration: null, isPreview: false }] }],
+      tutor: { id: "t1", name: 7 },
+    },
+    { ...validDetail, isFree: true, price: 500 },
+  ])("rejects a malformed course detail response with a retryable 502", async (body) => {
+    apiMock.apiJson.mockResolvedValueOnce(body)
+
+    await expect(fetchCourseDetail("course")).rejects.toMatchObject({
+      status: 502,
+      message: "Unexpected course response",
+    })
+  })
+
+  it("accepts a complete course detail response", async () => {
+    apiMock.apiJson.mockResolvedValueOnce(validDetail)
+
+    await expect(fetchCourseDetail("course")).resolves.toEqual(validDetail)
+  })
+})
+
 describe("direct resource fetches", () => {
   it("passes timeout and abort options to the course detail fetcher", async () => {
     const signal = new AbortController().signal
-    apiMock.apiJson.mockResolvedValueOnce({ id: "c1", title: "Course" })
+    apiMock.apiJson.mockResolvedValueOnce(validDetail)
 
     await fetchCourseDetail("course/one", { signal })
 

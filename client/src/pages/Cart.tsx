@@ -33,12 +33,11 @@ import {
 import { PaymentSuccessModal } from "../components/PaymentSuccessModal"
 import { SmartImage } from "../components/SmartImage"
 import {
-  fetchCourseDetail,
-  type CourseDetail,
   type CourseLesson,
   type CourseSection,
   type LessonType,
 } from "../lib/resources"
+import { useCourseDetail } from "../lib/resources-queries"
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 
@@ -116,38 +115,16 @@ function SyllabusRow({ section, index }: { section: CourseSection; index: number
   )
 }
 
-/* ─── CourseDetails (lazy-fetches on first expand) ────────────── */
+/* ─── CourseDetails (shared detail query, fetched on first expand) ─ */
 
 function CourseDetails({ slug, expanded }: { slug: string; expanded: boolean }) {
-  const [course, setCourse] = useState<CourseDetail | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [fetched, setFetched] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!expanded || fetched) return
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-    fetchCourseDetail(slug)
-      .then((data) => {
-        if (!cancelled) {
-          setCourse(data)
-          setFetched(true)
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load course details")
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [expanded, slug, fetched])
+  const { data: course, isPending: loading, error } = useCourseDetail(slug, expanded)
 
   if (!expanded) return null
+
+  const errorMessage = error
+    ? error instanceof Error ? error.message : "Could not load course details"
+    : null
 
   if (loading) {
     return (
@@ -158,8 +135,8 @@ function CourseDetails({ slug, expanded }: { slug: string; expanded: boolean }) 
     )
   }
 
-  if (error || !course) {
-    return <p className="py-4 text-xs text-[#8b4b42]">{error ?? "Could not load course details."}</p>
+  if (errorMessage || !course) {
+    return <p className="py-4 text-xs text-[#8b4b42]">{errorMessage ?? "Could not load course details."}</p>
   }
 
   const lessonCount = course.sections.reduce((t, s) => t + s.lessons.length, 0)

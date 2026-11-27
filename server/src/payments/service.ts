@@ -1,5 +1,6 @@
 import crypto from "node:crypto"
 import Razorpay from "razorpay"
+import { classifyCoursePricing } from "../lib/course-pricing.js"
 import { prisma } from "../lib/prisma.js"
 import {
   BadRequestError,
@@ -68,18 +69,6 @@ export async function paymentsReachable(env: NodeJS.ProcessEnv = process.env): P
   } catch {
     return false
   }
-}
-
-/**
- * A course is either free (explicitly flagged, price zero) or paid (not flagged,
- * positive price). Anything else is a configuration error, never a silent
- * freebie or a zero-value payment.
- */
-function classifyCourse(course: { id: string; isFree: boolean; price: number }): "free" | "paid" {
-  if (course.isFree && course.price === 0) return "free"
-  if (!course.isFree && course.price > 0) return "paid"
-  console.error(`[payments] Misconfigured pricing for course ${course.id}`)
-  throw new ConflictError("Course pricing is misconfigured.")
 }
 
 export interface CreateOrderParams {
@@ -192,7 +181,7 @@ export async function createRazorpayOrder({
 
   // Use DB-verified IDs from here on
   const verifiedIds = courses.map((c) => c.id)
-  const kinds = courses.map(classifyCourse)
+  const kinds = courses.map(classifyCoursePricing)
   if (kinds.includes("free")) {
     throw new BadRequestError("Free courses must be enrolled through free enrollment.")
   }
@@ -658,7 +647,7 @@ export async function enrollFreeCourses({
     throw new NotFoundError("No matching courses found")
   }
 
-  const kinds = courses.map(classifyCourse)
+  const kinds = courses.map(classifyCoursePricing)
   if (kinds.includes("paid")) {
     throw new BadRequestError("One or more selected courses are not free")
   }

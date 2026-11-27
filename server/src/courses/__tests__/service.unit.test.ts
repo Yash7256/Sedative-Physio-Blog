@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { BadRequestError } from "../../lib/errors.js"
+import { BadRequestError, ConflictError } from "../../lib/errors.js"
 import { decodeCursor, DEFAULT_PAGE_SIZE } from "../../lib/pagination.js"
 
 const prismaMock = vi.hoisted(() => ({
@@ -9,10 +9,20 @@ const prismaMock = vi.hoisted(() => ({
 
 vi.mock("../../lib/prisma.js", () => ({ prisma: prismaMock }))
 
-import { listCourses } from "../service.js"
+import {
+  getCourseBySlug,
+  listCourses,
+  MAX_DETAIL_LESSONS_PER_SECTION,
+  MAX_DETAIL_LESSONS_TOTAL,
+  MAX_DETAIL_SECTIONS,
+} from "../service.js"
 
 const createdAt = new Date("2026-01-01T00:00:00.000Z")
-const rows = (count: number) => Array.from({ length: count }, (_, index) => ({ id: `c${index + 1}` }))
+const rows = (count: number) => Array.from({ length: count }, (_, index) => ({
+  id: `c${index + 1}`,
+  isFree: true,
+  price: 0,
+}))
 
 beforeEach(() => {
   prismaMock.course.findMany.mockReset()
@@ -63,5 +73,69 @@ describe("listCourses cursor pagination", () => {
 
     await expect(listCourses({ limit: 12, cursorId: "gone" })).rejects.toBeInstanceOf(BadRequestError)
     expect(prismaMock.course.findMany).not.toHaveBeenCalled()
+  })
+
+  it("refuses to publish a course with inconsistent pricing", async () => {
+    prismaMock.course.findMany.mockResolvedValue([{ id: "bad", isFree: true, price: 500 }])
+
+    await expect(listCourses({ limit: 12, cursorId: null })).rejects.toBeInstanceOf(ConflictError)
+  })
+})
+
+describe("getCourseBySlug payload bounds", () => {
+  it("bounds sections, lessons per section and the total lesson count", async () => {
+    const sections = Array.from({ length: MAX_DETAIL_SECTIONS + 3 }, (_, sectionIndex) => ({
+      id: `s${sectionIndex}`,
+      title: `Section ${sectionIndex}`,
+      description: null,
+      order: sectionIndex,
+      lessons: Array.from({ length: MAX_DETAIL_LESSONS_PER_SECTION + 2 }, (_, lessonIndex) => ({
+        id: `l${sectionIndex}-${lessonIndex}`,
+        title: `Lesson ${lessonIndex}`,
+        slug: `lesson-${lessonIndex}`,
+        type: "VIDEO",
+        duration: 10,
+        isPreview: false,
+      })),
+    }))
+    prismaMock.course.findFirst.mockResolvedValue({
+      id: "c1",
+      title: "Course",
+      slug: "course",
+      shortDescription: null,
+      thumbnail: null,
+      level: "Beginner",
+      language: "English",
+      estimatedHours: null,
+      highlights: [],
+      price: 0,
+      isFree: true,
+      tutor: null,
+      sections,
+    })
+
+    const detail = await getCourseBySlug("course")
+
+    expect(prismaMock.course.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      select: expect.objectContaining({
+        sections: expect.objectContaining({
+          take: MAX_DETAIL_SECTIONS,
+          select: expect.objectContaining({
+            lessons: expect.objectContaining({
+              where: { isPublished: true },
+              take: MAX_DETAIL_LESSONS_PER_SECTION,
+            }),
+          }),
+        }),
+      }),
+    }))
+    expect(detail?.sections).toHaveLength(MAX_DETAIL_SECTIONS)
+    expect(detail?.sections.reduce((total, section) => total + section.lessons.length, 0)).toBe(MAX_DETAIL_LESSONS_TOTAL)
+  })
+
+  it("still returns null for an unknown published course", async () => {
+    prismaMock.course.findFirst.mockResolvedValue(null)
+
+    await expect(getCourseBySlug("missing")).resolves.toBeNull()
   })
 })

@@ -9,6 +9,7 @@ const hooks = vi.hoisted(() => ({
   useCourseList: vi.fn(),
   useNoteList: vi.fn(),
   useModelList: vi.fn(),
+  useCourseDetail: () => ({ data: undefined, isPending: false, error: null }),
 }))
 
 vi.mock("@/lib/resources-queries", async (importOriginal) => ({
