@@ -3,9 +3,16 @@ import { BadRequestError } from "./errors.js"
 export const DEFAULT_PAGE_SIZE = 12
 export const MAX_PAGE_SIZE = 50
 
+export interface Cursor {
+  id: string
+  /** `null` identifies a legacy id-only cursor that still needs a row lookup. */
+  createdAt: Date | null
+}
+
 export interface PageRequest {
   limit: number
   cursorId: string | null
+  cursorCreatedAt?: Date | null
 }
 
 export interface Page<T> {
@@ -15,27 +22,43 @@ export interface Page<T> {
 
 interface CursorPayload {
   id: string
+  createdAt?: string
+}
+
+interface CursorRow {
+  id: string
+  createdAt: Date
 }
 
 /**
- * Opaque cursor: base64url(JSON.stringify({ id })). Encoding the id keeps the
- * wire format extensible — a future sort can add its sort values to the JSON
- * without changing the query-string contract.
+ * Opaque cursor: base64url(JSON.stringify({ id, createdAt })). Carrying the
+ * sort timestamp makes a page independent of its anchor row still existing.
+ * The older `{ id }` shape remains readable while those cursors are in flight.
  */
-export function encodeCursor(id: string): string {
-  return Buffer.from(JSON.stringify({ id } satisfies CursorPayload), "utf8").toString("base64url")
+export function encodeCursor(row: CursorRow | string): string {
+  const payload: CursorPayload = typeof row === "string"
+    ? { id: row }
+    : { id: row.id, createdAt: row.createdAt.toISOString() }
+  return Buffer.from(JSON.stringify(payload satisfies CursorPayload), "utf8").toString("base64url")
 }
 
-export function decodeCursor(value: unknown): string {
+export function decodeCursor(value: unknown): Cursor {
   if (typeof value !== "string" || value.length === 0 || value.length > 256) {
     throw new BadRequestError("Invalid cursor")
   }
   try {
     const parsed: unknown = JSON.parse(Buffer.from(value, "base64url").toString("utf8"))
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error("bad payload")
-    const { id } = parsed as Partial<CursorPayload>
+    const { id, createdAt } = parsed as Partial<CursorPayload>
     if (typeof id !== "string" || id.length === 0 || id.length > 64) throw new Error("bad id")
-    return id
+
+    if (createdAt === undefined) return { id, createdAt: null }
+    if (typeof createdAt !== "string" || createdAt.length > 40) throw new Error("bad timestamp")
+    const timestamp = new Date(createdAt)
+    if (!Number.isFinite(timestamp.getTime()) || timestamp.toISOString() !== createdAt) {
+      throw new Error("bad timestamp")
+    }
+    return { id, createdAt: timestamp }
   } catch {
     throw new BadRequestError("Invalid cursor")
   }
@@ -53,11 +76,18 @@ export function parsePageRequest(query: Record<string, unknown>): PageRequest {
   }
 
   const rawCursor = query["cursor"]
-  return { limit, cursorId: rawCursor === undefined ? null : decodeCursor(rawCursor) }
+  if (rawCursor === undefined) return { limit, cursorId: null }
+
+  const cursor = decodeCursor(rawCursor)
+  return {
+    limit,
+    cursorId: cursor.id,
+    ...(cursor.createdAt ? { cursorCreatedAt: cursor.createdAt } : {}),
+  }
 }
 
 /** Keyset for `orderBy [{ createdAt: "desc" }, { id: "desc" }]`. */
-export function olderThan(cursor: { createdAt: Date; id: string }) {
+export function olderThan(cursor: CursorRow) {
   return {
     OR: [
       { createdAt: { lt: cursor.createdAt } },
@@ -66,9 +96,23 @@ export function olderThan(cursor: { createdAt: Date; id: string }) {
   }
 }
 
-/** `take: limit + 1` gives a cheap lookahead; the extra row is never returned. */
-export function pageResult<T extends { id: string }>(rows: T[], limit: number): Page<T> {
-  if (rows.length <= limit) return { items: rows, nextCursor: null }
-  const items = rows.slice(0, limit)
-  return { items, nextCursor: encodeCursor(items[items.length - 1]!.id) }
+/**
+ * `take: limit + 1` gives a cheap lookahead; the extra row is never returned.
+ * Callers that publish `createdAt` (models) pass an identity mapper.
+ */
+export function pageResult<T extends CursorRow>(rows: T[], limit: number): Page<Omit<T, "createdAt">>
+export function pageResult<T extends CursorRow, R>(rows: T[], limit: number, mapItem: (row: T) => R): Page<R>
+export function pageResult<T extends CursorRow, R>(
+  rows: T[],
+  limit: number,
+  mapItem?: (row: T) => R,
+): Page<R | Omit<T, "createdAt">> {
+  const kept = rows.length <= limit ? rows : rows.slice(0, limit)
+  const items = mapItem
+    ? kept.map(mapItem)
+    : kept.map(({ createdAt: _createdAt, ...rest }) => rest as Omit<T, "createdAt">)
+  return {
+    items,
+    nextCursor: rows.length <= limit ? null : encodeCursor(kept[kept.length - 1]!),
+  }
 }

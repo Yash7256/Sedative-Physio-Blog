@@ -32,7 +32,8 @@ describe("shared catalog versions", () => {
     const loader = vi.fn(async () => ({ items: [{ id: "c1" }], nextCursor: null }))
 
     await withServer(buildApp(reader, loader), async (base) => {
-      await fetch(`${base}/api/courses`)
+      const first = await fetch(`${base}/api/courses`)
+      expect(first.headers.get("x-catalog-version-store")).toBeNull()
       expect(loader).toHaveBeenCalledTimes(1)
       expect(reader.version("courses")).toBe(0)
 
@@ -65,6 +66,8 @@ describe("shared catalog versions", () => {
       const second = await fetch(`${base}/api/courses`)
       expect(first.status).toBe(200)
       expect(second.status).toBe(200)
+      expect(first.headers.get("x-catalog-version-store")).toBe("local-fallback")
+      expect(second.headers.get("x-catalog-version-store")).toBe("local-fallback")
       expect(loader).toHaveBeenCalledTimes(1)
       expect(cache.version("courses")).toBe(0)
     })

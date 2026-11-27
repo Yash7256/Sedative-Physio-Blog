@@ -11,12 +11,12 @@ export const modelsRouter = Router()
 // GET /api/models — list all uploaded 3D models
 modelsRouter.get(
   "/",
-  catalogListLimiter,
   catalogCache.middleware({
     catalog: "models",
     policy: CATALOG_CACHE_POLICY,
     allowedParams: ["limit", "cursor"],
   }),
+  catalogListLimiter,
   async (req, res) => {
     try {
       const page = await listModels(parsePageRequest(req.query))

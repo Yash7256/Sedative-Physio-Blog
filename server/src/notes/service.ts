@@ -1,5 +1,6 @@
-import { prisma } from "../lib/prisma.js"
+import { withDeadline } from "../lib/deadline.js"
 import { BadRequestError, NotFoundError, ServiceUnavailableError } from "../lib/errors.js"
+import { prisma } from "../lib/prisma.js"
 import {
   DEFAULT_PAGE_SIZE,
   olderThan,
@@ -41,28 +42,34 @@ export async function listNotes(
   category?: string,
   pageRequest: PageRequest = { limit: DEFAULT_PAGE_SIZE, cursorId: null },
 ): Promise<Page<NoteSummary>> {
-  const anchor = pageRequest.cursorId
-    ? await prisma.note.findFirst({
-        where: {
-          id: pageRequest.cursorId,
-          ...VISIBLE_NOTE,
-          ...(category ? { category } : {}),
-        },
-        select: { createdAt: true },
-      })
-    : null
-  if (pageRequest.cursorId && !anchor) throw new BadRequestError("Invalid cursor")
+  const cursorId = pageRequest.cursorId
+  let cursorCreatedAt = pageRequest.cursorCreatedAt ?? null
+  if (cursorId && !cursorCreatedAt) {
+    const anchor = await withDeadline(prisma.note.findFirst({
+      where: {
+        id: cursorId,
+        ...VISIBLE_NOTE,
+        ...(category ? { category } : {}),
+      },
+      select: { createdAt: true },
+    }))
+    if (!anchor) throw new BadRequestError("Invalid cursor")
+    cursorCreatedAt = anchor.createdAt
+  }
 
-  const rows = await prisma.note.findMany({
+  const rows = await withDeadline(prisma.note.findMany({
     where: {
       ...VISIBLE_NOTE,
       ...(category ? { category } : {}),
-      ...(anchor ? olderThan({ createdAt: anchor.createdAt, id: pageRequest.cursorId! }) : {}),
+      ...(cursorId && cursorCreatedAt
+        ? olderThan({ createdAt: cursorCreatedAt, id: cursorId })
+        : {}),
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: pageRequest.limit + 1,
     select: {
       id: true,
+      createdAt: true,
       title: true,
       description: true,
       tag: true,
@@ -72,15 +79,15 @@ export async function listNotes(
       fileName: true,
       fileSize: true,
     },
-  })
+  }))
   return pageResult(rows, pageRequest.limit)
 }
 
 export async function getNoteFile(id: string): Promise<NoteFile> {
-  const note = await prisma.note.findFirst({
+  const note = await withDeadline(prisma.note.findFirst({
     where: { id, ...VISIBLE_NOTE },
     select: { fileKey: true, fileName: true, fileSize: true, updatedAt: true },
-  })
+  }))
   if (!note) throw new NotFoundError("Note not found")
   assertStorageConfigured()
   if (!note.fileKey) throw new NotFoundError("Note file not found")
