@@ -16,6 +16,7 @@ import {
 import { SmartImage } from "./SmartImage"
 import {
   coursePricingLabel,
+  coursePreviewImage,
   isSafeCatalogImageUrl,
   type CourseLesson,
   type CourseSection,
@@ -95,7 +96,7 @@ export function CourseDetailModal({ open, onClose, slug }: CourseDetailModalProp
     ? error instanceof Error ? error.message : "Could not load course"
     : null
   const pricingLabel = course ? coursePricingLabel(course) : null
-  const thumbnail = course && isSafeCatalogImageUrl(course.thumbnail) ? course.thumbnail : null
+  const thumbnail = course ? coursePreviewImage(course) : null
   const tutorImage = course?.tutor && isSafeCatalogImageUrl(course.tutor.image)
     ? course.tutor.image
     : null

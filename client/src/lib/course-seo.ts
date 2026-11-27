@@ -1,3 +1,4 @@
+import { courseCloudinaryImage } from "./cloudinary"
 import type { CourseDetail } from "./resources"
 
 const SITE_NAME = "Sedative Physio"
@@ -67,7 +68,7 @@ export function applyCourseSeo(course: CourseDetail, origin = window.location.or
   document.title = `${escapeTitleText(course.title)} | ${SITE_NAME}`
   const siteOrigin = normalizeOrigin(origin)
   const canonical = siteOrigin ? `${siteOrigin}/courses/${encodeURIComponent(course.slug)}` : null
-  const image = safeSeoImage(course.thumbnail, siteOrigin)
+  const image = courseCloudinaryImage(course.slug) ?? safeSeoImage(course.thumbnail, siteOrigin)
   const created: Element[] = []
 
   const meta = (marker: string, attribute: "name" | "property", key: string, value: string) =>

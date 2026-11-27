@@ -48,7 +48,14 @@ export function createApp() {
   // own X-Forwarded-For and spoof its way past the limiters.
   app.set("trust proxy", 1)
 
-  app.use(helmet())
+  app.use(helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+      },
+    },
+  }))
   app.use(
     cors({
       origin: ALLOWED_ORIGINS,

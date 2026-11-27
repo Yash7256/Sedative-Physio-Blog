@@ -9,7 +9,7 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { Cart } from "../Cart"
 
@@ -85,10 +85,11 @@ vi.mock("@/components/PaymentSuccessModal", () => ({
 }))
 
 vi.mock("@/components/SmartImage", () => ({
-  SmartImage: (props: { alt: string }) => <img alt={props.alt} />,
+  SmartImage: (props: { src: string; alt: string }) => <img src={props.src} alt={props.alt} />,
 }))
 
-vi.mock("@/lib/resources", () => ({
+vi.mock("@/lib/resources", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/resources")>(),
   formatPrice: (price: number, isFree: boolean) => isFree || price === 0 ? "Free" : `₹${(price / 100).toFixed(2)}`,
 }))
 
@@ -122,6 +123,10 @@ function renderCart() {
 
 const checkoutButton = () =>
   screen.getByRole("button", { name: /proceed to checkout|enroll for free/i })
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -203,6 +208,19 @@ describe("handleCheckout — free-enroll failure after successful payment", () =
 })
 
 describe("cart course details", () => {
+  it("uses the Cloudinary preview for each cart thumbnail", () => {
+    vi.stubEnv("VITE_CLOUDINARY_CLOUD_NAME", "demo")
+    cartState.items = [makePaidItem()]
+    cartState.total = 49900
+
+    renderCart()
+
+    expect(screen.getByAltText("Paid Course")).toHaveAttribute(
+      "src",
+      "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_fill,w_1200,h_675/courses/paid-course",
+    )
+  })
+
   it("uses the shared course detail query only while details are expanded", async () => {
     cartState.items = [makeFreeItem(), makePaidItem()]
     cartState.total = 49900

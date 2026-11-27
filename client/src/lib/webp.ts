@@ -1,5 +1,6 @@
 const WEBP_RE = /\.webp(\?|#|$)/i
 const SVG_RE = /\.svg(\?|#|$)/i
+const CLOUDINARY_RE = /^https:\/\/res\.cloudinary\.com\//i
 const HTTP_RE = /^https?:\/\//i
 const LOCAL_RASTER_RE = /\.(png|jpe?g|gif|bmp|tif{1,2})(\?|#|$)/i
 
@@ -8,6 +9,8 @@ const LOCAL_RASTER_RE = /\.(png|jpe?g|gif|bmp|tif{1,2})(\?|#|$)/i
  *
  * - data: URIs and SVG stay untouched (no raster wrapper needed for vector art).
  * - Already-WebP sources pass through unchanged.
+ * - Cloudinary URLs keep their own f_auto/q_auto transformations and are not
+ *   routed through the local converter.
  * - Remote raster images are routed through the on-demand converter at
  *   /api/images, which re-encodes them as WebP regardless of the stored format.
  * - Same-origin raster paths are resolved to the pre-converted `.webp` build
@@ -16,7 +19,7 @@ const LOCAL_RASTER_RE = /\.(png|jpe?g|gif|bmp|tif{1,2})(\?|#|$)/i
 export function webpSrc(src: string | null | undefined): string {
   const value = src ?? ""
   if (!value || value.startsWith("data:")) return value
-  if (WEBP_RE.test(value) || SVG_RE.test(value)) return value
+  if (WEBP_RE.test(value) || SVG_RE.test(value) || CLOUDINARY_RE.test(value)) return value
   if (HTTP_RE.test(value)) {
     return `/api/images?src=${encodeURIComponent(value)}`
   }

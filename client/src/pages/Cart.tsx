@@ -33,6 +33,7 @@ import {
 import { PaymentSuccessModal } from "../components/PaymentSuccessModal"
 import { SmartImage } from "../components/SmartImage"
 import {
+  coursePreviewImage,
   type CourseLesson,
   type CourseSection,
   type LessonType,
@@ -441,6 +442,7 @@ export function Cart() {
           <section className="min-w-0 space-y-6">
             {items.map((item) => {
               const isExpanded = !!expandedMap[item.id]
+              const preview = coursePreviewImage(item)
 
               return (
                 <div key={item.id}>
@@ -448,8 +450,8 @@ export function Cart() {
                     <div className="flex gap-4 p-4 sm:gap-5 sm:p-5">
                       {/* Thumbnail */}
                       <div className="relative aspect-[16/10] w-[120px] shrink-0 overflow-hidden rounded-xl bg-[#dedfdd] sm:w-[160px]">
-                        {item.thumbnail ? (
-                          <SmartImage src={item.thumbnail} alt={item.title} className="h-full w-full object-cover" />
+                        {preview ? (
+                          <SmartImage src={preview} alt={item.title} className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full flex-col items-center justify-center bg-[#111214]">
                             <GraduationCap className="size-8 text-white/30" />

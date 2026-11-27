@@ -23,6 +23,7 @@ vi.mock("../analytics", async (importOriginal) => ({
 
 import { DEFAULT_QUERY_TIMEOUT_MS } from "../queryClient"
 import {
+  coursePreviewImage,
   courseToResource,
   fetchCourseDetail,
   fetchCourses,
@@ -55,6 +56,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllEnvs()
 })
 
 describe("shared course price formatting", () => {
@@ -99,6 +101,20 @@ describe("course image URL safety", () => {
       estimatedHours: null, price: 0, isFree: true,
     }
     expect(courseToResource(course).image).toBe("/mockup/course.png")
+  })
+
+  it("uses a Cloudinary public ID before any stored thumbnail", () => {
+    vi.stubEnv("VITE_CLOUDINARY_CLOUD_NAME", "demo")
+    const course = {
+      id: "c1", title: "Course", slug: "course", shortDescription: null,
+      thumbnail: "https://images.unsplash.com/photo-1?w=400", level: "beginner", language: "English",
+      estimatedHours: null, price: 0, isFree: true,
+    }
+
+    expect(coursePreviewImage(course)).toBe(
+      "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_fill,w_1200,h_675/courses/course",
+    )
+    expect(courseToResource(course).image).toBe(coursePreviewImage(course))
   })
 })
 

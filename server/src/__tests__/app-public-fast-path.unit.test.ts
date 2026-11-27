@@ -75,6 +75,15 @@ describe("public catalog fast path", () => {
     })
   })
 
+  it("allows Cloudinary course art in the enforced image policy", async () => {
+    await withServer(createApp(), async (base) => {
+      const res = await fetch(`${base}/api/courses`)
+      const policy = res.headers.get("content-security-policy") ?? ""
+
+      expect(policy).toContain("img-src 'self' data: https://res.cloudinary.com")
+    })
+  })
+
   it("serves note previews without invoking Clerk", async () => {
     mocks.getNoteFile.mockRejectedValueOnce(new NotFoundError("Note not found"))
 
