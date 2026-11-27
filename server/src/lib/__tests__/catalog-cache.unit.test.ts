@@ -21,7 +21,11 @@ function buildApp(
   app.set("etag", false)
   app.use(noStore())
   app.get(`/api/${catalog}`, cache.middleware({ catalog, policy: CATALOG_CACHE_POLICY, allowedParams }), async (_req, res) => {
-    res.json(await loader())
+    try {
+      res.json(await loader())
+    } catch {
+      res.status(503).json({ error: "Catalog data is temporarily unavailable." })
+    }
   })
   return app
 }
@@ -163,6 +167,64 @@ describe("catalog response cache", () => {
       await delay(25)
       await fetch(`${base}/api/models`)
       expect(loader).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it("serves a stale entry when the refresh fails instead of surfacing a 5xx", async () => {
+    const staleBody = { items: [{ id: "c1" }], nextCursor: null }
+    const loader = vi.fn<() => Promise<typeof staleBody>>()
+      .mockResolvedValueOnce(staleBody)
+      .mockRejectedValueOnce(new Error("db down"))
+    const cache = createCatalogCache(10)
+    const app = buildApp(cache, "courses", loader)
+
+    await withServer(app, async (base) => {
+      expect((await fetch(`${base}/api/courses`)).status).toBe(200)
+      await delay(25)
+
+      const fallback = await fetch(`${base}/api/courses`)
+      expect(fallback.status).toBe(200)
+      expect(fallback.headers.get("cache-control")).toBe("no-store, private")
+      expect(fallback.headers.get("x-catalog-stale")).toBe("fallback")
+      expect(await fallback.json()).toEqual(staleBody)
+      expect(loader).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it("shares a non-cacheable stale fallback with concurrent waiters", async () => {
+    const staleBody = { items: [{ id: "c1" }], nextCursor: null }
+    let rejectLoad!: (reason?: unknown) => void
+    const loader = vi.fn<() => Promise<typeof staleBody>>()
+      .mockResolvedValueOnce(staleBody)
+      .mockImplementationOnce(() => new Promise((_resolve, reject) => {
+        rejectLoad = reject
+      }))
+      .mockRejectedValue(new Error("db down"))
+    const cache = createCatalogCache(10)
+    const app = buildApp(cache, "courses", loader)
+
+    await withServer(app, async (base) => {
+      expect((await fetch(`${base}/api/courses`)).status).toBe(200)
+      await delay(25)
+
+      const leader = fetch(`${base}/api/courses`)
+      await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(2))
+      const waiter = fetch(`${base}/api/courses`)
+      await delay(10)
+      rejectLoad(new Error("db down"))
+
+      const responses = await Promise.all([leader, waiter])
+      for (const response of responses) {
+        expect(response.status).toBe(200)
+        expect(response.headers.get("cache-control")).toBe("no-store, private")
+        expect(response.headers.get("x-catalog-stale")).toBe("fallback")
+        expect(await response.json()).toEqual(staleBody)
+      }
+      expect(loader).toHaveBeenCalledTimes(2)
+
+      expect((await fetch(`${base}/api/courses`)).headers.get("x-catalog-stale"))
+        .toBe("fallback")
+      expect(loader).toHaveBeenCalledTimes(3)
     })
   })
 
