@@ -29,18 +29,18 @@ function segments(header: string | null): string[] {
 }
 
 describe("catalog Server-Timing", () => {
-  it("emits a load segment only on a cache miss", async () => {
+  it("emits version, cache and load segments on a cache miss", async () => {
     const loader = vi.fn(async () => ({ items: [{ id: "c1" }], nextCursor: null }))
     const app = buildApp(loader)
 
     await withServer(app, async (base) => {
       const miss = await fetch(`${base}/api/courses`)
       expect(miss.status).toBe(200)
-      expect(segments(miss.headers.get("server-timing"))).toEqual(["cache", "load"])
+      expect(segments(miss.headers.get("server-timing"))).toEqual(["version", "cache", "load"])
 
       const hit = await fetch(`${base}/api/courses`)
       expect(hit.status).toBe(200)
-      expect(segments(hit.headers.get("server-timing"))).toEqual(["cache"])
+      expect(segments(hit.headers.get("server-timing"))).toEqual(["version", "cache"])
       expect(loader).toHaveBeenCalledTimes(1)
     })
   })
@@ -55,7 +55,7 @@ describe("catalog Server-Timing", () => {
       const second = await fetch(`${base}/api/courses`, { headers: { "If-None-Match": etag } })
 
       expect(second.status).toBe(304)
-      expect(segments(second.headers.get("server-timing"))).toEqual(["cache"])
+      expect(segments(second.headers.get("server-timing"))).toEqual(["version", "cache"])
       expect(loader).toHaveBeenCalledTimes(1)
     })
   })
@@ -63,10 +63,14 @@ describe("catalog Server-Timing", () => {
   it("formats durations without echoing configuration or user data", () => {
     const hit = serverTimingHeader(0.25)
     const miss = serverTimingHeader(0.25, 4.125)
+    const withVersion = serverTimingHeader(0.25, 4.125, 1.5)
 
     expect(hit).toMatch(/^cache;dur=0\.250;desc="catalog lookup"$/)
     expect(miss).toMatch(/^cache;dur=0\.250;desc="catalog lookup", load;dur=4\.125;desc="catalog load"$/)
-    expect(miss).not.toMatch(/pk_|sk_|user_|Bearer|@/)
+    expect(withVersion).toMatch(
+      /^version;dur=1\.500;desc="catalog version", cache;dur=0\.250;desc="catalog lookup", load;dur=4\.125;desc="catalog load"$/,
+    )
+    expect(withVersion).not.toMatch(/pk_|sk_|user_|Bearer|@/)
   })
 
   it("allows timing only for configured origins", async () => {

@@ -70,6 +70,28 @@ describe("shared catalog versions", () => {
     })
   })
 
+  it("warns generically when a version read fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+    const brokenRedis = {
+      get: vi.fn(async () => {
+        throw new Error("redis down with a very private detail")
+      }),
+      multi: vi.fn(() => {
+        throw new Error("redis down with a very private detail")
+      }),
+    }
+    const cache = createCatalogCache(60_000, { redis: brokenRedis as any, versionTtlMs: 0 })
+
+    await withServer(buildApp(cache, async () => ({ items: [], nextCursor: null })), async (base) => {
+      expect((await fetch(`${base}/api/courses`)).status).toBe(200)
+    })
+
+    const logged = JSON.stringify(warn.mock.calls)
+    warn.mockRestore()
+    expect(logged).toMatch(/version store/i)
+    expect(logged).not.toMatch(/private detail|UPSTASH_|catalog:version/)
+  })
+
   it("refuses a shared bump when Redis is unavailable", async () => {
     const brokenRedis = {
       multi: vi.fn(() => {

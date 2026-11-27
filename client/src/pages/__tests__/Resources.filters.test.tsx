@@ -111,7 +111,7 @@ describe("resource filter selection", () => {
     renderResources()
 
     expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: true, filter: "courses" })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: false, filter: "courses", category: "notes" })
     expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false, filter: "courses" })
   })
 
@@ -123,7 +123,7 @@ describe("resource filter selection", () => {
     act(() => { vi.advanceTimersByTime(200) })
 
     expect(lastEnabled(hooks.useCourseList)).toEqual({ enabled: false, filter: "notes" })
-    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes" })
+    expect(lastEnabled(hooks.useNoteList)).toEqual({ enabled: true, filter: "notes", category: "notes" })
     expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false, filter: "notes" })
   })
 
@@ -137,5 +137,16 @@ describe("resource filter selection", () => {
 
     expect(lastEnabled(hooks.useModelList)).toEqual({ enabled: false, filter: "3d-models" })
     expect(screen.getByText(/coming soon to Sedative Physio/i)).toBeInTheDocument()
+  })
+
+  it("marks only the selected filter as pressed", () => {
+    renderResources()
+
+    const buttons = filterRegion().getAllByRole("button")
+    expect(buttons.map((button) => button.getAttribute("aria-pressed"))).toEqual(["true", "false", "false"])
+
+    fireEvent.click(filterRegion().getByRole("button", { name: "Notes" }))
+
+    expect(filterRegion().getAllByRole("button").map((button) => button.getAttribute("aria-pressed"))).toEqual(["false", "false", "true"])
   })
 })

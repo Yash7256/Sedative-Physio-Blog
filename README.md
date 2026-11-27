@@ -56,4 +56,19 @@ The purge endpoint fails closed unless these are configured in the environment:
 | `VERCEL_PROJECT_ID` (or `VERCEL_PROJECT_NAME`) | Target Vercel project |
 | `VERCEL_TEAM_ID` | Optional team id when the project belongs to a team |
 
-With more than one API instance the version counters should move to Redis.
+Catalog versions are already shared in Upstash Redis; each API instance refreshes its local copy at most once per second, so a purge converges across instances. See `docs/security.md` for the required variables and `docs/api-latency.md` for staleness and timing details.
+
+## Note files
+
+`GET /api/notes` is a public, cached catalog. Note files are not: `GET /api/notes/:id/download` and `GET /api/notes/:id/file` require a Clerk session, and file reads require the R2 configuration listed in `docs/security.md`. The client downloads through the same-origin `GET /api/notes/:id/file?download=1` endpoint, so the browser never needs direct R2 access.
+
+## Deploy verification
+
+CI runs the checks and then builds both packages. Mirror the build steps before deploying:
+
+```bash
+npm run check:deploy
+npm run test:deps
+npm --prefix server run typecheck && npm --prefix server run lint && npm --prefix server test && npm --prefix server run build
+npm --prefix client run lint && npm --prefix client test && npm --prefix client run build
+```

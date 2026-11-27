@@ -177,6 +177,15 @@ describe("rate-limit (F-08)", () => {
   })
 
 
+  it("normalizes IPv6 addresses in shared key generators", async () => {
+    const { catalogIpKey } = await import("../rate-limit.js")
+    const { ipKeyGenerator } = await import("express-rate-limit")
+    const address = "2001:db8:abcd:1234::1"
+
+    expect(catalogIpKey({ ip: address } as any)).toBe(`catalog:${ipKeyGenerator(address)}`)
+    expect(catalogIpKey({ ip: address } as any)).not.toContain(address)
+  })
+
   // Build the needle so this guard does not flag its own source file.
   const directCall = "rate" + "Limit("
   it(`no direct ${directCall} outside lib/rate-limit.ts`, async () => {

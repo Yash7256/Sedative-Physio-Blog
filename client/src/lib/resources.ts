@@ -1,4 +1,5 @@
 import { ApiError, apiFetch, apiJson, type ApiFetchInit } from "./api"
+import { DEFAULT_QUERY_TIMEOUT_MS } from "./queryClient"
 
 export type ResourceCategory = "notes" | "3d-models" | "courses" | "journals"
 
@@ -111,6 +112,13 @@ export interface ResourcePageOptions extends ResourceFetchOptions {
   category?: string
 }
 
+/** Format a price stored in paise exactly like the resource cards do. */
+export function formatCoursePrice(paise: number | undefined): string {
+  if (!paise) return "Free"
+  const rupees = paise / 100
+  return `₹${rupees.toFixed(Number.isInteger(rupees) ? 0 : 2)}`
+}
+
 /** Keep the opaque cursor in the query string; never pass it through as a fetch option. */
 function pagePath(path: string, { cursor, limit, category }: Omit<ResourcePageOptions, keyof ResourceFetchOptions>): string {
   const params = new URLSearchParams()
@@ -121,20 +129,39 @@ function pagePath(path: string, { cursor, limit, category }: Omit<ResourcePageOp
   return query ? `${path}?${query}` : path
 }
 
+function assertResourcePage<T>(body: unknown): ResourcePage<T> {
+  const page = body as Partial<ResourcePage<T>> | null
+  if (!page || typeof page !== "object" || !Array.isArray(page.items) ||
+      !(page.nextCursor === null || typeof page.nextCursor === "string")) {
+    throw new ApiError(502, "Unexpected catalog response")
+  }
+  return page as ResourcePage<T>
+}
+
+async function fetchResourcePage<T>(path: string, options: ResourceFetchOptions): Promise<ResourcePage<T>> {
+  return assertResourcePage<T>(await apiJson<unknown>(path, options))
+}
+
 /** Fetch a page of published notes from the backend. */
 export async function fetchNotes({ cursor, limit, category, ...options }: ResourcePageOptions = {}): Promise<ResourcePage<NoteSummary>> {
-  return apiJson<ResourcePage<NoteSummary>>(pagePath("/api/notes", { cursor, limit, category }), options)
+  return fetchResourcePage<NoteSummary>(pagePath("/api/notes", { cursor, limit, category }), options)
 }
 
 /** Request a presigned download URL for a note's R2 file. */
-export async function fetchNoteDownload(id: string): Promise<{ fileName: string; url: string }> {
-  return apiJson<{ fileName: string; url: string }>(`/api/notes/${id}/download`)
+export async function fetchNoteDownload(id: string, options: ResourceFetchOptions = {}): Promise<{ fileName: string; url: string }> {
+  return apiJson<{ fileName: string; url: string }>(`/api/notes/${encodeURIComponent(id)}/download`, {
+    timeoutMs: DEFAULT_QUERY_TIMEOUT_MS,
+    ...options,
+  })
 }
 
 /** Trigger a browser download of the note PDF as a same-origin attachment. */
-export async function downloadNoteFile(id: string, fallbackName: string): Promise<void> {
+export async function downloadNoteFile(id: string, fallbackName: string, options: ResourceFetchOptions = {}): Promise<void> {
   const safeName = fallbackName.trim().endsWith(".pdf") ? fallbackName.trim() : `${fallbackName.trim()}.pdf`
-  const res = await apiFetch(`/api/notes/${id}/file?download=1`)
+  const res = await apiFetch(`/api/notes/${encodeURIComponent(id)}/file?download=1`, {
+    timeoutMs: DEFAULT_QUERY_TIMEOUT_MS,
+    ...options,
+  })
   const blob = await res.blob()
   const objectUrl = URL.createObjectURL(blob)
   const a = document.createElement("a")
@@ -148,12 +175,12 @@ export async function downloadNoteFile(id: string, fallbackName: string): Promis
 
 /** Fetch a page of uploaded 3D models from the backend. */
 export async function fetchModels({ cursor, limit, ...options }: ResourcePageOptions = {}): Promise<ResourcePage<ModelSummary>> {
-  return apiJson<ResourcePage<ModelSummary>>(pagePath("/api/models", { cursor, limit }), options)
+  return fetchResourcePage<ModelSummary>(pagePath("/api/models", { cursor, limit }), options)
 }
 
 /** Fetch a page of published courses from the backend. */
 export async function fetchCourses({ cursor, limit, ...options }: ResourcePageOptions = {}): Promise<ResourcePage<CourseSummary>> {
-  return apiJson<ResourcePage<CourseSummary>>(pagePath("/api/courses", { cursor, limit }), options)
+  return fetchResourcePage<CourseSummary>(pagePath("/api/courses", { cursor, limit }), options)
 }
 
 /**
@@ -175,9 +202,12 @@ export async function fetchAllCourses(options: ResourceFetchOptions = {}): Promi
 }
 
 /** Fetch a single course's details (syllabus + tutor) by slug. */
-export async function fetchCourseDetail(slug: string): Promise<CourseDetail> {
+export async function fetchCourseDetail(slug: string, options: ResourceFetchOptions = {}): Promise<CourseDetail> {
   try {
-    return await apiJson<CourseDetail>(`/api/courses/${encodeURIComponent(slug)}`)
+    return await apiJson<CourseDetail>(`/api/courses/${encodeURIComponent(slug)}`, {
+      timeoutMs: DEFAULT_QUERY_TIMEOUT_MS,
+      ...options,
+    })
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) throw new Error("Course not found")
     throw err

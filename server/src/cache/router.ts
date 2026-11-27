@@ -80,7 +80,8 @@ export async function purgeVercelCache(
     },
     body: JSON.stringify({
       tags: catalogs.map(catalogCacheTag),
-      target: "production",
+      // Preview deployments must purge their own edge cache, not production's.
+      target: env.VERCEL_ENV === "preview" ? "preview" : "production",
     }),
   })
 
@@ -129,7 +130,7 @@ export function createCacheRouter(options: CacheRouterOptions): Router {
       }
       res.json({ purged: catalogs, cdn: "purged" })
     } catch (err) {
-      handleError(err, res)
+      handleError(err, res, req)
     }
   })
 

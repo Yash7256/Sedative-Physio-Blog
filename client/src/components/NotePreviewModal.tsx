@@ -8,6 +8,7 @@ import {
   type PDFPageProxy,
 } from "pdfjs-dist"
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url"
+import { ApiError } from "../lib/api"
 import { downloadNoteFile } from "../lib/resources"
 
 GlobalWorkerOptions.workerSrc = workerUrl
@@ -139,7 +140,7 @@ export function NotePreviewModal({ open, onClose, noteId, noteTitle }: NotePrevi
     setScale(1)
     baseWidthRef.current = null
 
-    const task = getDocument({ url: `/api/notes/${noteId}/file` })
+    const task = getDocument({ url: `/api/notes/${encodeURIComponent(noteId)}/file` })
     loadingTaskRef.current = task
 
     task.promise
@@ -205,8 +206,10 @@ export function NotePreviewModal({ open, onClose, noteId, noteTitle }: NotePrevi
     if (!noteId) return
     try {
       await downloadNoteFile(noteId, noteTitle)
-    } catch {
-      setError("Could not start the download. Please try again.")
+    } catch (err) {
+      setError(err instanceof ApiError && err.isUnauthorized
+        ? "Sign in to download notes."
+        : "Could not start the download. Please try again.")
     }
   }
 

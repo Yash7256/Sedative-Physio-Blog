@@ -1,4 +1,5 @@
 import { Router } from "express"
+import { ipKeyGenerator } from "express-rate-limit"
 
 import { readAuthUserId } from "../../lib/clerk.js"
 import { handleError } from "../../lib/errors.js"
@@ -13,7 +14,7 @@ export const meRouter = Router()
 const MINUTE_MS = 60 * 1000
 
 function meKey(req: import("express").Request): string {
-  return `me:${readAuthUserId(req) ?? req.ip ?? "unknown"}`
+  return `me:${readAuthUserId(req) ?? ipKeyGenerator(req.ip ?? "unknown")}`
 }
 
 const readLimiter = createLimiter({
@@ -53,7 +54,7 @@ meRouter.get("/", requireAuth, readLimiter, (req, res) =>
 
       res.json(profile)
     } catch (err) {
-      handleError(err, res)
+      handleError(err, res, req)
     }
   }),
 )
@@ -87,6 +88,6 @@ meRouter.patch("/", requireAuth, updateLimiter, async (req, res) => {
     const profile = await updateAuthProfile(clerkUserId, updates)
     res.json(profile)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })

@@ -86,6 +86,6 @@ contactRouter.post("/", ipLimiter, emailLimiter, async (req, res) => {
 
     res.status(200).json({ success: true })
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })

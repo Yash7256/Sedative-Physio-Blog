@@ -1,6 +1,7 @@
 import { Router } from "express"
 import { getCourseBySlug, listCourses } from "./service.js"
 import { handleError } from "../lib/errors.js"
+import { catalogListLimiter } from "../lib/rate-limit.js"
 import { CATALOG_CACHE_POLICY, catalogCache } from "../lib/catalog-cache.js"
 import { parsePageRequest } from "../lib/pagination.js"
 
@@ -16,12 +17,12 @@ const listCache = catalogCache.middleware({
 const detailCache = catalogCache.middleware({ catalog: "courses", policy: CATALOG_CACHE_POLICY })
 
 // GET /api/courses — list published courses, cursor-paginated
-coursesRouter.get("/", listCache, async (req, res) => {
+coursesRouter.get("/", catalogListLimiter, listCache, async (req, res) => {
   try {
     const page = await listCourses(parsePageRequest(req.query))
     res.status(200).json(page)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
@@ -41,6 +42,6 @@ coursesRouter.get("/:slug", detailCache, async (req, res) => {
     }
     res.status(200).json(course)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })

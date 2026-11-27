@@ -25,6 +25,8 @@ vi.doMock("@clerk/express", () => ({
 
 vi.doMock("../auth/config.js", () => ({
   getAuthorizedParties: () => [],
+  getAllowedOrigins: () => ["http://localhost:5173"],
+  getClerkPublishableKey: () => undefined,
   assertProductionConfig: () => undefined,
 }))
 
@@ -78,8 +80,8 @@ describe("public catalog fast path", () => {
   it("still invokes Clerk for note files and admin routes", async () => {
     await withServer(createApp(), async (base) => {
       const download = await fetch(`${base}/api/notes/n1/download`)
-      expect(download.status).toBe(200)
-      expect(mocks.getDownload).toHaveBeenCalledTimes(1)
+      expect(download.status).toBe(401)
+      expect(mocks.getDownload).not.toHaveBeenCalled()
 
       const purge = await fetch(`${base}/api/cache/purge`, {
         method: "POST",

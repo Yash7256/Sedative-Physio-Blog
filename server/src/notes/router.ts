@@ -1,11 +1,21 @@
-import { Router } from "express"
-import { Readable } from "node:stream"
+import { Readable, Transform } from "node:stream"
+import { Router, type Request } from "express"
+
+import { requireAuth } from "../auth/middleware/require-auth.js"
+import { readAuthUserId } from "../lib/clerk.js"
+import { NO_STORE } from "../lib/cache.js"
+import { CATALOG_CACHE_POLICY, catalogCache } from "../lib/catalog-cache.js"
+import {
+  BadRequestError,
+  GatewayError,
+  handleError,
+  NotFoundError,
+  PayloadTooLargeError,
+} from "../lib/errors.js"
+import { parsePageRequest } from "../lib/pagination.js"
+import { catalogListLimiter, createLimiter } from "../lib/rate-limit.js"
 import { listNotes, getDownload, getNoteFile } from "./service.js"
 import { getObjectUrl } from "./r2.js"
-import { handleError } from "../lib/errors.js"
-import { fileEtag } from "../lib/cache.js"
-import { CATALOG_CACHE_POLICY, catalogCache } from "../lib/catalog-cache.js"
-import { parsePageRequest } from "../lib/pagination.js"
 
 /** Public catalog list. Mounted before Clerk so a cached list stays on the fast path. */
 export const notesPublicRouter = Router()
@@ -13,14 +23,81 @@ export const notesPublicRouter = Router()
 /** Note file routes. Kept behind Clerk so an auth change cannot make them public by accident. */
 export const notesRouter = Router()
 
+export const MAX_NOTE_FILE_BYTES = 25 * 1024 * 1024
+const MINUTE_MS = 60 * 1000
+
 const listCache = catalogCache.middleware({
   catalog: "notes",
   policy: CATALOG_CACHE_POLICY,
   allowedParams: ["category", "limit", "cursor"],
 })
 
+/** File routes run after requireAuth, so a user key never falls back to a raw IP. */
+function noteUserKey(req: Request): string {
+  return `note-user:${readAuthUserId(req) ?? "unknown"}`
+}
+
+function noteId(req: Request): string {
+  const id = req.params["id"]
+  if (typeof id !== "string" || !id) throw new BadRequestError("Invalid note id")
+  return id
+}
+
+const downloadLimiter = createLimiter({
+  prefix: "note-download",
+  windowMs: MINUTE_MS,
+  limit: 30,
+  keyGenerator: noteUserKey,
+  failClosed: true,
+})
+
+const fileLimiter = createLimiter({
+  prefix: "note-file",
+  windowMs: MINUTE_MS,
+  limit: 60,
+  keyGenerator: noteUserKey,
+  failClosed: true,
+})
+
+function noteFileTimeoutMs(env: NodeJS.ProcessEnv): number {
+  const parsed = Number(env.NOTE_FILE_TIMEOUT_MS ?? 30_000)
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 30_000
+}
+
+/** Overridable for local tests; production defaults to a conservative 25 MiB. */
+export function maxNoteFileBytes(env: NodeJS.ProcessEnv = process.env): number {
+  const parsed = Number(env.NOTE_FILE_MAX_BYTES ?? MAX_NOTE_FILE_BYTES)
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : MAX_NOTE_FILE_BYTES
+}
+
+/** RFC 6266 attr-char excludes these four characters that encodeURIComponent leaves alone. */
+function encodeAttrChars(value: string): string {
+  return encodeURIComponent(value).replace(/['()*]/g, (ch) =>
+    `%${ch.charCodeAt(0).toString(16).toUpperCase()}`,
+  )
+}
+
+/** RFC 6266 with a conservative ASCII fallback and a fully encoded UTF-8 name. */
+export function noteContentDisposition(disposition: "inline" | "attachment", rawName: string): string {
+  const base = rawName.split(/[\\/]/).pop()?.replace(/[\r\n]/g, "") || "note.pdf"
+  const ascii = base
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7E]/g, "")
+    .replace(/[^A-Za-z0-9._ -]/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/^\.+/, "") || "note.pdf"
+  return `${disposition}; filename="${ascii}"; filename*=UTF-8''${encodeAttrChars(base)}`
+}
+
+function declaredSize(upstream: Response): number | null {
+  const raw = upstream.headers.get("content-length")
+  if (raw === null) return null
+  const parsed = Number(raw)
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null
+}
+
 // GET /api/notes — list published notes (optionally filtered by ?category=)
-notesPublicRouter.get("/", listCache, async (req, res) => {
+notesPublicRouter.get("/", catalogListLimiter, listCache, async (req, res) => {
   try {
     const category = typeof req.query["category"] === "string" ? req.query["category"] : undefined
     // Bounded so arbitrary category strings cannot mint unbounded cache keys.
@@ -31,62 +108,133 @@ notesPublicRouter.get("/", listCache, async (req, res) => {
     const page = await listNotes(category, parsePageRequest(req.query))
     res.status(200).json(page)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
 // GET /api/notes/:id/download — return a presigned download URL for the note file
-notesRouter.get("/:id/download", async (req, res) => {
+notesRouter.get("/:id/download", requireAuth, downloadLimiter, async (req, res) => {
   try {
-    const id = req.params["id"]!
-    const result = await getDownload(id)
+    const result = await getDownload(noteId(req))
     res.status(200).json(result)
   } catch (err) {
-    handleError(err, res)
+    handleError(err, res, req)
   }
 })
 
 // GET /api/notes/:id/file — stream the note's PDF (same-origin so the client PDF viewer can read it)
-// ?download=1 forces an attachment download instead of inline preview
-// Note files are immutable once uploaded, so cache aggressively and answer
-// If-None-Match with a 304 before even contacting R2.
-notesRouter.get("/:id/file", async (req, res) => {
+// ?download=1 forces an attachment download instead of inline preview.
+// Authenticated files are never cacheable: no ETag, no 304, and an explicit
+// no-store header on success. Every request must pass Clerk again.
+notesRouter.get("/:id/file", requireAuth, fileLimiter, async (req, res) => {
+  let timeout: ReturnType<typeof setTimeout> | undefined
   try {
-    const id = req.params["id"]!
-    const note = await getNoteFile(id)
+    const note = await getNoteFile(noteId(req))
 
-    const etag = fileEtag(note.fileKey, note.fileSize)
-    // Declared before the 304 return, which deliberately short-circuits before
-    // contacting R2. It does not depend on the upstream fetch, so hoisting it
-    // costs nothing and keeps a revalidation from inheriting `no-store` — a 304
-    // that says "don't store" tells the client to discard the entry it just
-    // revalidated, defeating the point of the check.
-    res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
-    res.setHeader("ETag", etag)
-    if (req.headers["if-none-match"] === etag) {
-      res.status(304)
-      res.end()
-      return
+    const maxBytes = maxNoteFileBytes(process.env)
+    if (note.fileSize !== null && note.fileSize > maxBytes) {
+      throw new PayloadTooLargeError("Note file is too large.")
     }
 
-    const url = await getObjectUrl(note.fileKey)
-    const upstream = await fetch(url)
-    if (!upstream.ok || !upstream.body) {
-      res.status(502).json({ error: "Could not fetch the note file" })
-      return
+    let url: string
+    try {
+      url = await getObjectUrl(note.fileKey)
+    } catch {
+      throw new GatewayError("Could not fetch the note file")
+    }
+
+    const controller = new AbortController()
+    // The deadline covers the whole upstream response, including a body that
+    // stops streaming after its headers have arrived.
+    timeout = setTimeout(() => controller.abort(), noteFileTimeoutMs(process.env))
+    let upstream: Response
+    try {
+      upstream = await fetch(url, { signal: controller.signal })
+    } catch {
+      clearTimeout(timeout)
+      throw new GatewayError("Could not fetch the note file")
+    }
+
+    if (upstream.status === 404) throw new NotFoundError("Note file not found")
+    if (!upstream.ok || !upstream.body) throw new GatewayError("Could not fetch the note file")
+
+    const declared = declaredSize(upstream)
+    if (declared !== null && declared > maxBytes) {
+      controller.abort()
+      throw new PayloadTooLargeError("Note file is too large.")
     }
 
     const disposition = req.query["download"] === "1" ? "attachment" : "inline"
-    const safeName = note.fileName.replace(/["\\\r\n]/g, "")
+    res.setHeader("Cache-Control", NO_STORE)
     res.setHeader("Content-Type", "application/pdf")
-    res.setHeader("Content-Disposition", `${disposition}; filename="${safeName}"`)
-    if (note.fileSize) {
-      res.setHeader("Content-Length", String(note.fileSize))
+    res.setHeader("Content-Disposition", noteContentDisposition(disposition, note.fileName))
+    if (declared !== null) res.setHeader("Content-Length", String(declared))
+
+    const stream = Readable.fromWeb(upstream.body as never)
+    let received = 0
+    const limiter = new Transform({
+      transform(chunk, _encoding, callback) {
+        received += (chunk as Uint8Array).byteLength
+        if (received > maxBytes) {
+          controller.abort()
+          callback(new PayloadTooLargeError("Note file is too large."))
+          return
+        }
+        callback(null, chunk)
+      },
+    })
+    let streamFailed = false
+    const cleanup = (): void => {
+      if (timeout) clearTimeout(timeout)
+      res.off("close", onClose)
+      res.off("error", onResponseError)
+      stream.off("error", onStreamError)
+      limiter.off("error", onStreamError)
+      limiter.off("end", cleanup)
+      limiter.off("close", cleanup)
+    }
+    const abortUpstream = (): void => {
+      controller.abort()
+      stream.destroy()
+      limiter.destroy()
+    }
+    const onClose = (): void => {
+      // A normal finish also emits close; only an unfinished response is a
+      // client disconnect that should kill the upstream stream.
+      if (!res.writableEnded) {
+        abortUpstream()
+        cleanup()
+      }
+    }
+    const onResponseError = (): void => {
+      abortUpstream()
+      cleanup()
+    }
+    const onStreamError = (err?: unknown): void => {
+      if (streamFailed) return
+      streamFailed = true
+      abortUpstream()
+      cleanup()
+      if (!res.headersSent) {
+        const tooLarge = err instanceof PayloadTooLargeError
+        res.status(tooLarge ? 413 : 502).json({
+          error: tooLarge ? "Note file is too large." : "Could not fetch the note file",
+        })
+      } else {
+        res.destroy()
+      }
     }
 
-    Readable.fromWeb(upstream.body as never).pipe(res)
+    res.once("close", onClose)
+    res.once("error", onResponseError)
+    stream.once("error", onStreamError)
+    limiter.once("error", onStreamError)
+    limiter.once("end", cleanup)
+    limiter.once("close", cleanup)
+    stream.pipe(limiter).pipe(res)
   } catch (err) {
-    handleError(err, res)
+    if (timeout) clearTimeout(timeout)
+    handleError(err, res, req)
   }
 })
 

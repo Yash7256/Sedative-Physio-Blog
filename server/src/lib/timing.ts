@@ -4,11 +4,20 @@ const formatMs = (ms: number): string => ms.toFixed(3)
 
 /**
  * Server-Timing for catalog reads. The `cache` segment is always present so a
- * hit and a miss can be compared from the response alone; `load` exists only
- * when the route had to produce a body.
+ * hit and a miss can be compared from the response alone; `version` and `load`
+ * exist only when that work actually happened. Only durations are emitted, so
+ * no key, origin or user data can leak into the header.
  */
-export function serverTimingHeader(lookupMs: number, loadMs?: number): string {
-  const segments = [`cache;dur=${formatMs(lookupMs)};desc="catalog lookup"`]
+export function serverTimingHeader(
+  lookupMs: number,
+  loadMs?: number,
+  versionMs?: number,
+): string {
+  const segments: string[] = []
+  if (versionMs !== undefined) {
+    segments.push(`version;dur=${formatMs(versionMs)};desc="catalog version"`)
+  }
+  segments.push(`cache;dur=${formatMs(lookupMs)};desc="catalog lookup"`)
   if (loadMs !== undefined) {
     segments.push(`load;dur=${formatMs(loadMs)};desc="catalog load"`)
   }

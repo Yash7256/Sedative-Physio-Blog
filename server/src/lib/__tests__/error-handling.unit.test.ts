@@ -1,7 +1,7 @@
 import express from "express"
 import { describe, expect, it, vi } from "vitest"
 
-import { errorHandler } from "../errors.js"
+import { errorHandler, handleError } from "../errors.js"
 import { withServer } from "../../test/harness.js"
 
 vi.doMock("@clerk/express", () => ({
@@ -10,6 +10,8 @@ vi.doMock("@clerk/express", () => ({
 
 vi.doMock("../../auth/config.js", () => ({
   getAuthorizedParties: () => [],
+  getAllowedOrigins: () => ["http://localhost:5173"],
+  getClerkPublishableKey: () => undefined,
   assertProductionConfig: () => undefined,
 }))
 
@@ -62,5 +64,53 @@ describe("JSON error handling (F-11)", () => {
     expect(text).toBe('{"error":"Internal server error"}')
     expect(text).not.toContain("stack-marker-should-not-leak")
     expect(text).not.toContain("stack")
+  })
+
+  it("logs safe method, route pattern and request id for an unexpected error", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    const app = express()
+    app.get("/api/widgets/:id", () => {
+      throw Object.assign(new Error("user@example.com tok_secret"), {
+        name: "ThirdParty_Error!",
+      })
+    })
+    app.use(errorHandler)
+
+    const res = await withServer(app, (baseUrl) =>
+      fetch(`${baseUrl}/api/widgets/42?email=user@example.com`, {
+        headers: { "x-vercel-request-id": "req_abc123" },
+      }),
+    )
+    const logged = JSON.stringify(log.mock.calls)
+    log.mockRestore()
+
+    expect(res.status).toBe(500)
+    expect(logged).toContain("GET")
+    expect(logged).toContain("/api/widgets/:id")
+    expect(logged).toContain("req_abc123")
+    expect(logged).not.toContain("user@example.com")
+    expect(logged).not.toContain("tok_secret")
+    expect(logged).not.toContain("42?email")
+  })
+
+  it("ignores a PII-shaped request id and does not echo an error message", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    const app = express()
+    app.post("/api/widgets", (req, res) => {
+      handleError(new Error("contact@example.com private-upstream-detail"), res, req)
+    })
+
+    await withServer(app, (baseUrl) =>
+      fetch(`${baseUrl}/api/widgets`, {
+        method: "POST",
+        headers: { "x-request-id": "contact@example.com" },
+      }),
+    )
+    const logged = JSON.stringify(log.mock.calls)
+    log.mockRestore()
+
+    expect(logged).toContain("POST")
+    expect(logged).not.toContain("contact@example.com")
+    expect(logged).not.toContain("private-upstream-detail")
   })
 })

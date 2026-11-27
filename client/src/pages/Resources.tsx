@@ -1,12 +1,15 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react"
+import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { Box, Check, Download, Eye, Loader2, ShoppingCart, Sparkles } from "lucide-react"
 import { CourseDetailModal } from "../components/CourseDetailModal"
 import { NotePreviewModal } from "../components/NotePreviewModal"
 import { SmartImage } from "../components/SmartImage"
+import { ThemeImage } from "../components/ThemeImage"
+import { ApiError } from "../lib/api"
 import { useCart } from "../lib/cartContext"
 import {
-  fetchNoteDownload,
+  downloadNoteFile,
+  formatCoursePrice,
   modelToResource,
   noteToResource,
   courseToResource,
@@ -22,13 +25,30 @@ type PreviewState = { kind: "note"; id: string; title: string } | { kind: "model
 type ResourceFilter = "courses" | "3d-models" | "notes"
 
 const FILTER_PARAM = "type"
+const PREVIEW_PARAM = "preview"
+const PREVIEW_TITLE_PARAM = "previewTitle"
 const DEFAULT_FILTER: ResourceFilter = "courses"
 /** Long enough to ignore a click that is immediately reversed, short enough to feel instant. */
 const FILTER_DEBOUNCE_MS = 200
-const SKELETON_CARDS = 3
+const SKELETON_CARDS = 6
 
 function resourceFilterFrom(value: string | null): ResourceFilter {
   return value === "courses" || value === "3d-models" || value === "notes" ? value : DEFAULT_FILTER
+}
+
+/** The preview lives in the URL so browser Back closes the dialog naturally. */
+function previewFromParams(params: URLSearchParams): PreviewState {
+  const raw = params.get(PREVIEW_PARAM)
+  if (!raw) return null
+  const separator = raw.indexOf(":")
+  const kind = raw.slice(0, separator)
+  const value = raw.slice(separator + 1)
+  const title = params.get(PREVIEW_TITLE_PARAM) ?? ""
+  if (!value) return null
+  if (kind === "note") return { kind, id: value, title }
+  if (kind === "model") return { kind, url: value, title }
+  if (kind === "course") return { kind, slug: value, title }
+  return null
 }
 
 /** Card-shaped placeholder rendered inside the selected section, never as a page overlay. */
@@ -45,6 +65,7 @@ function ResourceCardSkeleton() {
 
 interface SectionStatus {
   label: string
+  isEnabled: boolean
   isPending: boolean
   isError: boolean
   isRefetchError: boolean
@@ -56,27 +77,24 @@ interface SectionStatus {
 interface LoadMoreStatus {
   hasNextPage: boolean
   isFetchingNextPage: boolean
-  onLoadMore: () => void
+  onLoadMore: () => Promise<void>
 }
 
 type StatusMessage = { text: string; tone: "loading" | "error" | "stale" }
 
-function formatCoursePrice(paise: number | undefined): string {
-  if (!paise) return "Free"
-  const rupees = paise / 100
-  return `₹${rupees.toFixed(Number.isInteger(rupees) ? 0 : 2)}`
-}
-
 /** Each section gets its own status; a failed query cannot hide a healthy one. */
 function sectionStatusMessage(status: SectionStatus | undefined): StatusMessage | null {
   if (!status) return null
+  // A "Load more" click is already announced by the button; don't double it.
+  if (status.isFetchingNextPage) return null
+  // Disabled queries are pending in React Query even though nothing is loading.
+  if (!status.isEnabled && status.isPending && !status.hasData) return null
   if (status.isPending && !status.hasData) return { text: `Loading ${status.label}…`, tone: "loading" }
   if (status.hasData && (status.isError || status.isRefetchError)) {
     return { text: `Could not refresh ${status.label}. Showing cached results.`, tone: "stale" }
   }
   if (status.isError || status.isRefetchError) return { text: `Could not load ${status.label}.`, tone: "error" }
-  // A "Load more" click is already announced by the button; don't double it.
-  if (status.isFetching && !status.isFetchingNextPage) return { text: `Refreshing ${status.label}…`, tone: "loading" }
+  if (status.isFetching) return { text: `Refreshing ${status.label}…`, tone: "loading" }
   return null
 }
 
@@ -103,6 +121,10 @@ export function Resources() {
   // The tab switches immediately but its query starts after the debounce, so a
   // click that is quickly reversed never triggers a request for the abandoned tab.
   const [queriedFilter, setQueriedFilter] = useState<ResourceFilter>(active)
+  const [loadMoreError, setLoadMoreError] = useState<Partial<Record<ResourceCategory | "podcast", boolean>>>({})
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const preview = useMemo(() => previewFromParams(searchParams), [searchParams])
 
   useEffect(() => {
     if (rawFilter === active) return
@@ -122,13 +144,19 @@ export function Resources() {
     return () => window.clearTimeout(timer)
   }, [active, queriedFilter])
 
+  const didMount = useRef(false)
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true
+      return
+    }
+    window.scrollTo(0, 0)
+  }, [active])
+
   const courseQuery = useCourseList({ enabled: queriedFilter === "courses", filter: queriedFilter })
-  const noteQuery = useNoteList({ enabled: queriedFilter === "notes", filter: queriedFilter })
+  const noteQuery = useNoteList({ enabled: queriedFilter === "notes", filter: queriedFilter, category: "notes" })
   // In production 3D models are a Coming Soon panel, so that filter never fetches.
   const modelQuery = useModelList({ enabled: queriedFilter === "3d-models" && !isProd, filter: queriedFilter })
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
-  const [downloadError, setDownloadError] = useState<string | null>(null)
-  const [preview, setPreview] = useState<PreviewState>(null)
 
   const noteCards = useMemo<Card[]>(() => flattenResourcePages(noteQuery.data).flatMap((note) => {
     const resource = noteToResource(note)
@@ -158,6 +186,7 @@ export function Resources() {
   const statuses: Partial<Record<ResourceCategory | "podcast", SectionStatus>> = {
     courses: {
       label: "courses",
+      isEnabled: queriedFilter === "courses",
       isPending: courseQuery.isPending,
       isError: courseQuery.isError,
       isRefetchError: courseQuery.isRefetchError,
@@ -167,6 +196,7 @@ export function Resources() {
     },
     notes: {
       label: "notes",
+      isEnabled: queriedFilter === "notes",
       isPending: noteQuery.isPending,
       isError: noteQuery.isError,
       isRefetchError: noteQuery.isRefetchError,
@@ -176,6 +206,7 @@ export function Resources() {
     },
     "3d-models": {
       label: "models",
+      isEnabled: queriedFilter === "3d-models" && !isProd,
       isPending: modelQuery.isPending,
       isError: modelQuery.isError,
       isRefetchError: modelQuery.isRefetchError,
@@ -185,45 +216,75 @@ export function Resources() {
     },
   }
 
+  const runLoadMore = useCallback(async (key: ResourceCategory | "podcast", fetchNextPage: () => Promise<unknown>) => {
+    setLoadMoreError((prev) => ({ ...prev, [key]: false }))
+    try {
+      await fetchNextPage()
+    } catch {
+      setLoadMoreError((prev) => ({ ...prev, [key]: true }))
+    }
+  }, [])
+
   const loadMore: Partial<Record<ResourceCategory | "podcast", LoadMoreStatus>> = {
     courses: {
       hasNextPage: courseQuery.hasNextPage,
       isFetchingNextPage: courseQuery.isFetchingNextPage,
-      onLoadMore: () => { void courseQuery.fetchNextPage() },
+      onLoadMore: () => runLoadMore("courses", courseQuery.fetchNextPage),
     },
     notes: {
       hasNextPage: noteQuery.hasNextPage,
       isFetchingNextPage: noteQuery.isFetchingNextPage,
-      onLoadMore: () => { void noteQuery.fetchNextPage() },
+      onLoadMore: () => runLoadMore("notes", noteQuery.fetchNextPage),
     },
     "3d-models": {
       hasNextPage: modelQuery.hasNextPage,
       isFetchingNextPage: modelQuery.isFetchingNextPage,
-      onLoadMore: () => { void modelQuery.fetchNextPage() },
+      onLoadMore: () => runLoadMore("3d-models", modelQuery.fetchNextPage),
     },
   }
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = useCallback(async (id: string) => {
     setDownloadingId(id)
     setDownloadError(null)
     try {
-      const { url, fileName } = await fetchNoteDownload(id)
-      const link = document.createElement("a")
-      link.href = url; link.download = fileName; document.body.appendChild(link); link.click(); link.remove()
-    } catch { setDownloadError("Could not start the download. Please try again.") } finally { setDownloadingId(null) }
-  }
-  const openPreview = (card: Card) => {
-    if (card.kind === "model" && card.url) setPreview({ kind: "model", url: card.url, title: card.title })
-    if (card.kind === "note") setPreview({ kind: "note", id: card.id, title: card.title })
-    if (card.kind === "course" && card.slug) setPreview({ kind: "course", slug: card.slug, title: card.title })
-  }
+      const card = noteCards.find((item) => item.id === id)
+      await downloadNoteFile(id, card?.fileName || card?.title || "note")
+    } catch (err) {
+      setDownloadError(err instanceof ApiError && err.isUnauthorized
+        ? "Sign in to download notes."
+        : "Could not start the download. Please try again.")
+    } finally {
+      setDownloadingId(null)
+    }
+  }, [noteCards])
+
+  const openPreview = useCallback((card: Card) => {
+    const value = card.kind === "note" ? card.id : card.kind === "model" ? card.url : card.slug
+    if (!value) return
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set(PREVIEW_PARAM, `${card.kind}:${value}`)
+      next.set(PREVIEW_TITLE_PARAM, card.title)
+      return next
+    })
+  }, [setSearchParams])
+
+  const closePreview = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete(PREVIEW_PARAM)
+      next.delete(PREVIEW_TITLE_PARAM)
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
+
   const visibleSections = librarySections.filter((section) => section.key === active)
 
   return <div className="resources-page min-h-screen overflow-hidden bg-[#f4f4f2] text-[#111214]">
-    <main className="mx-auto max-w-[1280px] px-5 pb-12 sm:px-10 sm:pb-16 lg:px-[52px]">
+    <div className="mx-auto max-w-[1280px] px-5 pb-12 sm:px-10 sm:pb-16 lg:px-[52px]">
       <section data-scroll-fade className="mx-auto grid max-w-[1280px] items-center gap-8 py-12 sm:grid-cols-[.9fr_1.1fr] sm:gap-10 sm:py-16">
         <div className="relative aspect-square w-full overflow-hidden rounded-[12px] bg-[#e9e9e7] sm:rounded-[18px]"><SmartImage data-parallax src="/mockup/bento4.webp" alt="Sedative Physio AI assistant" loading="eager" fetchPriority="high" className="h-full w-full object-cover" /></div>
-        <div className="flex max-w-[520px] flex-col items-start" data-reveal><p className="flex items-center gap-1.5 text-sm text-[#737477]"><Sparkles className="size-4 text-[#1683f6]" /> AI Assistant</p><h1 className="mt-3 text-[clamp(2rem,7vw,4.35rem)] font-bold leading-[1.01] tracking-[-0.04em]">Your Physiotherapy Companion</h1><p className="mt-4 max-w-[460px] text-[15px] leading-[1.45] text-[#686a6b] sm:text-base md:text-[18px]">Ask clinical questions, simplify complex concepts &amp; get personalized learning support.</p>{isProd ? <span className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#101113] px-6 py-3 text-sm font-medium text-white"><Sparkles className="size-4" /> Coming Soon</span> : <button type="button" className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#101113] px-6 py-3 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"><Sparkles className="size-4" /> Unlock AI Assistant</button>}</div>
+        <div className="flex max-w-[520px] flex-col items-start" data-reveal><p className="flex items-center gap-1.5 text-sm text-[#737477]"><Sparkles className="size-4 text-[#1683f6]" /> AI Assistant</p><h1 className="mt-3 text-[clamp(2rem,7vw,4.35rem)] font-bold leading-[1.01] tracking-[-0.04em]">Your Physiotherapy Companion</h1><p className="mt-4 max-w-[460px] text-[15px] leading-[1.45] text-[#686a6b] sm:text-base md:text-[18px]">Ask clinical questions, simplify complex concepts &amp; get personalized learning support.</p><span className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#101113] px-6 py-3 text-sm font-medium text-white"><Sparkles className="size-4" /> Coming Soon</span></div>
       </section>
       <section aria-label="Resource filters" className="border-y border-black/10 py-5">
         <div className="flex flex-wrap gap-2">
@@ -231,11 +292,12 @@ export function Resources() {
             <button
               key={key}
               type="button"
+              aria-pressed={active === key}
               onClick={() => setSearchParams((prev) => {
                 const next = new URLSearchParams(prev)
                 next.set(FILTER_PARAM, key)
                 return next
-              })}
+              }, { replace: true })}
               className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
                 active === key
                   ? "border-[#111214] bg-[#111214] text-white"
@@ -256,18 +318,26 @@ export function Resources() {
 
         const dynamic = section.key === "podcast" ? [] : cards.filter((card) => card.category === section.key)
         const status = statuses[section.key]
-        const message = sectionStatusMessage(status)
+        const showSkeleton = Boolean(status?.isPending && !status.hasData)
+        const message: StatusMessage | null = sectionStatusMessage(status)
         const more = loadMore[section.key]
-        const isFirstLoad = Boolean(status?.isPending && !status.hasData)
-        if (dynamic.length === 0 && !message && !more?.hasNextPage) return null
+        const loadMoreFailed = Boolean(more?.hasNextPage && loadMoreError[section.key])
+
+        if (dynamic.length === 0 && !message && !more?.hasNextPage && !showSkeleton) {
+          return <section key={section.key}>
+            <div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2></div>
+            <p className="text-sm text-[#6b6d70]">No {status?.label ?? "results"} found.</p>
+          </section>
+        }
 
         return <section key={section.key}>
           <div className="mb-5 flex items-end justify-between gap-4"><h2 className="text-[clamp(1.5rem,3.5vw,2.5rem)] font-bold leading-none tracking-[-.04em]">{section.title}</h2></div>
-          {message && <p className={`mb-4 text-sm ${statusClass[message.tone]}`} role={message.tone === "loading" ? "status" : "alert"}>{message.text}</p>}
-          {isFirstLoad && <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{Array.from({ length: SKELETON_CARDS }, (_, index) => <ResourceCardSkeleton key={index} />)}</div>}
-          {dynamic.length > 0 && <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{dynamic.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div>}
+          {message && <p className={`mb-4 text-sm ${statusClass[message.tone]}`} role={message.tone === "loading" ? "status" : "alert"} aria-live={message.tone === "loading" ? "polite" : "assertive"}>{message.text}</p>}
+          {loadMoreFailed && <p className="mb-4 text-sm text-[#8b4b42]" role="alert" aria-live="assertive">Could not load more {status?.label ?? "results"}.</p>}
+          {showSkeleton && <div data-testid="resource-grid" aria-busy="true" className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{Array.from({ length: SKELETON_CARDS }, (_, index) => <ResourceCardSkeleton key={index} />)}</div>}
+          {!showSkeleton && dynamic.length > 0 && <div data-testid="resource-grid" aria-busy="false" className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-8 sm:gap-y-10 xl:grid-cols-3">{dynamic.map((card) => <LiveCard key={card.id} card={card} downloadingId={downloadingId} onOpen={openPreview} onDownload={handleDownload} />)}</div>}
           {more?.hasNextPage && <div className="mt-8 flex justify-center">
-            <button type="button" onClick={more.onLoadMore} disabled={more.isFetchingNextPage} className="inline-flex items-center gap-2 rounded-full border border-black/20 px-6 py-2.5 text-sm font-medium transition-colors hover:border-black/50 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="button" onClick={() => { void more.onLoadMore() }} disabled={more.isFetchingNextPage} className="inline-flex items-center gap-2 rounded-full border border-black/20 px-6 py-2.5 text-sm font-medium transition-colors hover:border-black/50 disabled:cursor-not-allowed disabled:opacity-60">
               {more.isFetchingNextPage && <Loader2 className="size-4 animate-spin" />}
               {more.isFetchingNextPage ? "Loading more…" : "Load more"}
             </button>
@@ -275,14 +345,14 @@ export function Resources() {
         </section>
       })}</div>
       <section data-scroll-fade className="mt-16 overflow-hidden rounded-[18px] bg-[#575757] px-7 py-10 text-white sm:mt-24 sm:px-12 sm:py-14"><h2 data-reveal className="text-[clamp(2rem,4vw,4rem)] font-bold leading-none tracking-[-.04em]">Coming Soon</h2><p className="mt-4 max-w-[690px] text-sm leading-relaxed text-white/75">We’re continuously expanding our resource library. More tools and materials will be added soon to support your learning journey.</p><div className="mt-7 flex flex-wrap gap-2">{["Study Guides", "Clinical Protocols", "Video Tutorials", "Research Papers"].map((item) => <span key={item} className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/80">{item}</span>)}</div></section>
-    </main>
-    <NotePreviewModal open={preview?.kind === "note"} onClose={() => setPreview(null)} noteId={preview?.kind === "note" ? preview.id : null} noteTitle={preview?.kind === "note" ? preview.title : ""} />
-    <Suspense fallback={null}><ModelViewerModal open={preview?.kind === "model"} onClose={() => setPreview(null)} modelUrl={preview?.kind === "model" ? preview.url : null} modelName={preview?.kind === "model" ? preview.title : ""} /></Suspense>
-    <CourseDetailModal open={preview?.kind === "course"} onClose={() => setPreview(null)} slug={preview?.kind === "course" ? preview.slug : null} />
+    </div>
+    <NotePreviewModal open={preview?.kind === "note"} onClose={closePreview} noteId={preview?.kind === "note" ? preview.id : null} noteTitle={preview?.kind === "note" ? preview.title : ""} />
+    <Suspense fallback={null}><ModelViewerModal open={preview?.kind === "model"} onClose={closePreview} modelUrl={preview?.kind === "model" ? preview.url : null} modelName={preview?.kind === "model" ? preview.title : ""} /></Suspense>
+    <CourseDetailModal open={preview?.kind === "course"} onClose={closePreview} slug={preview?.kind === "course" ? preview.slug : null} />
   </div>
 }
 
-function LiveCard({
+export const LiveCard = memo(function LiveCard({
   card,
   downloadingId,
   onOpen,
@@ -336,8 +406,7 @@ function LiveCard({
       <button type="button" onClick={() => onOpen(card)} className="relative block aspect-square w-full overflow-hidden rounded-[12px] bg-[#dedfdd] text-left sm:rounded-[18px]">
         {card.image || card.imageDark
           ? <div className="absolute inset-0">
-              {card.image && <SmartImage src={card.image} alt={card.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035] dark:hidden" />}
-              {card.imageDark && <SmartImage src={card.imageDark} alt={card.title} className="hidden h-full w-full object-cover transition duration-500 group-hover:scale-[1.035] dark:block" />}
+              <ThemeImage src={card.image || card.imageDark!} darkSrc={card.imageDark} alt={card.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035]" />
             </div>
           : <div className="relative flex h-full flex-col items-center justify-center gap-3 overflow-hidden bg-[#0b0b0c] px-6 text-center dark:bg-[#f4f3ef]">
               <span className="pointer-events-none absolute -bottom-10 -right-4 select-none text-[130px] font-bold leading-none tracking-[-0.06em] text-white/[0.06] dark:text-black/[0.07]">{card.title.charAt(0)}</span>
@@ -369,7 +438,7 @@ function LiveCard({
         )}
       </div>
       <div className={`mt-3 grid gap-2 ${isCourse ? "sm:grid-cols-2" : "grid-cols-1"}`}>
-        <button type="button" onClick={() => onOpen(card)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/15 bg-transparent px-2 py-2 text-[11px] font-medium text-[#111214] transition-colors hover:bg-black hover:text-white sm:px-3 sm:text-xs">
+        <button type="button" onClick={() => onOpen(card)} aria-label={`View details for ${card.title}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-black/15 bg-transparent px-2 py-2 text-[11px] font-medium text-[#111214] transition-colors hover:bg-black hover:text-white sm:px-3 sm:text-xs">
           <Eye className="size-3.5" /> View Details
         </button>
         {isCourse && (
@@ -387,5 +456,4 @@ function LiveCard({
       </div>
     </article>
   )
-}
-
+})
