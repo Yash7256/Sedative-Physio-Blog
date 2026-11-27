@@ -85,3 +85,9 @@ export function useCart(): CartContextValue {
   if (!ctx) throw new Error("useCart must be used inside <CartProvider>")
   return ctx
 }
+
+/** Optional variant for public pages that also render outside the app tree. */
+// oxlint-disable-next-line react/only-export-components
+export function useOptionalCart(): CartContextValue | null {
+  return useContext(CartContext)
+}

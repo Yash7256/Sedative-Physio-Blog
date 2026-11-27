@@ -23,6 +23,10 @@
       "destination": { "service": "server" }
     },
     {
+      "source": "/courses/(.*)",
+      "destination": { "service": "server" }
+    },
+    {
       "source": "/(.*)",
       "destination": { "service": "client" }
     }

@@ -12,6 +12,7 @@ import { contactRouter } from "./contact/router.js"
 import { paymentsRouter } from "./payments/router.js"
 import { imagesRouter } from "./images/router.js"
 import { cacheRouter } from "./cache/router.js"
+import { createCoursePageRouter } from "./seo/router.js"
 import { healthRouter } from "./routes/health.js"
 import {
   assertProductionConfig,
@@ -75,6 +76,10 @@ export function createApp() {
   app.use("/api/courses", coursesRouter)
   app.use("/api/models", modelsRouter)
   app.use("/api/notes", notesPublicRouter)
+
+  // Canonical public course URLs carry their metadata in the first HTML
+  // response; anonymous by design, so this stays ahead of Clerk as well.
+  app.use("/courses", createCoursePageRouter())
 
   // Clerk verifies the session token (header or `__session` cookie) and attaches
   // the result to `req.auth` on every request. It does not reject anonymous
