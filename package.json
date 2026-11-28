@@ -25,7 +25,7 @@
     "@clerk/backend": "^3.31.1",
     "@clerk/express": "^2.1.93",
     "@prisma/adapter-pg": "^7.10.1",
-    "@prisma/client": "^7.10.0",
+    "@prisma/client": "^7.10.1",
     "@upstash/redis": "^1.41.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
