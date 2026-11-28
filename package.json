@@ -46,7 +46,7 @@
     "@types/node": "^24.13.3",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
-    "@vercel/node": "^5.1.14",
+    "@vercel/node": "^32.0.0",
     "concurrently": "^9.1.2",
     "prisma": "^7.10.0",
     "typescript": "~6.0.2"
